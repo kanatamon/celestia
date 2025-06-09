@@ -1,0 +1,42 @@
+{
+	"include": [
+		"**/*",
+		"**/.server/**/*",
+		"**/.client/**/*",
+		".react-router/types/**/*"
+	],
+	"compilerOptions": {
+		"types": ["node", "vite/client"],
+		"moduleResolution": "bundler",
+		"baseUrl": ".",
+		"rootDirs": [".", "./.react-router/types"],
+		"paths": {
+			"~/*": ["./app/*"]
+		},
+
+		"jsx": "react-jsx",
+		"checkJs": true,
+
+		/* Base Options: */
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "es2022",
+		"allowJs": true,
+		"resolveJsonModule": true,
+		"moduleDetection": "force",
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+
+		/* Strictness */
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+
+		/* If NOT transpiling with TypeScript: */
+		"module": "preserve",
+		"noEmit": true,
+
+		/* If your code runs in the DOM: */
+		"lib": ["es2022", "dom", "dom.iterable"]
+	}
+}
