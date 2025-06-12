@@ -123,7 +123,7 @@ const DreamyUsernameForm: React.FC = () => {
 				}}
 			>
 				<Form
-					action="/live"
+					action="/live-feed"
 					method="get"
 					style={{
 						position: 'relative',
@@ -218,7 +218,7 @@ export default function IndexRoute() {
 	return (
 		<div
 			style={{
-				backgroundImage: 'url(/background.png)',
+				backgroundImage: 'url(/background_pink_sky.png)',
 				backgroundSize: 'cover',
 				backgroundPosition: 'center',
 				width: '100%',

@@ -25,10 +25,10 @@ export type LiveStreamMessage =
 	  }
 	| {
 			status: 'disconnected';
-			reason: string;
+			reason: 'Stream ended' | (string & {});
 	  };
 
-export type TikTokLiveEvent =
+type _TikTokLiveEvent =
 	| {
 			event: 'live_stream';
 			data: LiveStreamMessage;
@@ -95,13 +95,18 @@ export type TikTokLiveEvent =
 	  };
 
 // Extract event names for type safety
-export type TikTokLiveEventName = TikTokLiveEvent['event'];
+export type TikTokLiveEventName = _TikTokLiveEvent['event'];
 
 // Helper type to get data type for specific event
 export type TikTokLiveEventData<T extends TikTokLiveEventName> = Extract<
-	TikTokLiveEvent,
+	_TikTokLiveEvent,
 	{ event: T }
 >['data'];
+
+export type TikTokLiveEvent<T extends TikTokLiveEventName> = {
+	event: T;
+	data: TikTokLiveEventData<T>;
+};
 
 // Server-side helpers
 export class TikTokLiveEventSender {

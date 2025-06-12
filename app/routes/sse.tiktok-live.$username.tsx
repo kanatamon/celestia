@@ -1,8 +1,8 @@
 import type { Route } from './+types/sse.tiktok-live.$username';
 import { TikTokLiveConnection, WebcastEvent } from 'tiktok-live-connector';
-import { requireEnv } from '~/env-utils.server';
-import { eventStream } from '~/event-stream.sever';
-import { TikTokLiveEventSender } from '~/tiktok-live-events';
+import { requireEnv } from '~/lib/env-utils.server';
+import { eventStream } from '~/lib/event-stream.sever';
+import { TikTokLiveEventSender } from '~/lib/tiktok-live-events';
 
 export async function loader({
 	request,
