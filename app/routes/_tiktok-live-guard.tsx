@@ -1,5 +1,5 @@
 import type { Route } from './+types/_tiktok-live-guard';
-import { Flex, Modal, Space, Typography } from 'antd';
+import { Alert, Flex, Modal, Space, Typography } from 'antd';
 import { Unplug } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router';
@@ -125,23 +125,19 @@ const TikTokLiveConnectionAlert: React.FC<{ username: string }> = ({
 						Failed to connect to the live stream for{' '}
 						<Highlight>@{username}</Highlight>. Please try again later.
 					</Paragraph>
-					<pre
+					<Alert
 						style={{
-							margin: 0,
-							fontFamily: 'inherit',
 							background:
 								'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01))',
 							backdropFilter: 'blur(10px)',
 							borderRadius: '8px',
 							padding: '12px',
 							color: 'rgba(255, 255, 255, 0.95)',
-							fontSize: '14px',
-							lineHeight: '1.5',
-							overflowX: 'auto',
+							border: 0,
 						}}
-					>
-						{JSON.stringify(connection, null, 4)}
-					</pre>
+						message={connection.message || connection.status}
+						type="error"
+					/>
 				</Flex>
 			</Space>
 		</Modal>
