@@ -1,17 +1,9 @@
-import type { GiftCount, User } from '../types';
+import type { LiveChatMessage, LiveGiftMessage } from '~/lib/tiktok-live-store';
 import { Avatar, Image, Space, Typography } from 'antd';
 import { Highlight } from '~/components/_ui/highlight';
+import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 
 const { Text } = Typography;
-
-export interface MessageEvent {
-	type: 'message';
-	id: string;
-	user: User;
-	message: string;
-	timestamp: Date;
-	gifts: GiftCount[];
-}
 
 // Helper function to highlight mentions
 const highlightMentions = (text: string) => {
@@ -20,28 +12,31 @@ const highlightMentions = (text: string) => {
 
 	return parts.map((part, index) => {
 		if (index % 2 === 1) {
-			return (
-				<Highlight
-					key={index}
-					style={{
-						color: '#a78bfa',
-						fontWeight: 'bold',
-						textShadow: '0 0 8px rgba(167, 139, 250, 0.3)',
-					}}
-				>
-					@{part}
-				</Highlight>
-			);
+			return <Highlight key={index}>@{part}</Highlight>;
 		}
 		return part;
 	});
 };
 
-export const MessageEventCard: React.FC<{ event: MessageEvent }> = ({
+export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	event,
 }) => {
-	const { user, message, gifts } = event;
+	const giftEvents = useTikTokLiveStore((state) =>
+		event.user ? state.userGiftEvents.get(event.user.uniqueId) : [],
+	);
+	const gifts = giftEvents?.reduce((acc, gift) => {
+		const existing = acc.get(gift.giftId);
+		const previousCount = existing?.count || 0;
+		if (gift.repeatEnd) {
+			acc.set(gift.giftId, {
+				giftDetails: gift.giftDetails,
+				count: previousCount + gift.repeatCount,
+			});
+		}
+		return acc;
+	}, new Map<number, { giftDetails: LiveGiftMessage['giftDetails']; count: number }>());
 
+	const { user, comment } = event;
 	return (
 		<div
 			style={{
@@ -55,7 +50,7 @@ export const MessageEventCard: React.FC<{ event: MessageEvent }> = ({
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-				<Avatar src={user.avatar} size={36} />
+				<Avatar src={user?.profilePicture?.urls.at(-1)} size={36} />
 				<div style={{ flex: 1 }}>
 					<div
 						style={{
@@ -72,13 +67,17 @@ export const MessageEventCard: React.FC<{ event: MessageEvent }> = ({
 								textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
 							}}
 						>
-							{user.name}
+							{user?.nickname || 'Anonymous'}
 						</Text>
-						{gifts.length > 0 && (
+						{gifts?.size ? (
 							<Space size={12}>
-								{gifts.map((gift, index) => (
+								{Array.from(gifts.values()).map((gift, index) => (
 									<Space key={index} size={2} align="center">
-										<Image src={gift.image} width={18} alt={gift.name} />
+										<Image
+											src={gift.giftDetails?.giftImage?.giftPictureUrl}
+											width={18}
+											alt={gift.giftDetails?.giftName}
+										/>
 										<Space
 											size={2}
 											align="baseline"
@@ -106,17 +105,9 @@ export const MessageEventCard: React.FC<{ event: MessageEvent }> = ({
 											</Text>
 										</Space>
 									</Space>
-									// <Badge
-									// 	key={index}
-									// 	count={gift.count}
-									// 	size="small"
-									// 	color="gold"
-									// >
-									// 	<Image src={gift.image} width={18} alt={gift.name} />
-									// </Badge>
 								))}
 							</Space>
-						)}
+						) : null}
 					</div>
 					<Text
 						style={{
@@ -126,7 +117,7 @@ export const MessageEventCard: React.FC<{ event: MessageEvent }> = ({
 							textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
 						}}
 					>
-						{highlightMentions(message)}
+						{highlightMentions(comment)}
 					</Text>
 				</div>
 			</div>

@@ -1,19 +1,13 @@
-import type { Gift, User } from '../types';
+import type { LiveGiftMessage } from '~/lib/tiktok-live-store';
 import { Avatar, Flex, Image, Space, Typography } from 'antd';
 
-const { Text, Title } = Typography;
-
-export interface GiftEvent {
-	type: 'gift';
-	id: string;
-	user: User;
-	gift: Gift;
-	timestamp: Date;
-}
+const { Text } = Typography;
 
 // Gift Event Component
-export const GiftEventCard: React.FC<{ event: GiftEvent }> = ({ event }) => {
-	const { user, gift } = event;
+export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
+	event,
+}) => {
+	const { user, giftDetails, repeatCount } = event;
 
 	return (
 		<div
@@ -21,40 +15,49 @@ export const GiftEventCard: React.FC<{ event: GiftEvent }> = ({ event }) => {
 				padding: '6px 8px',
 				borderRadius: '16px',
 				background:
-					'linear-gradient(135deg, rgba(251, 146, 60, 0.15), rgba(245, 101, 101, 0.15))',
-				// background:
-				// 	'linear-gradient(135deg, rgba(251, 146, 60, 0.75), rgba(245, 101, 101, 0.01))',
+					'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 223, 0, 0.15))',
 				backdropFilter: 'blur(20px)',
-				border: '1px solid rgba(251, 146, 60, 0.3)',
-				boxShadow: '0 8px 32px rgba(251, 146, 60, 0.1)',
+				border: '1px solid rgba(255, 215, 0, 0.3)',
+				boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)',
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
-				<Avatar
-					src={user.avatar}
-					size={36}
-					// style={{ border: '2px solid rgba(255, 255, 255, 0.1)' }}
-				/>
+				<Avatar src={user?.profilePicture?.urls.at(-1)} size={36} />
 				<Flex style={{ flex: 1 }} vertical justify="space-between">
 					<Text
 						strong
-						style={{ color: 'rgba(255, 255, 255, 0.95)', fontSize: '14px' }}
+						style={{
+							color: 'rgba(255, 223, 0, 0.95)',
+							fontSize: '14px',
+							textShadow: '0 0 8px rgba(255, 223, 0, 0.8)',
+						}}
 					>
-						{user.name}
+						{user?.nickname || 'Anonymous'}
 					</Text>
-					<Text style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
-						Sent {gift.name}
+					<Text
+						style={{
+							color: 'rgba(255, 223, 0, 0.7)',
+							fontSize: '12px',
+							textShadow: '0 0 6px rgba(255, 223, 0, 0.6)',
+						}}
+					>
+						Sent {giftDetails?.giftName || 'a gift'}
 					</Text>
 				</Flex>
 				<Space size={8} align="end">
-					<Image width={40} alt={gift.name} src={gift.image} />
+					<Image
+						width={40}
+						alt={giftDetails?.giftName}
+						src={giftDetails?.giftImage?.giftPictureUrl}
+					/>
 					<Space
 						size={2}
 						align="baseline"
 						style={{
 							fontStyle: 'italic',
-							color: 'rgba(255, 255, 255, 0.95)',
+							color: 'rgba(255, 223, 0, 0.95)',
 							fontWeight: 'bold',
+							textShadow: '0 0 8px rgba(255, 223, 0, 0.8)',
 						}}
 					>
 						<Text
@@ -69,9 +72,10 @@ export const GiftEventCard: React.FC<{ event: GiftEvent }> = ({ event }) => {
 							style={{
 								color: 'currentcolor',
 								fontSize: '20px',
+								textShadow: '0 0 10px rgba(255, 223, 0, 1)',
 							}}
 						>
-							{gift.repeat}
+							{repeatCount}
 						</Text>
 					</Space>
 				</Space>

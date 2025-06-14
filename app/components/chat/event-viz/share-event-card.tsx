@@ -1,16 +1,9 @@
-import type { User } from '../types';
+import type { LiveShareMessage } from '~/lib/tiktok-live-store';
 import { Avatar, Typography } from 'antd';
 
 const { Text } = Typography;
 
-export interface ShareEvent {
-	type: 'share';
-	id: string;
-	user: User;
-	timestamp: Date;
-}
-
-export const ShareEventComponent: React.FC<{ event: ShareEvent }> = ({
+export const ShareEventComponent: React.FC<{ event: LiveShareMessage }> = ({
 	event,
 }) => {
 	return (
@@ -26,7 +19,7 @@ export const ShareEventComponent: React.FC<{ event: ShareEvent }> = ({
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-				<Avatar src={event.user.avatar} size={36} />
+				<Avatar src={event.user?.profilePicture?.urls.at(-1)} size={36} />
 				<Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px' }}>
 					<Text
 						strong
@@ -34,7 +27,7 @@ export const ShareEventComponent: React.FC<{ event: ShareEvent }> = ({
 							color: 'rgb(119, 88, 211)',
 						}}
 					>
-						{event.user.name}
+						{event.user?.nickname || 'Anonymous'}
 					</Text>{' '}
 					shared this live
 				</Text>

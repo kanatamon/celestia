@@ -1,3 +1,4 @@
+import type { WebcastMessageEvent } from 'tiktok-live-connector';
 import invariant from 'tiny-invariant';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 import { TikTokLiveEventSource } from './tiktok-live-events';
@@ -253,44 +254,61 @@ class TikTokLiveClient {
 	private setupEventHandlers() {
 		invariant(this.source, 'TikTokLiveEventSource is not initialized');
 
+		const imagineMessageEvent = (
+			event?: WebcastMessageEvent | undefined | null,
+		) => ({
+			msgId: event?.msgId || crypto.randomUUID(),
+			createTime: event?.createTime || Date.now().toString(),
+			eventDetails: event?.eventDetails,
+		});
+
 		this.source.onEvents({
 			connection: (data) => {
 				this.store.updateConnection(data);
 			},
 			chat: (data) => {
+				const msgEvent = imagineMessageEvent(data.event);
 				this.store.addChatEvent({
-					id: data.event?.msgId || crypto.randomUUID(),
-					event: 'chat',
-					data,
+					id: msgEvent.msgId,
+					type: 'chat',
+					...data,
+					event: msgEvent,
 				});
 			},
 			gift: (data) => {
-				// TODO: Group repeated gifts from the same user
+				const msgEvent = imagineMessageEvent(data.event);
 				this.store.addChatEvent({
-					id: data.event?.msgId || crypto.randomUUID(),
-					event: 'gift',
-					data,
+					id: msgEvent.msgId,
+					type: 'gift',
+					...data,
+					event: msgEvent,
 				});
 			},
 			follow: (data) => {
+				const msgEvent = imagineMessageEvent(data.event);
 				this.store.addChatEvent({
-					id: data.event?.msgId || crypto.randomUUID(),
-					event: 'follow',
-					data,
+					id: msgEvent.msgId,
+					type: 'follow',
+					...data,
+					event: msgEvent,
 				});
 			},
 			share: (data) => {
+				const msgEvent = imagineMessageEvent(data.event);
 				this.store.addChatEvent({
-					id: data.event?.msgId || crypto.randomUUID(),
-					event: 'share',
-					data,
+					id: msgEvent.msgId,
+					type: 'share',
+					...data,
+					event: msgEvent,
 				});
 			},
 			like: (data) => {
+				const msgEvent = imagineMessageEvent(data.event);
 				this.store.addInteractionEvent({
-					id: data.event?.msgId || crypto.randomUUID(),
-					event: 'like',
-					data,
+					id: msgEvent.msgId,
+					type: 'like',
+					...data,
+					event: msgEvent,
 				});
 			},
 			room_user: (data) => {
@@ -300,10 +318,12 @@ class TikTokLiveClient {
 				});
 			},
 			member: (data) => {
+				const msgEvent = imagineMessageEvent(data.event);
 				this.store.addJoinEvent({
-					id: data.event?.msgId || crypto.randomUUID(),
-					event: 'member',
-					data,
+					id: msgEvent.msgId,
+					type: 'member',
+					...data,
+					event: msgEvent,
 				});
 			},
 		});

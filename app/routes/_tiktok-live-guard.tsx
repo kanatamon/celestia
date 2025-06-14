@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router';
 import { Button } from '~/components/_ui/button';
 import { Highlight } from '~/components/_ui/highlight';
+import { TikTokLiveLikeCounter } from '~/components/chat/tiktok-live-like-counter';
+import { TikTokLiveStatusBadge } from '~/components/chat/tiktok-live-status-badge';
+import { TikTokLiveViewerCounter } from '~/components/chat/tiktok-live-viewer-counter';
 import { tikTokLiveClient } from '~/lib/tiktok-live-client';
 import { isConnectionError } from '~/lib/tiktok-live-events';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
@@ -157,6 +160,8 @@ export default function TikTokLiveGuardLayout({
 				backgroundPosition: 'center',
 				width: '100%',
 				height: '100%',
+				maxWidth: '100vw',
+				overflowX: 'hidden',
 			}}
 		>
 			{['connecting', 'tiktok:authenticating'].includes(connection.status) ? (
@@ -179,7 +184,33 @@ export default function TikTokLiveGuardLayout({
 					</Text>
 				</div>
 			) : (
-				<Outlet />
+				<>
+					<div
+						style={{
+							position: 'fixed',
+							top: 0,
+							left: 0,
+							right: 0,
+							width: '100%',
+						}}
+					>
+						<Flex
+							justify="end"
+							style={{
+								padding: '16px',
+								maxWidth: '768px',
+								margin: '0 auto',
+							}}
+						>
+							<Space align="center">
+								<TikTokLiveLikeCounter />
+								<TikTokLiveViewerCounter />
+								<TikTokLiveStatusBadge />
+							</Space>
+						</Flex>
+					</div>
+					<Outlet />
+				</>
 			)}
 			<TikTokLiveConnectionAlert username={username} />
 		</div>

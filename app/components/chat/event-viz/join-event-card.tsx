@@ -1,37 +1,11 @@
-import type {
-	TikTokLiveEvent,
-	TikTokLiveEventData,
-} from '~/lib/tiktok-live-events';
-import type { User } from '../types';
+import type { LiveMemberMessage } from '~/lib/tiktok-live-store';
 import { Typography } from 'antd';
 import { LogIn } from 'lucide-react';
 
 const { Text } = Typography;
 
-export interface JoinEvent {
-	type: 'join';
-	id: string;
-	user: User;
-	timestamp: Date;
-}
-
-export const imagineJoinEvent = (
-	event: TikTokLiveEvent<'member'> & { id: string },
-): JoinEvent => {
-	return {
-		type: 'join',
-		id: event.id,
-		user: {
-			id: event.data.user?.userId || 'unknown',
-			name: event.data.user?.nickname || 'New User',
-			avatar: event.data.user?.profilePicture?.urls?.at(-1) || '',
-		},
-		timestamp: new Date(event.data.event?.createTime || Date.now()),
-	};
-};
-
 export const JoinEventCard: React.FC<{
-	event: JoinEvent;
+	event: LiveMemberMessage;
 	style?: React.CSSProperties;
 }> = ({ event, style = {} }) => {
 	return (
@@ -70,7 +44,7 @@ export const JoinEventCard: React.FC<{
 				</div>
 				<Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px' }}>
 					<Text strong style={{ color: '#60a5fa' }}>
-						{event.user.name}
+						{event.user?.nickname || 'New user'}
 					</Text>{' '}
 					joined
 				</Text>

@@ -1,16 +1,9 @@
-import type { User } from '../types';
+import type { LiveFollowMessage } from '~/lib/tiktok-live-store';
 import { Avatar, Typography } from 'antd';
 
 const { Text } = Typography;
 
-export interface FollowerEvent {
-	type: 'follower';
-	id: string;
-	user: User;
-	timestamp: Date;
-}
-
-export const FollowerEventCard: React.FC<{ event: FollowerEvent }> = ({
+export const FollowerEventCard: React.FC<{ event: LiveFollowMessage }> = ({
 	event,
 }) => {
 	return (
@@ -26,10 +19,10 @@ export const FollowerEventCard: React.FC<{ event: FollowerEvent }> = ({
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-				<Avatar src={event.user.avatar} size={36} />
+				<Avatar src={event.user?.profilePicture?.urls.at(-1)} size={36} />
 				<Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px' }}>
 					<Text strong style={{ color: '#60efff' }}>
-						{event.user.name}
+						{event.user?.nickname || 'Anonymous'}
 					</Text>{' '}
 					started following
 				</Text>

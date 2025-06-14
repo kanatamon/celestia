@@ -1,21 +1,23 @@
-import type { User } from '../types';
+import type { LiveLikeMessage } from '~/lib/tiktok-live-store';
 import { Avatar } from 'antd';
 import { Heart } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { useTimeout } from '~/lib/use-timeout';
 
-export interface LikeEvent {
-	id: string;
-	user: User;
-	type: 'like';
-	timestamp: Date;
-	position: number; // For staggered positioning
-}
+const randomPosition = (min: number, max: number) => {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
 export const LikeEventBubble: React.FC<{
-	event: LikeEvent;
+	event: LiveLikeMessage;
 	onComplete: (id: string) => void;
 	duration?: number;
-}> = ({ event, onComplete, duration = 4000 }) => {
+	positionRange?: [number, number];
+}> = ({ positionRange = [0, 50], event, onComplete, duration = 4000 }) => {
+	const [position] = useState(() =>
+		randomPosition(positionRange[0], positionRange[1]),
+	);
+
 	useTimeout(() => {
 		onComplete(event.id);
 	}, duration);
@@ -29,14 +31,15 @@ export const LikeEventBubble: React.FC<{
 
 	return (
 		<div
-			style={{
-				position: 'absolute',
-				right: `${20 + event.position * 15}px`,
-				bottom: '20px',
-				zIndex: 1000,
-				animation: `floatUp ${duration}ms ease-out forwards`,
-				animationDelay: `${event.position * 0.2}s`,
-			}}
+			style={
+				{
+					'--position': `${position}px`,
+					position: 'absolute',
+					zIndex: 1000,
+					animation: `floatUp ${duration}ms ease-out forwards`,
+					willChange: 'transform, opacity',
+				} as React.CSSProperties
+			}
 		>
 			<div
 				style={{
@@ -57,13 +60,15 @@ export const LikeEventBubble: React.FC<{
 					}}
 				>
 					<Avatar
-						src={event.user.avatar}
+						src={event.user?.profilePicture?.urls.at(-1)}
 						size={44}
 						style={{
 							border: '2px solid rgba(255, 255, 255, 0.2)',
 							boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
 						}}
-					/>
+					>
+						{event.user?.nickname?.charAt(0).toUpperCase() || '?'}
+					</Avatar>
 				</div>
 
 				{/* Event Icon */}
@@ -89,19 +94,19 @@ export const LikeEventBubble: React.FC<{
           @keyframes floatUp {
             0% {
               opacity: 0;
-              transform: translateY(0px) scale(0.8);
+              transform: translateX(var(--position)) translateY(0px) scale(0);
             }
-            15% {
+            25% {
               opacity: 1;
-              transform: translateY(-20px) scale(1);
+              transform: translateX(var(--position)) translateY(-100px) scale(1);
             }
             85% {
               opacity: 1;
-              transform: translateY(-150px) scale(1);
+              transform: translateX(var(--position)) translateY(-250px) scale(1);
             }
             100% {
               opacity: 0;
-              transform: translateY(-200px) scale(0.9);
+              transform: translateX(var(--position)) translateY(-300px) scale(0.9);
             }
           }
 
