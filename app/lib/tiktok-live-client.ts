@@ -274,6 +274,10 @@ class TikTokLiveClient {
 					...data,
 					event: msgEvent,
 				});
+
+				this.store.updateConnection({
+					status: 'tiktok:live_active',
+				});
 			},
 			gift: (data) => {
 				const msgEvent = imagineMessageEvent(data.event);
@@ -282,6 +286,10 @@ class TikTokLiveClient {
 					type: 'gift',
 					...data,
 					event: msgEvent,
+				});
+
+				this.store.updateConnection({
+					status: 'tiktok:live_active',
 				});
 			},
 			follow: (data) => {
@@ -313,6 +321,7 @@ class TikTokLiveClient {
 			},
 			room_user: (data) => {
 				this.store.updateViewerCount(data.viewerCount);
+
 				this.store.updateConnection({
 					status: 'tiktok:live_active',
 				});
@@ -324,6 +333,10 @@ class TikTokLiveClient {
 					type: 'member',
 					...data,
 					event: msgEvent,
+				});
+
+				this.store.updateConnection({
+					status: 'tiktok:live_active',
 				});
 			},
 		});
