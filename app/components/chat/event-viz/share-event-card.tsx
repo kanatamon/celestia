@@ -12,10 +12,10 @@ export const ShareEventComponent: React.FC<{ event: LiveShareMessage }> = ({
 				padding: '6px 8px',
 				borderRadius: '12px',
 				background:
-					'linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.15))',
+					'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(52, 211, 153, 0.15))',
 				backdropFilter: 'blur(20px)',
-				border: '1px solid rgba(168, 85, 247, 0.3)',
-				boxShadow: '0 4px 24px rgba(168, 85, 247, 0.1)',
+				border: '1px solid rgba(34, 197, 94, 0.3)',
+				boxShadow: '0 4px 24px rgba(34, 197, 94, 0.1)',
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -24,7 +24,7 @@ export const ShareEventComponent: React.FC<{ event: LiveShareMessage }> = ({
 					<Text
 						strong
 						style={{
-							color: 'rgb(119, 88, 211)',
+							color: 'rgb(34, 197, 94)',
 						}}
 					>
 						{event.user?.nickname || 'Anonymous'}
