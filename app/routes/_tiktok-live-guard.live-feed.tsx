@@ -1,30 +1,12 @@
 import type { Route } from './+types/_tiktok-live-guard.live-feed';
-import { Flex, Space, Typography } from 'antd';
-import invariant from 'tiny-invariant';
+import { Flex, Typography } from 'antd';
 import { NewUserJoinEventCard } from '~/components/chat/new-user-join-even-card';
 import { TikTokLiveChatFeed } from '~/components/chat/tiktok-live-chat-feed';
 import { TikTokLiveInteractionBubbleSpawnPoint } from '~/components/chat/tiktok-live-interaction-bubble-spawn-point';
-import { TikTokLiveLikeCounter } from '~/components/chat/tiktok-live-like-counter';
-import { TikTokLiveStatusBadge } from '~/components/chat/tiktok-live-status-badge';
-import { TikTokLiveViewerCounter } from '~/components/chat/tiktok-live-viewer-counter';
 
 const { Title } = Typography;
 
-export function clientLoader({ request }: Route.ClientLoaderArgs) {
-	const url = new URL(request.url);
-	const username = url.searchParams.get('username');
-	invariant(
-		username,
-		`Username is required in the search params. Example: ?username=your_username`,
-	);
-	return {
-		username,
-	};
-}
-
-export default function LiveRoute({
-	loaderData: { username },
-}: Route.ComponentProps) {
+export default function LiveRoute({}: Route.ComponentProps) {
 	return (
 		<>
 			<div
