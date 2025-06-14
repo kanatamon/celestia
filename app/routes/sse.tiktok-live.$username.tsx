@@ -1,8 +1,57 @@
 import type { Route } from './+types/sse.tiktok-live.$username';
-import { TikTokLiveConnection, WebcastEvent } from 'tiktok-live-connector';
+import {
+	AlreadyConnectedError,
+	AlreadyConnectingError,
+	ExtractRoomIdError,
+	FetchIsLiveError,
+	InvalidResponseError,
+	InvalidSchemaNameError,
+	InvalidUniqueIdError,
+	MissingRoomIdError,
+	TikTokLiveConnection,
+	UserOfflineError,
+	WebcastEvent,
+} from 'tiktok-live-connector';
 import { requireEnv } from '~/lib/env-utils.server';
 import { eventStream } from '~/lib/event-stream.sever';
 import { TikTokLiveEventSender } from '~/lib/tiktok-live-events';
+
+function humanizeTikTokError(error: unknown): string {
+	if (error instanceof ExtractRoomIdError) {
+		return 'Invalid username or room not found';
+	}
+	if (error instanceof InvalidUniqueIdError) {
+		return 'Invalid username or room not found';
+	}
+	if (error instanceof FetchIsLiveError) {
+		return 'Failed to fetch live status, room might not be live';
+	}
+	if (error instanceof InvalidResponseError) {
+		return `Invalid response from TikTok API: ${error.message}`;
+	}
+	if (error instanceof MissingRoomIdError) {
+		return 'Missing room ID, unable to connect to TikTok live';
+	}
+	if (error instanceof AlreadyConnectingError) {
+		return 'Already connecting to TikTok live, please wait';
+	}
+	if (error instanceof AlreadyConnectedError) {
+		return 'Already connected to TikTok live';
+	}
+	if (error instanceof UserOfflineError) {
+		return 'User is offline, no live stream available';
+	}
+	if (error instanceof InvalidSchemaNameError) {
+		return 'Invalid schema name, please check the TikTok live connector configuration';
+	}
+	if (error instanceof TikTokLiveConnection) {
+		return 'TikTok live connection error, please check your connection settings';
+	}
+	if (error instanceof Error) {
+		return error.message;
+	}
+	return `Unknown error, received: ${String(error)}`;
+}
 
 export async function loader({
 	request,
@@ -14,18 +63,26 @@ export async function loader({
 		const connection = new TikTokLiveConnection(username, {
 			sessionId,
 		});
+		sever.send('connection', {
+			status: 'tiktok:authenticating',
+		});
 		connection
 			.connect()
 			.then((state) => {
-				sever.send('live_stream', {
-					status: 'connected',
-					roomId: state.roomId,
-				});
+				if (state.isConnected && state.roomId) {
+					sever.send('connection', {
+						status: 'tiktok:room_found',
+					});
+				} else {
+					sever.send('connection', {
+						status: 'tiktok:room_not_found',
+					});
+				}
 			})
 			.catch((error: unknown) => {
-				sever.send('live_stream', {
-					status: 'error',
-					error: error instanceof Error ? error.message : `Unknown error`,
+				sever.send('connection', {
+					status: 'tiktok:error',
+					message: humanizeTikTokError(error),
 				});
 			});
 
@@ -59,9 +116,8 @@ export async function loader({
 		);
 		connection.on(WebcastEvent.SHARE, (data) => sever.send('share', data));
 		connection.on(WebcastEvent.STREAM_END, () =>
-			sever.send('live_stream', {
-				status: 'disconnected',
-				reason: `Stream ended`,
+			sever.send('connection', {
+				status: 'tiktok:stream_ended',
 			}),
 		);
 

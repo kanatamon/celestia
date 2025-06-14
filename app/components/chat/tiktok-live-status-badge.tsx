@@ -2,13 +2,17 @@ import type { LiveStatus } from '~/components/_ui/live-status-badge';
 import type { LiveStreamConnection } from '~/lib/tiktok-live-store';
 import { LiveStatusBadge } from '~/components/_ui/live-status-badge';
 import { tikTokLiveClient } from '~/lib/tiktok-live-client';
+import { isConnectionError } from '~/lib/tiktok-live-events';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 
 const getLiveStatus = (connection: LiveStreamConnection): LiveStatus => {
-	if (connection.status === 'live') {
+	if (connection.status === 'tiktok:live_active') {
 		return 'live';
 	}
-	if (connection.status === 'connected') {
+	if (connection.status === 'tiktok:room_found') {
+		return 'starting';
+	}
+	if (connection.status === 'tiktok:authenticating') {
 		return 'starting';
 	}
 	if (connection.status === 'connecting') {
@@ -17,10 +21,7 @@ const getLiveStatus = (connection: LiveStreamConnection): LiveStatus => {
 	if (connection.status === 'reconnecting') {
 		return 'reconnecting';
 	}
-	if (
-		connection.status === 'disconnected' &&
-		connection.reason === 'Stream ended'
-	) {
+	if (connection.status === 'tiktok:stream_ended') {
 		return 'ended';
 	}
 	return 'disconnected';
@@ -33,7 +34,7 @@ export const TikTokLiveStatusBadge = () => {
 		<LiveStatusBadge
 			status={status}
 			onClick={() => {
-				if (connection.status === 'disconnected') {
+				if (isConnectionError(connection.status)) {
 					tikTokLiveClient.retry();
 				}
 			}}

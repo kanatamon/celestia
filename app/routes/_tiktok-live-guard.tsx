@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router';
 import { Button } from '~/components/_ui/button';
 import { Highlight } from '~/components/_ui/highlight';
+import { tikTokLiveClient } from '~/lib/tiktok-live-client';
+import { isConnectionError } from '~/lib/tiktok-live-events';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 import { useTikTokLiveConnection } from '~/lib/use-tiktok-live-connection';
 
-const { Text, Title } = Typography;
+const { Text, Title, Paragraph } = Typography;
 
 export function clientLoader({ request }: Route.ClientLoaderArgs) {
 	const url = new URL(request.url);
@@ -30,7 +32,7 @@ const TikTokLiveConnectionAlert: React.FC<{ username: string }> = ({
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	useEffect(() => {
-		if (connection?.status === 'error') {
+		if (isConnectionError(connection.status)) {
 			showModal();
 		}
 	}, [connection]);
@@ -45,10 +47,10 @@ const TikTokLiveConnectionAlert: React.FC<{ username: string }> = ({
 
 	const handleOk = () => {
 		setIsModalOpen(false);
-		window.location.reload();
+		tikTokLiveClient.retry();
 	};
 
-	if (connection.status !== 'error') {
+	if (!isConnectionError(connection.status)) {
 		return null;
 	}
 
@@ -110,14 +112,33 @@ const TikTokLiveConnectionAlert: React.FC<{ username: string }> = ({
 					>
 						Connection Error
 					</Title>
-					<Text
+					{/* TODO: Write better UX message for each error */}
+					<Paragraph
 						style={{
 							color: 'currentcolor',
+							margin: 0,
 						}}
 					>
 						Failed to connect to the live stream for{' '}
 						<Highlight>@{username}</Highlight>. Please try again later.
-					</Text>
+					</Paragraph>
+					<pre
+						style={{
+							margin: 0,
+							fontFamily: 'inherit',
+							background:
+								'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01))',
+							backdropFilter: 'blur(10px)',
+							borderRadius: '8px',
+							padding: '12px',
+							color: 'rgba(255, 255, 255, 0.95)',
+							fontSize: '14px',
+							lineHeight: '1.5',
+							overflowX: 'auto',
+						}}
+					>
+						{JSON.stringify(connection, null, 4)}
+					</pre>
 				</Flex>
 			</Space>
 		</Modal>
@@ -138,7 +159,7 @@ export default function TikTokLiveGuardLayout({
 				height: '100%',
 			}}
 		>
-			{connection.status === 'connecting' ? (
+			{['connecting', 'tiktok:authenticating'].includes(connection.status) ? (
 				<div
 					style={{
 						display: 'grid',

@@ -14,24 +14,44 @@ import type {
 	WebcastSubNotifyMessage,
 } from 'tiktok-live-connector';
 
-export type LiveStreamMessage =
-	| {
-			status: 'connected';
-			roomId: string;
-	  }
-	| {
-			status: 'error';
-			error: string;
-	  }
-	| {
-			status: 'disconnected';
-			reason: 'Stream ended' | (string & {});
-	  };
+export type ConnectionStatus =
+	// Initial States
+	| 'connecting' // Establishing Client→Server→TikTok chain
+
+	// Intermediate States
+	| 'tiktok:authenticating' // Server connecting to TikTok API
+	| 'tiktok:room_found' // Got roomId but no live activity yet
+
+	// Active States
+	| 'tiktok:live_active' // 🟢 Receiving real events - stream confirmed active
+
+	// End States
+	| 'tiktok:stream_ended' // Stream officially ended
+	| 'tiktok:stream_offline' // Room exists but streamer went offline
+
+	// Error States
+	| 'connection_lost' // Lost connection somewhere in chain
+	| 'reconnecting' // Attempting to reconnect
+	| 'server_error' // Our server issue
+	| 'tiktok:error' // TikTok API issue
+	| 'tiktok:room_not_found'; // Room not found or invalid username
+
+export const isConnectionError = (status: string) => {
+	return (
+		status === 'connection_lost' ||
+		status === 'server_error' ||
+		status === 'tiktok:error' ||
+		status === 'tiktok:room_not_found'
+	);
+};
 
 type _TikTokLiveEvent =
 	| {
-			event: 'live_stream';
-			data: LiveStreamMessage;
+			event: 'connection';
+			data: {
+				status: ConnectionStatus;
+				message?: string; // Optional message for more specific context
+			};
 	  }
 	| {
 			event: 'chat';

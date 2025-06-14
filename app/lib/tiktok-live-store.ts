@@ -1,4 +1,4 @@
-import type { LiveStreamMessage, TikTokLiveEvent } from './tiktok-live-events';
+import type { ConnectionStatus, TikTokLiveEvent } from './tiktok-live-events';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
@@ -13,11 +13,10 @@ type ChatEvent =
 
 type InteractionEvent = TikTokLiveEvent<'like'>;
 
-export type LiveStreamConnection =
-	| LiveStreamMessage
-	| { status: 'live' }
-	| { status: 'connecting' }
-	| { status: 'reconnecting' };
+export type LiveStreamConnection = {
+	status: ConnectionStatus;
+	message?: string; // Optional message for more specific context
+};
 
 interface TikTokLiveStore {
 	// Connection state

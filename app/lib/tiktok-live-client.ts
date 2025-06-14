@@ -101,8 +101,8 @@ class TikTokLiveClient {
 
 		// Update store with error
 		this.store.updateConnection({
-			status: 'error',
-			error: error.message,
+			status: 'server_error',
+			message: error.message,
 		});
 
 		// Close the current source
@@ -146,8 +146,8 @@ class TikTokLiveClient {
 		console.error(`💥 Max retries exceeded for @${this.currentUsername}`);
 
 		this.store.updateConnection({
-			status: 'error',
-			error: `Failed to connect after ${this.retryConfig.maxRetries} attempts`,
+			status: 'server_error',
+			message: `Failed to connect after ${this.retryConfig.maxRetries} attempts`,
 		});
 	}
 
@@ -208,8 +208,8 @@ class TikTokLiveClient {
 			}
 
 			this.store.updateConnection({
-				status: 'disconnected',
-				reason: `No subscribers left for @${this.currentUsername}`,
+				status: 'connection_lost',
+				message: `No subscribers left for @${this.currentUsername}`,
 			});
 
 			this.currentUsername = null;
@@ -237,8 +237,8 @@ class TikTokLiveClient {
 		}
 
 		this.store.updateConnection({
-			status: 'disconnected',
-			reason: 'Force disconnected',
+			status: 'connection_lost',
+			message: 'Force disconnected',
 		});
 
 		this.currentUsername = null;
@@ -254,7 +254,7 @@ class TikTokLiveClient {
 		invariant(this.source, 'TikTokLiveEventSource is not initialized');
 
 		this.source.onEvents({
-			live_stream: (data) => {
+			connection: (data) => {
 				this.store.updateConnection(data);
 			},
 			chat: (data) => {
@@ -296,7 +296,7 @@ class TikTokLiveClient {
 			room_user: (data) => {
 				this.store.updateViewerCount(data.viewerCount);
 				this.store.updateConnection({
-					status: 'live',
+					status: 'tiktok:live_active',
 				});
 			},
 			member: (data) => {
