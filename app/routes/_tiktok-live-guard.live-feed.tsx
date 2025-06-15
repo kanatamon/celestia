@@ -1,8 +1,8 @@
 import type { Route } from './+types/_tiktok-live-guard.live-feed';
 import { Flex, Typography } from 'antd';
-import { NewUserJoinEventCard } from '~/components/chat/new-user-join-even-card';
-import { TikTokLiveChatFeed } from '~/components/chat/tiktok-live-chat-feed';
-import { TikTokLiveInteractionBubbleSpawnPoint } from '~/components/chat/tiktok-live-interaction-bubble-spawn-point';
+import { ActivityEventSwitch } from '~/components/activity-event-switch';
+import { LiveChatFeed } from '~/components/live-chat-feed';
+import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-bubble-spawn-point';
 
 const { Title } = Typography;
 
@@ -53,15 +53,14 @@ export default function LiveRoute({}: Route.ComponentProps) {
 							Messages
 						</Title>
 					</Flex>
-					<TikTokLiveChatFeed style={{ flex: 1 }} />
-					<NewUserJoinEventCard
+					<LiveChatFeed style={{ flex: 1 }} />
+					<ActivityEventSwitch
 						style={{
-							width: '100%',
 							marginTop: '8px',
 						}}
 					/>
 				</Flex>
-				<TikTokLiveInteractionBubbleSpawnPoint
+				<LiveInteractionBubbleSpawnPoint
 					style={{
 						position: 'absolute',
 						right: '0',

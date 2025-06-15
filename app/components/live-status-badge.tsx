@@ -1,4 +1,4 @@
-import type { LiveStatus } from '~/components/_ui/live-status-badge';
+import type { ConnectionStatus } from '~/components/connection-status-badge';
 import type { LiveStreamConnection } from '~/lib/tiktok-live-store';
 import { Dropdown, Flex, Typography } from 'antd';
 import { LogOut, RefreshCw, Trash2 } from 'lucide-react';
@@ -6,13 +6,13 @@ import { useNavigate } from 'react-router';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { GlassModal } from '~/components/_ui/glass-modal';
 import { Highlight } from '~/components/_ui/highlight';
-import { LiveStatusBadge } from '~/components/_ui/live-status-badge';
+import { ConnectionStatusBadge } from '~/components/connection-status-badge';
 import { tikTokLiveClient } from '~/lib/tiktok-live-client';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 
 const { Paragraph } = Typography;
 
-const getLiveStatus = (connection: LiveStreamConnection): LiveStatus => {
+const getLiveStatus = (connection: LiveStreamConnection): ConnectionStatus => {
 	if (connection.status === 'tiktok:live_active') {
 		return 'live';
 	}
@@ -34,7 +34,7 @@ const getLiveStatus = (connection: LiveStreamConnection): LiveStatus => {
 	return 'disconnected';
 };
 
-export const TikTokLiveStatusBadge: React.FC<{ username: string }> = ({
+export const LiveStatusBadge: React.FC<{ username: string }> = ({
 	username,
 }) => {
 	const navigate = useNavigate();
@@ -150,7 +150,7 @@ export const TikTokLiveStatusBadge: React.FC<{ username: string }> = ({
 		>
 			{/* This <div> wrapper is required, but don't know why? 😅 */}
 			<div>
-				<LiveStatusBadge status={status} />
+				<ConnectionStatusBadge status={status} />
 			</div>
 		</Dropdown>
 	);

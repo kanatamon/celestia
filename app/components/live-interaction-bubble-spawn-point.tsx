@@ -1,7 +1,7 @@
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 import { LikeEventBubble } from './event-viz/like-event-bubble';
 
-export const TikTokLiveInteractionBubbleSpawnPoint: React.FC<{
+export const LiveInteractionBubbleSpawnPoint: React.FC<{
 	style?: React.CSSProperties;
 }> = ({ style = {} }) => {
 	const interactionEvents = useTikTokLiveStore(

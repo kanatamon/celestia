@@ -1,4 +1,4 @@
-import { JoinEventCard } from '~/components/chat/event-viz/join-event-card';
+import { JoinEventCard } from '~/components/event-viz/join-event-card';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 
 export const NewUserJoinEventCard = ({

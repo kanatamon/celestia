@@ -3,10 +3,10 @@ import { Flex, Space } from 'antd';
 import { Outlet } from 'react-router';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
 import { Highlight } from '~/components/_ui/highlight';
-import { TikTokLiveLikeCounter } from '~/components/chat/tiktok-live-like-counter';
-import { TikTokLiveStatusBadge } from '~/components/chat/tiktok-live-status-badge';
-import { TikTokLiveViewerCounter } from '~/components/chat/tiktok-live-viewer-counter';
-import { TikTokLiveConnectionAlert } from '~/components/tiktok-live-connection-alert';
+import { LiveConnectionAlert } from '~/components/live-connection-alert';
+import { LiveLikeCounter } from '~/components/live-like-counter';
+import { LiveStatusBadge } from '~/components/live-status-badge';
+import { LiveViewerCounter } from '~/components/live-viewer-counter';
 import { useTikTokLiveConnection } from '~/lib/use-tiktok-live-connection';
 
 export function clientLoader({ request }: Route.ClientLoaderArgs) {
@@ -52,8 +52,6 @@ export default function TikTokLiveGuardLayout({
 				backgroundPosition: 'center',
 				width: '100%',
 				height: '100%',
-				maxWidth: '100vw',
-				overflowX: 'hidden',
 			}}
 		>
 			{['connecting', 'tiktok:authenticating'].includes(connection.status) ? (
@@ -72,15 +70,20 @@ export default function TikTokLiveGuardLayout({
 					}}
 				>
 					<Flex
-						justify="end"
+						gap={8}
 						style={{
 							padding: '16px',
 						}}
 					>
-						<Space align="center">
-							<TikTokLiveLikeCounter />
-							<TikTokLiveViewerCounter />
-							<TikTokLiveStatusBadge username={username} />
+						<Space
+							align="center"
+							style={{
+								marginLeft: 'auto',
+							}}
+						>
+							<LiveLikeCounter />
+							<LiveViewerCounter />
+							<LiveStatusBadge username={username} />
 						</Space>
 					</Flex>
 					<div
@@ -93,7 +96,7 @@ export default function TikTokLiveGuardLayout({
 					</div>
 				</Flex>
 			)}
-			<TikTokLiveConnectionAlert username={username} />
+			<LiveConnectionAlert username={username} />
 		</div>
 	);
 }

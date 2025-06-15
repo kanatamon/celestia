@@ -1,7 +1,7 @@
+import { ViewerCounter } from '~/components/viewer-counter';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
-import { ViewerCounter } from '../_ui/viewer-counter';
 
-export const TikTokLiveViewerCounter = () => {
+export const LiveViewerCounter = () => {
 	const viewerCount = useTikTokLiveStore((state) => state.viewerCount);
 	return <ViewerCounter viewerCount={viewerCount} />;
 };

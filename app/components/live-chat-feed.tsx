@@ -2,15 +2,15 @@ import type { LiveFeedMessage } from '~/lib/tiktok-live-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
 import { GlassButton } from '~/components/_ui/glass-button';
-import { FollowerEventCard } from '~/components/chat/event-viz/follow-event-card';
-import { GiftEventCard } from '~/components/chat/event-viz/gift-event-card';
-import { MessageEventCard } from '~/components/chat/event-viz/message-event-card';
-import { ShareEventComponent } from '~/components/chat/event-viz/share-event-card';
+import { FollowerEventCard } from '~/components/event-viz/follow-event-card';
+import { GiftEventCard } from '~/components/event-viz/gift-event-card';
+import { MessageEventCard } from '~/components/event-viz/message-event-card';
+import { ShareEventComponent } from '~/components/event-viz/share-event-card';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
 import { AddEventTimestamp } from './add-event-timestamp';
 
-export const TikTokLiveChatFeed = ({
+export const LiveChatFeed = ({
 	style = {},
 }: {
 	style?: React.CSSProperties;
@@ -62,24 +62,6 @@ export const TikTokLiveChatFeed = ({
 				align="start"
 				gap={8}
 			>
-				<style>
-					{`
-				div::-webkit-scrollbar {
-					width: 6px;
-				}
-				div::-webkit-scrollbar-track {
-					background: rgba(255, 255, 255, 0.05);
-					border-radius: 3px;
-				}
-				div::-webkit-scrollbar-thumb {
-					background: linear-gradient(45deg, rgba(167, 139, 250, 0.5), rgba(236, 72, 153, 0.5));
-					border-radius: 3px;
-				}
-				div::-webkit-scrollbar-thumb:hover {
-					background: linear-gradient(45deg, rgba(167, 139, 250, 0.7), rgba(236, 72, 153, 0.7));
-				}
-			`}
-				</style>
 				{chatEvents.map((event) => (
 					<AddEventTimestamp key={event.id} event={event}>
 						{renderEvent(event)}

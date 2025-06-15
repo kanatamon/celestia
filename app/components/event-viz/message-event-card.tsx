@@ -1,7 +1,8 @@
-import type { LiveChatMessage, LiveGiftMessage } from '~/lib/tiktok-live-store';
+import type { LiveChatMessage } from '~/lib/tiktok-live-store';
 import { Avatar, Image, Space, Typography } from 'antd';
 import { Highlight } from '~/components/_ui/highlight';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { aggregateGiftCounts } from '~/lib/utils';
 
 const { Text } = Typography;
 
@@ -24,26 +25,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	const giftEvents = useTikTokLiveStore((state) =>
 		event.user ? state.userGiftEvents.get(event.user.uniqueId) : [],
 	);
-	const seenGroupIds = new Set<LiveGiftMessage['groupId']>();
-	type Gifts = Map<
-		LiveGiftMessage['giftId'],
-		{
-			giftDetails: LiveGiftMessage['giftDetails'];
-			count: number;
-		}
-	>;
-	const gifts = giftEvents?.reduceRight<Gifts>((acc, gift) => {
-		const existing = acc.get(gift.giftId);
-		const previousCount = existing?.count || 0;
-		if (gift.repeatEnd || !seenGroupIds.has(gift.groupId)) {
-			seenGroupIds.add(gift.groupId);
-			acc.set(gift.giftId, {
-				giftDetails: gift.giftDetails,
-				count: previousCount + gift.repeatCount,
-			});
-		}
-		return acc;
-	}, new Map());
+	const gifts = giftEvents ? aggregateGiftCounts(giftEvents) : [];
 
 	const { user, comment } = event;
 	return (
@@ -78,9 +60,9 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 						>
 							{user?.nickname || 'Anonymous'}
 						</Text>
-						{gifts?.size ? (
+						{gifts[0] && (
 							<Space size={6}>
-								{Array.from(gifts.values()).map((gift, index) => (
+								{gifts.map((gift, index) => (
 									<Space key={index} size={2} align="center">
 										<Image
 											src={gift.giftDetails?.giftImage?.giftPictureUrl}
@@ -116,7 +98,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 									</Space>
 								))}
 							</Space>
-						) : null}
+						)}
 					</div>
 					<Text
 						style={{

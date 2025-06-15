@@ -2,7 +2,7 @@ import { Typography } from 'antd';
 
 const { Text } = Typography;
 
-export type LiveStatus =
+export type ConnectionStatus =
 	| 'live'
 	| 'connecting'
 	| 'reconnecting'
@@ -10,7 +10,7 @@ export type LiveStatus =
 	| 'ended'
 	| 'starting';
 
-interface LiveStatusConfig {
+interface ConnectionStatusConfig {
 	label: string;
 	color: string;
 	bgColor: string;
@@ -18,11 +18,11 @@ interface LiveStatusConfig {
 	animated?: boolean;
 }
 
-export const LiveStatusBadge: React.FC<{
-	status: LiveStatus;
+export const ConnectionStatusBadge: React.FC<{
+	status: ConnectionStatus;
 	onClick?: () => void;
 }> = ({ status, onClick }) => {
-	const statusConfigs: Record<LiveStatus, LiveStatusConfig> = {
+	const statusConfigs: Record<ConnectionStatus, ConnectionStatusConfig> = {
 		live: {
 			label: 'LIVE',
 			color: '#10b981',

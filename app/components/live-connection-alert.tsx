@@ -9,7 +9,7 @@ import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 
 const { Title, Paragraph } = Typography;
 
-export const TikTokLiveConnectionAlert: React.FC<{ username: string }> = ({
+export const LiveConnectionAlert: React.FC<{ username: string }> = ({
 	username,
 }) => {
 	const connection = useTikTokLiveStore((state) => state.connection);
