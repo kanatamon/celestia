@@ -79,7 +79,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 							{user?.nickname || 'Anonymous'}
 						</Text>
 						{gifts?.size ? (
-							<Space size={12}>
+							<Space size={6}>
 								{Array.from(gifts.values()).map((gift, index) => (
 									<Space key={index} size={2} align="center">
 										<Image

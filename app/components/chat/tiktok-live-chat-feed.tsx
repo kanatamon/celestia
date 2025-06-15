@@ -8,6 +8,7 @@ import { MessageEventCard } from '~/components/chat/event-viz/message-event-card
 import { ShareEventComponent } from '~/components/chat/event-viz/share-event-card';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
+import { AddEventTimestamp } from './add-event-timestamp';
 
 export const TikTokLiveChatFeed = ({
 	style = {},
@@ -79,7 +80,11 @@ export const TikTokLiveChatFeed = ({
 				}
 			`}
 				</style>
-				{chatEvents.map(renderEvent)}
+				{chatEvents.map((event) => (
+					<AddEventTimestamp key={event.id} event={event}>
+						{renderEvent(event)}
+					</AddEventTimestamp>
+				))}
 			</Flex>
 
 			{/* Show "scroll to bottom" button when not at bottom */}
