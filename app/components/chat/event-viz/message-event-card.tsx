@@ -24,17 +24,26 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	const giftEvents = useTikTokLiveStore((state) =>
 		event.user ? state.userGiftEvents.get(event.user.uniqueId) : [],
 	);
-	const gifts = giftEvents?.reduce((acc, gift) => {
+	const seenGroupIds = new Set<LiveGiftMessage['groupId']>();
+	type Gifts = Map<
+		LiveGiftMessage['giftId'],
+		{
+			giftDetails: LiveGiftMessage['giftDetails'];
+			count: number;
+		}
+	>;
+	const gifts = giftEvents?.reduceRight<Gifts>((acc, gift) => {
 		const existing = acc.get(gift.giftId);
 		const previousCount = existing?.count || 0;
-		if (gift.repeatEnd) {
+		if (gift.repeatEnd || !seenGroupIds.has(gift.groupId)) {
+			seenGroupIds.add(gift.groupId);
 			acc.set(gift.giftId, {
 				giftDetails: gift.giftDetails,
 				count: previousCount + gift.repeatCount,
 			});
 		}
 		return acc;
-	}, new Map<number, { giftDetails: LiveGiftMessage['giftDetails']; count: number }>());
+	}, new Map());
 
 	const { user, comment } = event;
 	return (
