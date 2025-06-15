@@ -11,10 +11,9 @@ export default function LiveRoute({}: Route.ComponentProps) {
 		<>
 			<div
 				style={{
-					paddingTop: '96px',
-					paddingBottom: '96px',
+					paddingBottom: '24px',
 					margin: '0 auto',
-					maxWidth: '412px',
+					maxWidth: '480px',
 					height: '100%',
 					position: 'relative',
 				}}

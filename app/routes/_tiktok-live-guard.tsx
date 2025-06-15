@@ -180,33 +180,37 @@ export default function TikTokLiveGuardLayout({
 					</Text>
 				</div>
 			) : (
-				<>
-					<div
+				<Flex
+					vertical
+					style={{
+						maxWidth: '1024px',
+						width: '100%',
+						height: '100%',
+						margin: '0 auto',
+						position: 'relative',
+					}}
+				>
+					<Flex
+						justify="end"
 						style={{
-							position: 'fixed',
-							top: 0,
-							left: 0,
-							right: 0,
-							width: '100%',
+							padding: '16px',
 						}}
 					>
-						<Flex
-							justify="end"
-							style={{
-								padding: '16px',
-								maxWidth: '768px',
-								margin: '0 auto',
-							}}
-						>
-							<Space align="center">
-								<TikTokLiveLikeCounter />
-								<TikTokLiveViewerCounter />
-								<TikTokLiveStatusBadge />
-							</Space>
-						</Flex>
+						<Space align="center">
+							<TikTokLiveLikeCounter />
+							<TikTokLiveViewerCounter />
+							<TikTokLiveStatusBadge />
+						</Space>
+					</Flex>
+					<div
+						style={{
+							flex: 1,
+							overflow: 'hidden',
+						}}
+					>
+						<Outlet />
 					</div>
-					<Outlet />
-				</>
+				</Flex>
 			)}
 			<TikTokLiveConnectionAlert username={username} />
 		</div>
