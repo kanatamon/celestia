@@ -1,7 +1,7 @@
 import { Alert, Flex, Modal, Space, Typography } from 'antd';
 import { Unplug } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button } from '~/components/_ui/button';
+import { GlassButton } from '~/components/_ui/glass-button';
 import { Highlight } from '~/components/_ui/highlight';
 import { tikTokLiveClient } from '~/lib/tiktok-live-client';
 import { isConnectionError } from '~/lib/tiktok-live-events';
@@ -41,27 +41,13 @@ export const TikTokLiveConnectionAlert: React.FC<{ username: string }> = ({
 	return (
 		<Modal
 			open={isModalOpen}
-			closable={false}
-			styles={{
-				content: {
-					background:
-						'linear-gradient(135deg, rgba(220, 38, 38, 0.75), rgba(185, 28, 28, 0))',
-					borderRadius: '12px',
-					padding: '6px 8px',
-					backdropFilter: 'blur(5px)',
-					border: '1px solid rgba(255, 255, 255, 0.1)',
-				},
-				footer: {
-					marginTop: '6px',
-				},
-			}}
 			footer={[
-				<Button key="close" onClick={handleClose}>
+				<GlassButton key="close" onClick={handleClose}>
 					Close
-				</Button>,
-				<Button key="retry" onClick={handleOk}>
+				</GlassButton>,
+				<GlassButton key="retry" onClick={handleOk}>
 					Retry
-				</Button>,
+				</GlassButton>,
 			]}
 		>
 			<Space align="start">

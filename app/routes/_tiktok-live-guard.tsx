@@ -18,7 +18,7 @@ export function clientLoader({ request }: Route.ClientLoaderArgs) {
 		);
 	}
 	return {
-		username,
+		username: username.replace('@', '').trim(),
 	};
 }
 

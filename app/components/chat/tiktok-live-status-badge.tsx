@@ -1,13 +1,16 @@
 import type { LiveStatus } from '~/components/_ui/live-status-badge';
 import type { LiveStreamConnection } from '~/lib/tiktok-live-store';
-import { Dropdown } from 'antd';
-import { LogOut, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router';
+import { Dropdown, Flex, Typography } from 'antd';
+import { LogOut, RefreshCw, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { GlassButton } from '~/components/_ui/glass-button';
+import { GlassModal } from '~/components/_ui/glass-modal';
+import { Highlight } from '~/components/_ui/highlight';
 import { LiveStatusBadge } from '~/components/_ui/live-status-badge';
 import { tikTokLiveClient } from '~/lib/tiktok-live-client';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
-import { Button } from '../_ui/button';
-import { Highlight } from '../_ui/highlight';
+
+const { Paragraph } = Typography;
 
 const getLiveStatus = (connection: LiveStreamConnection): LiveStatus => {
 	if (connection.status === 'tiktok:live_active') {
@@ -34,6 +37,7 @@ const getLiveStatus = (connection: LiveStreamConnection): LiveStatus => {
 export const TikTokLiveStatusBadge: React.FC<{ username: string }> = ({
 	username,
 }) => {
+	const navigate = useNavigate();
 	const connection = useTikTokLiveStore((state) => state.connection);
 	const status = getLiveStatus(connection);
 	return (
@@ -56,7 +60,7 @@ export const TikTokLiveStatusBadge: React.FC<{ username: string }> = ({
 					{
 						key: 'reconnect',
 						label: (
-							<Button
+							<GlassButton
 								type="text"
 								icon={
 									<RefreshCw
@@ -68,17 +72,77 @@ export const TikTokLiveStatusBadge: React.FC<{ username: string }> = ({
 								}
 							>
 								Reconnect
-							</Button>
+							</GlassButton>
 						),
 					},
 					{
-						key: 'exit',
+						key: 'clear-chat',
 						label: (
-							<Link to="/">
-								<Button type="text" icon={<LogOut size={16} />}>
-									Exit
-								</Button>
-							</Link>
+							<GlassButton
+								type="text"
+								icon={<Trash2 size={16} />}
+								onClick={() => {
+									GlassModal.confirm({
+										title: 'Do you want to clear the chat?',
+										icon: <Trash2 size={20} />,
+										content: (
+											<Flex vertical gap={6}>
+												<Paragraph style={{ color: 'currentcolor', margin: 0 }}>
+													You'll lose all chat history, likes, and gift data for
+													this session. And this action can't be undone.
+												</Paragraph>
+											</Flex>
+										),
+										okText: 'Clear Chat',
+										onOk: () => {
+											tikTokLiveClient.clearStore();
+										},
+									});
+								}}
+							>
+								Clear Chat
+							</GlassButton>
+						),
+					},
+					{
+						key: 'leave-stream',
+						label: (
+							<GlassButton
+								type="text"
+								icon={<LogOut size={16} />}
+								onClick={() => {
+									GlassModal.confirm({
+										title: (
+											<>
+												Leave <Highlight>@{username}</Highlight>'s stream?
+											</>
+										),
+										icon: <Trash2 size={20} />,
+										content: (
+											<Flex vertical gap={6}>
+												<Paragraph style={{ color: 'currentcolor', margin: 0 }}>
+													You'll lose all chat history, likes, and gift data for
+													this session. The live stream will stop and this
+													action can't be undone.
+												</Paragraph>
+												<Paragraph style={{ color: 'currentcolor', margin: 0 }}>
+													You can always reconnect to{' '}
+													<Highlight>@{username}</Highlight> later to start
+													fresh.
+												</Paragraph>
+											</Flex>
+										),
+										okText: 'Leave Stream',
+										onOk: () => {
+											tikTokLiveClient.forceDisconnect();
+											tikTokLiveClient.clearStore();
+											navigate('/');
+										},
+									});
+								}}
+							>
+								Leave Stream
+							</GlassButton>
 						),
 					},
 				],

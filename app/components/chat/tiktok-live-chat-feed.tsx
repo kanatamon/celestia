@@ -1,13 +1,13 @@
 import type { LiveFeedMessage } from '~/lib/tiktok-live-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
+import { GlassButton } from '~/components/_ui/glass-button';
 import { FollowerEventCard } from '~/components/chat/event-viz/follow-event-card';
 import { GiftEventCard } from '~/components/chat/event-viz/gift-event-card';
 import { MessageEventCard } from '~/components/chat/event-viz/message-event-card';
 import { ShareEventComponent } from '~/components/chat/event-viz/share-event-card';
 import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
-import { Button } from '../_ui/button';
 
 export const TikTokLiveChatFeed = ({
 	style = {},
@@ -83,7 +83,7 @@ export const TikTokLiveChatFeed = ({
 			</Flex>
 
 			{/* Show "scroll to bottom" button when not at bottom */}
-			{!isAtBottom && (
+			{!isAtBottom && chatEvents[0] && (
 				<div
 					style={{
 						zIndex: 10,
@@ -96,7 +96,7 @@ export const TikTokLiveChatFeed = ({
 							'linear-gradient(to top, rgba(236, 72, 153, 0.5) 0%, rgba(167, 139, 250, 0.2) 50%, rgba(255, 255, 255, 0) 100%)',
 					}}
 				>
-					<Button
+					<GlassButton
 						onClick={scrollToBottom}
 						style={{
 							position: 'absolute',
@@ -108,7 +108,7 @@ export const TikTokLiveChatFeed = ({
 						icon={<ArrowDownToLine size={16} />}
 					>
 						New messages
-					</Button>
+					</GlassButton>
 				</div>
 			)}
 		</div>

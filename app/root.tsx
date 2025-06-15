@@ -1,6 +1,7 @@
 import '@ant-design/v5-patch-for-react-19';
 
 import type { Route } from './+types/root';
+import { ConfigProvider } from 'antd';
 import {
 	isRouteErrorResponse,
 	Links,
@@ -9,6 +10,7 @@ import {
 	Scripts,
 	ScrollRestoration,
 } from 'react-router';
+import { getDefaultStyles } from './components/_ui/glass-modal';
 
 // import './app.css';
 
@@ -48,7 +50,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-	return <Outlet />;
+	return (
+		<ConfigProvider
+			modal={{
+				closable: false,
+				styles: getDefaultStyles(),
+			}}
+		>
+			<Outlet />
+		</ConfigProvider>
+	);
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
