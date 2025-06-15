@@ -199,7 +199,7 @@ export default function TikTokLiveGuardLayout({
 						<Space align="center">
 							<TikTokLiveLikeCounter />
 							<TikTokLiveViewerCounter />
-							<TikTokLiveStatusBadge />
+							<TikTokLiveStatusBadge username={username} />
 						</Space>
 					</Flex>
 					<div
