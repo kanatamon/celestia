@@ -1,5 +1,6 @@
 import type { WebcastMessageEvent } from '~/lib/live-event-types';
 import { Flex, Typography } from 'antd';
+import { formatDistanceToNowStrict } from 'date-fns';
 
 const { Text } = Typography;
 
@@ -22,9 +23,8 @@ export const AddEventTimestamp: React.FC<{
 					flexShrink: 0,
 				}}
 			>
-				{new Date(+event.event.createTime).toLocaleTimeString('th', {
-					hour: '2-digit',
-					minute: '2-digit',
+				{formatDistanceToNowStrict(new Date(+event.event.createTime), {
+					addSuffix: true,
 				})}
 			</Text>
 		</Flex>
