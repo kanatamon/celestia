@@ -6,6 +6,17 @@ import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-b
 
 const { Title } = Typography;
 
+export function meta({}: Route.MetaArgs) {
+	return [
+		{ title: 'Live Chat' },
+		{
+			name: 'description',
+			content:
+				'View and interact with live stream chat messages in real-time. Follow the conversation and see live reactions from viewers.',
+		},
+	];
+}
+
 export default function LiveRoute({}: Route.ComponentProps) {
 	return (
 		<>
