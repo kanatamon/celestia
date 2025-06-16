@@ -51,11 +51,13 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 							position: 'relative',
 							userSelect: 'none',
 							gap: 'var(--gap)',
+							width: '100%',
 						} as React.CSSProperties
 					}
 				>
 					<div
 						style={{
+							width: '100%',
 							animation: 'scroll 15s linear infinite',
 							display: 'flex',
 							willChange: 'transform',
@@ -72,23 +74,23 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 						>
 							<style>
 								{`
-							@keyframes scroll {
-								from {
-									transform: translateX(calc(100% + var(--gap)));
-								}
+								@keyframes scroll {
+									from {
+										transform: translateX(calc(100% + var(--gap) + 300px));
+									}
 
-								to {
-									transform: translateX(calc(-100% - var(--gap)));
+									to {
+										transform: translateX(calc(-100% - var(--gap)));
+									}
 								}
-							}
-						`}
+								`}
 							</style>
 							<Space size={16}>
 								{giftCounts.map((gift) => (
 									<Space key={gift.id} size={2} align="center">
 										<Image
 											src={gift.giftDetails.giftPictureUrl}
-											width={18}
+											width={24}
 											alt={gift.giftDetails.giftName}
 										/>
 										<Space
@@ -104,7 +106,7 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 											<Text
 												style={{
 													color: 'currentcolor',
-													fontSize: '10px',
+													fontSize: '14px',
 												}}
 											>
 												x
@@ -112,7 +114,7 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 											<Text
 												style={{
 													color: 'currentcolor',
-													fontSize: '14px',
+													fontSize: '20px',
 												}}
 											>
 												{gift.count}
