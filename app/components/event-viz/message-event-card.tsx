@@ -53,7 +53,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 							strong
 							style={{
 								fontSize: '14px',
-								color: 'rgba(255, 255, 255, 0.7)', // Reduced opacity for less priority
+								color: 'rgba(255, 255, 255, 0.6)', // Reduced opacity for less priority
 								textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)', // Subtle shadow for softer appearance
 							}}
 						>
@@ -103,7 +103,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 						style={{
 							fontSize: '14px',
 							lineHeight: '1.5',
-							color: 'rgba(255, 255, 255, 0.95)',
+							color: 'rgba(255, 255, 255, 0.9)',
 							textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
 						}}
 					>
