@@ -1,12 +1,12 @@
 import type { LiveFeedMessage } from '~/lib/live-event-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 import { GlassButton } from '~/components/_ui/glass-button';
-// import { FollowerEventCard } from '~/components/event-viz/follow-event-card';
 import { GiftEventCard } from '~/components/event-viz/gift-event-card';
 import { MessageEventCard } from '~/components/event-viz/message-event-card';
-// import { ShareEventComponent } from '~/components/event-viz/share-event-card';
 import { useLiveEventStore } from '~/lib/live-event-store';
+import { cx } from '~/lib/styles';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
 import { AddEventTimestamp } from './add-event-timestamp';
 
@@ -15,6 +15,7 @@ export const LiveChatFeed = ({
 }: {
 	style?: React.CSSProperties;
 }) => {
+	const [searchParams, setSearchParams] = useSearchParams();
 	const chatEvents = useLiveEventStore((state) => state.chatEvents);
 	const { scrollRef, isAtBottom, scrollToBottom } = useAutoScroll({
 		dependencies: [chatEvents.at(-1)?.id], // Trigger on new messages
@@ -26,10 +27,6 @@ export const LiveChatFeed = ({
 		switch (event.type) {
 			case 'chat':
 				return <MessageEventCard key={event.id} event={event} />;
-			// case 'follow':
-			// 	return <FollowerEventCard key={event.id} event={event} />;
-			// case 'share':
-			// 	return <ShareEventComponent key={event.id} event={event} />;
 			case 'gift':
 				return <GiftEventCard key={event.id} event={event} />;
 			default:
@@ -63,9 +60,64 @@ export const LiveChatFeed = ({
 				gap={8}
 			>
 				{chatEvents.map((event) => (
-					<AddEventTimestamp key={event.id} event={event}>
-						{renderEvent(event)}
-					</AddEventTimestamp>
+					<Flex
+						justify="start"
+						style={cx(
+							{
+								width: '100%',
+							},
+							searchParams.get('selectedMessageId') === event.id && {
+								zIndex: 10,
+								position: 'sticky',
+								left: 0,
+								top: 0,
+							},
+						)}
+						onClick={(mouseEvent) => {
+							if (searchParams.get('selectedMessageId') === event.id) {
+								mouseEvent.currentTarget.previousElementSibling?.scrollIntoView(
+									{
+										behavior: 'smooth',
+										block: 'start',
+									},
+								);
+							} else {
+								setSearchParams((prev) => {
+									const newParams = new URLSearchParams(prev);
+									newParams.set('selectedMessageId', event.id);
+									return newParams;
+								});
+							}
+						}}
+					>
+						{searchParams.get('selectedMessageId') === event.id && (
+							<div
+								style={{
+									position: 'absolute',
+									inset: 0,
+									width: '100%',
+									height: '100%',
+									borderRadius: '12px 0 0 12px',
+									backdropFilter: 'blur(2px)',
+									background:
+										'radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 223, 0, 0.4) 50%, rgba(255, 255, 255, 0) 100%)',
+								}}
+							/>
+						)}
+						<AddEventTimestamp
+							key={event.id}
+							event={event}
+							style={cx(
+								searchParams.get('selectedMessageId') === event.id && {
+									color: 'rgba(255, 255, 255, 0.95)',
+									textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+									isolation: 'isolate',
+								},
+							)}
+						>
+							{renderEvent(event)}
+						</AddEventTimestamp>
+					</Flex>
 				))}
 			</Flex>
 

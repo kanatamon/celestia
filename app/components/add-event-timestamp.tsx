@@ -12,7 +12,8 @@ type LiveEvent = {
 export const AddEventTimestamp: React.FC<{
 	event: LiveEvent;
 	children: React.ReactNode;
-}> = ({ children, event }) => {
+	style?: React.CSSProperties;
+}> = ({ children, event, style = {} }) => {
 	return (
 		<Flex align="end" gap={4}>
 			{children}
@@ -21,6 +22,7 @@ export const AddEventTimestamp: React.FC<{
 					fontSize: '10px',
 					color: 'rgba(255, 255, 255, 0.5)',
 					flexShrink: 0,
+					...style,
 				}}
 			>
 				{formatDistanceToNowStrict(new Date(+event.event.createTime), {

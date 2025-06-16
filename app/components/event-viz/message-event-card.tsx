@@ -31,7 +31,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 		<div
 			style={{
 				padding: '6px 8px',
-				borderRadius: '16px',
+				borderRadius: '12px',
 				background: 'rgba(0, 0, 0, 0.5)',
 				backdropFilter: 'blur(5px)',
 				border: '1px solid rgba(255, 255, 255, 0.15)',
