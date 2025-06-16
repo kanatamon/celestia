@@ -123,7 +123,7 @@ const DreamyUsernameForm: React.FC = () => {
 				}}
 			>
 				<Form
-					action="/live-feed"
+					action="/feed"
 					method="get"
 					style={{
 						position: 'relative',

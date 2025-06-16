@@ -1,7 +1,7 @@
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { useLiveEventStore } from '~/lib/live-event-store';
 import { LikeCounter } from './like-counter';
 
 export const LiveLikeCounter = () => {
-	const likeCount = useTikTokLiveStore((state) => state.likeCount);
+	const likeCount = useLiveEventStore((state) => state.likeCount);
 	return <LikeCounter likeCount={likeCount} />;
 };

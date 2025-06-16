@@ -1,12 +1,12 @@
 import { JoinEventCard } from '~/components/event-viz/join-event-card';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { useLiveEventStore } from '~/lib/live-event-store';
 
 export const NewUserJoinEventCard = ({
 	style = {},
 }: {
 	style?: React.CSSProperties;
 }) => {
-	const joinEvents = useTikTokLiveStore((state) => state.joinEvents);
+	const joinEvents = useLiveEventStore((state) => state.joinEvents);
 
 	const newJoinEvent = joinEvents.at(-1);
 	if (!newJoinEvent) {

@@ -3,16 +3,16 @@ import { Unplug } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { Highlight } from '~/components/_ui/highlight';
-import { tikTokLiveClient } from '~/lib/tiktok-live-client';
+import { liveEventClient } from '~/lib/live-event-client';
+import { useLiveEventStore } from '~/lib/live-event-store';
 import { isConnectionError } from '~/lib/tiktok-live-events';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
 
 const { Title, Paragraph } = Typography;
 
 export const LiveConnectionAlert: React.FC<{ username: string }> = ({
 	username,
 }) => {
-	const connection = useTikTokLiveStore((state) => state.connection);
+	const connection = useLiveEventStore((state) => state.connection);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	useEffect(() => {
@@ -31,7 +31,7 @@ export const LiveConnectionAlert: React.FC<{ username: string }> = ({
 
 	const handleOk = () => {
 		setIsModalOpen(false);
-		tikTokLiveClient.retry();
+		liveEventClient.retry();
 	};
 
 	if (!isConnectionError(connection.status)) {

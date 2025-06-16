@@ -1,7 +1,7 @@
-import type { LiveChatMessage } from '~/lib/tiktok-live-store';
+import type { LiveChatMessage } from '~/lib/live-event-store';
 import { Avatar, Image, Space, Typography } from 'antd';
 import { Highlight } from '~/components/_ui/highlight';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { useLiveEventStore } from '~/lib/live-event-store';
 import { aggregateGiftCounts } from '~/lib/utils';
 
 const { Text } = Typography;
@@ -22,12 +22,11 @@ const highlightMentions = (text: string) => {
 export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	event,
 }) => {
-	const giftEvents = useTikTokLiveStore((state) =>
-		event.user ? state.userGiftEvents.get(event.user.uniqueId) : [],
+	const giftEvents = useLiveEventStore((state) =>
+		state.userGiftEvents.get(event.uniqueId),
 	);
 	const gifts = giftEvents ? aggregateGiftCounts(giftEvents) : [];
 
-	const { user, comment } = event;
 	return (
 		<div
 			style={{
@@ -41,7 +40,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-				<Avatar src={user?.profilePicture?.urls.at(-1)} size={36} />
+				<Avatar src={event.userDetails.profilePictureUrls?.at(-1)} size={36} />
 				<div style={{ flex: 1 }}>
 					<div
 						style={{
@@ -58,14 +57,14 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 								textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)', // Subtle shadow for softer appearance
 							}}
 						>
-							{user?.nickname || 'Anonymous'}
+							{event.nickname || 'Anonymous'}
 						</Text>
 						{gifts[0] && (
 							<Space size={6}>
 								{gifts.map((gift, index) => (
 									<Space key={index} size={2} align="center">
 										<Image
-											src={gift.giftDetails?.giftImage?.giftPictureUrl}
+											src={gift.giftDetails.giftPictureUrl}
 											width={18}
 											alt={gift.giftDetails?.giftName}
 										/>
@@ -108,7 +107,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 							textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
 						}}
 					>
-						{highlightMentions(comment)}
+						{highlightMentions(event.comment)}
 					</Text>
 				</div>
 			</div>

@@ -1,13 +1,13 @@
 import { Flex, Image, Space, Typography } from 'antd';
 import { Gift } from 'lucide-react';
 import React from 'react';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { useLiveEventStore } from '~/lib/live-event-store';
 import { aggregateGiftCounts } from '~/lib/utils';
 
 const { Text } = Typography;
 
 export const EarningGiftsParadeEventCard: React.FC = () => {
-	const userGiftEvents = useTikTokLiveStore((state) => state.userGiftEvents);
+	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
 	const giftCounts = [
 		...aggregateGiftCounts([...userGiftEvents.values()].flat()),
 	].sort((a, b) => b.count - a.count);
@@ -87,9 +87,9 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 								{giftCounts.map((gift) => (
 									<Space key={gift.id} size={2} align="center">
 										<Image
-											src={gift.giftDetails?.giftImage?.giftPictureUrl}
+											src={gift.giftDetails.giftPictureUrl}
 											width={18}
-											alt={gift.giftDetails?.giftName}
+											alt={gift.giftDetails.giftName}
 										/>
 										<Space
 											size={2}

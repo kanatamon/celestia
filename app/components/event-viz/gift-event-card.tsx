@@ -1,4 +1,4 @@
-import type { LiveGiftMessage } from '~/lib/tiktok-live-store';
+import type { LiveGiftMessage } from '~/lib/live-event-store';
 import { Avatar, Flex, Image, Space, Typography } from 'antd';
 
 const { Text } = Typography;
@@ -7,8 +7,6 @@ const { Text } = Typography;
 export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 	event,
 }) => {
-	const { user, giftDetails, repeatCount } = event;
-
 	return (
 		<div
 			style={{
@@ -22,7 +20,7 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
-				<Avatar src={user?.profilePicture?.urls.at(-1)} size={36} />
+				<Avatar src={event.userDetails.profilePictureUrls?.at(-1)} size={36} />
 				<Flex style={{ flex: 1 }} vertical justify="space-between">
 					<Text
 						strong
@@ -32,7 +30,7 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 							textShadow: '0 0 8px rgba(255, 223, 0, 0.8)',
 						}}
 					>
-						{user?.nickname || 'Anonymous'}
+						{event.nickname || 'Anonymous'}
 					</Text>
 					<Text
 						style={{
@@ -41,15 +39,11 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 							textShadow: '0 0 6px rgba(255, 223, 0, 0.6)',
 						}}
 					>
-						Sent {giftDetails?.giftName || 'a gift'}
+						Sent {event.giftName || 'a gift'}
 					</Text>
 				</Flex>
 				<Space size={8} align="end">
-					<Image
-						width={40}
-						alt={giftDetails?.giftName}
-						src={giftDetails?.giftImage?.giftPictureUrl}
-					/>
+					<Image width={40} alt={event.giftName} src={event.giftPictureUrl} />
 					<Space
 						size={2}
 						align="baseline"
@@ -75,7 +69,7 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 								textShadow: '0 0 10px rgba(255, 223, 0, 1)',
 							}}
 						>
-							{repeatCount}
+							{event.repeatCount}
 						</Text>
 					</Space>
 				</Space>

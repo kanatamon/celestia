@@ -1,18 +1,11 @@
 import type {
 	WebcastChatMessage,
-	WebcastEmoteChatMessage,
-	WebcastEnvelopeMessage,
 	WebcastGiftMessage,
 	WebcastLikeMessage,
-	WebcastLinkMicArmies,
-	WebcastLinkMicBattle,
 	WebcastLiveIntroMessage,
 	WebcastMemberMessage,
-	WebcastQuestionNewMessage,
 	WebcastRoomUserSeqMessage,
-	WebcastSocialMessage,
-	WebcastSubNotifyMessage,
-} from 'tiktok-live-connector';
+} from './live-event-types';
 
 export type ConnectionStatus =
 	// Initial States
@@ -62,16 +55,8 @@ type _TikTokLiveEvent =
 			data: WebcastGiftMessage;
 	  }
 	| {
-			event: 'follow';
-			data: WebcastSocialMessage;
-	  }
-	| {
 			event: 'like';
 			data: WebcastLikeMessage;
-	  }
-	| {
-			event: 'question_new';
-			data: WebcastQuestionNewMessage;
 	  }
 	| {
 			event: 'room_user';
@@ -82,36 +67,8 @@ type _TikTokLiveEvent =
 			data: WebcastMemberMessage;
 	  }
 	| {
-			event: 'social';
-			data: WebcastSocialMessage;
-	  }
-	| {
-			event: 'link_mic_battle';
-			data: WebcastLinkMicBattle;
-	  }
-	| {
-			event: 'link_mic_armies';
-			data: WebcastLinkMicArmies;
-	  }
-	| {
 			event: 'live_intro';
 			data: WebcastLiveIntroMessage;
-	  }
-	| {
-			event: 'emote';
-			data: WebcastEmoteChatMessage;
-	  }
-	| {
-			event: 'envelope';
-			data: WebcastEnvelopeMessage;
-	  }
-	| {
-			event: 'subscribe';
-			data: WebcastSubNotifyMessage;
-	  }
-	| {
-			event: 'share';
-			data: WebcastSocialMessage;
 	  };
 
 // Extract event names for type safety

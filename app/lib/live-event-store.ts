@@ -5,10 +5,8 @@ import type {
 	WebcastLikeMessage,
 	WebcastMemberMessage,
 	WebcastMessageEvent,
-	WebcastSocialMessage,
-	WebcastSubNotifyMessage,
-} from 'tiktok-live-connector';
-import type { ConnectionStatus, TikTokLiveEvent } from './tiktok-live-events';
+} from './live-event-types';
+import type { ConnectionStatus } from './tiktok-live-events';
 import { create } from 'zustand';
 import {
 	createJSONStorage,
@@ -28,12 +26,6 @@ export type LiveGiftMessage = WebcastGiftMessage & {
 	event: WebcastMessageEvent;
 };
 
-export type LiveFollowMessage = WebcastSocialMessage & {
-	id: string;
-	type: 'follow';
-	event: WebcastMessageEvent;
-};
-
 export type LiveLikeMessage = WebcastLikeMessage & {
 	id: string;
 	type: 'like';
@@ -46,24 +38,7 @@ export type LiveMemberMessage = WebcastMemberMessage & {
 	event: WebcastMessageEvent;
 };
 
-export type LiveShareMessage = WebcastSocialMessage & {
-	id: string;
-	type: 'share';
-	event: WebcastMessageEvent;
-};
-
-export type LiveSubscribeMessage = WebcastSubNotifyMessage & {
-	id: string;
-	type: 'subscribe';
-	event: WebcastMessageEvent;
-};
-
-export type LiveFeedMessage =
-	| LiveChatMessage
-	| LiveGiftMessage
-	| LiveFollowMessage
-	| LiveShareMessage
-	| LiveSubscribeMessage;
+export type LiveFeedMessage = LiveChatMessage | LiveGiftMessage;
 
 type InteractionEvent = LiveLikeMessage;
 
@@ -72,7 +47,7 @@ export type LiveStreamConnection = {
 	message?: string; // Optional message for more specific context
 };
 
-interface TikTokLiveStore {
+interface LiveEventStore {
 	// Connection state
 	connection: LiveStreamConnection;
 	viewerCount: number;
@@ -100,7 +75,7 @@ interface TikTokLiveStore {
 	clearAllEvents: () => void;
 }
 
-export const useTikTokLiveStore = create<TikTokLiveStore>()(
+export const useLiveEventStore = create<LiveEventStore>()(
 	subscribeWithSelector(
 		persist(
 			(set, get) => {
@@ -113,6 +88,13 @@ export const useTikTokLiveStore = create<TikTokLiveStore>()(
 						const filteredChatEvents = state.chatEvents
 							.slice(-MAX_CHAT_EVENTS)
 							.filter((storedData) => {
+								/**
+								 * Duplication removal logic
+								 */
+								if (storedData.id === newData.id) {
+									return false;
+								}
+
 								/**
 								 * Gift Message Deduplication Logic
 								 *
@@ -133,6 +115,7 @@ export const useTikTokLiveStore = create<TikTokLiveStore>()(
 								if (newData.type === 'gift' && storedData.type === 'gift') {
 									return storedData.groupId !== newData.groupId;
 								}
+
 								return true;
 							});
 
@@ -141,8 +124,8 @@ export const useTikTokLiveStore = create<TikTokLiveStore>()(
 						};
 					});
 
-					if (newData.type === 'gift' && newData.user?.uniqueId) {
-						const userUniqueId = newData.user.uniqueId;
+					if (newData.type === 'gift' && newData.uniqueId) {
+						const userUniqueId = newData.uniqueId;
 						set((state) => {
 							const userGifts = state.userGiftEvents.get(userUniqueId) || [];
 							return {
@@ -238,7 +221,7 @@ export const useTikTokLiveStore = create<TikTokLiveStore>()(
 				},
 
 				// Handle version migrations if needed
-				version: 1,
+				version: 2,
 			},
 		),
 	),

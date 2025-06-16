@@ -1,7 +1,7 @@
-import type { LiveLikeMessage } from '~/lib/tiktok-live-store';
+import type { LiveLikeMessage } from '~/lib/live-event-store';
 import { Avatar } from 'antd';
 import { Heart } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTimeout } from '~/lib/use-timeout';
 
 const randomPosition = (min: number, max: number) => {
@@ -60,14 +60,14 @@ export const LikeEventBubble: React.FC<{
 					}}
 				>
 					<Avatar
-						src={event.user?.profilePicture?.urls.at(-1)}
+						src={event.userDetails.profilePictureUrls?.at(-1)}
 						size={44}
 						style={{
 							border: '2px solid rgba(255, 255, 255, 0.2)',
 							boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
 						}}
 					>
-						{event.user?.nickname?.charAt(0).toUpperCase() || '?'}
+						{event.nickname?.charAt(0).toUpperCase() || '?'}
 					</Avatar>
 				</div>
 

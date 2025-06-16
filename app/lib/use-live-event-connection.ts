@@ -1,15 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { tikTokLiveClient } from './tiktok-live-client';
-import { useTikTokLiveStore } from './tiktok-live-store';
+import { liveEventClient } from './live-event-client';
+import { useLiveEventStore } from './live-event-store';
 
-export const useTikTokLiveConnection = (username: string) => {
-	const connection = useTikTokLiveStore((state) => state.connection);
+export const useLiveEventConnection = (username: string) => {
+	const connection = useLiveEventStore((state) => state.connection);
 	const componentIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		if (username) {
 			// Register this component with the service
-			const componentId = tikTokLiveClient.connect(username);
+			const componentId = liveEventClient.connect(username);
 			componentIdRef.current = componentId;
 
 			console.log(`🎯 Component ${componentId} connected to @${username}`);
@@ -17,7 +17,7 @@ export const useTikTokLiveConnection = (username: string) => {
 
 		return () => {
 			if (componentIdRef.current) {
-				tikTokLiveClient.disconnect(componentIdRef.current);
+				liveEventClient.disconnect(componentIdRef.current);
 				console.log(`🎯 Component ${componentIdRef.current} disconnected`);
 				componentIdRef.current = null;
 			}
@@ -26,7 +26,7 @@ export const useTikTokLiveConnection = (username: string) => {
 
 	return {
 		reconnect: () => {
-			tikTokLiveClient.retry(componentIdRef.current || undefined);
+			liveEventClient.retry(componentIdRef.current || undefined);
 		},
 		connection,
 	};

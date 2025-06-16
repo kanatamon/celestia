@@ -1,4 +1,4 @@
-import type { Route } from './+types/_tiktok-live-guard.live-feed';
+import type { Route } from './+types/_live.feed';
 import { Flex, Typography } from 'antd';
 import { ActivityEventSwitch } from '~/components/activity-event-switch';
 import { LiveChatFeed } from '~/components/live-chat-feed';

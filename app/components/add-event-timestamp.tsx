@@ -1,4 +1,4 @@
-import type { WebcastMessageEvent } from 'tiktok-live-connector';
+import type { WebcastMessageEvent } from '~/lib/live-event-types';
 import { Flex, Typography } from 'antd';
 
 const { Text } = Typography;

@@ -1,6 +1,6 @@
-import type { WebcastMessageEvent } from 'tiktok-live-connector';
+import type { WebcastMessageEvent } from './live-event-types';
 import invariant from 'tiny-invariant';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { useLiveEventStore } from '~/lib/live-event-store';
 import { TikTokLiveEventSource } from './tiktok-live-events';
 
 interface RetryConfiguration {
@@ -10,7 +10,7 @@ interface RetryConfiguration {
 	backoffFactor?: number; // Factor to increase delay after each retry
 }
 
-class TikTokLiveClient {
+class LiveEventClient {
 	private source: TikTokLiveEventSource | null = null;
 	private subscribers = new Set<string>(); // Track components using service
 	private currentUsername: string | null = null;
@@ -26,7 +26,7 @@ class TikTokLiveClient {
 	private retryTimeoutId: number | null = null;
 	private isManuallyDisconnected = false;
 
-	constructor(private readonly store = useTikTokLiveStore.getState()) {}
+	constructor(private readonly store = useLiveEventStore.getState()) {}
 
 	connect(
 		username: string,
@@ -259,7 +259,6 @@ class TikTokLiveClient {
 		) => ({
 			msgId: event?.msgId || crypto.randomUUID(),
 			createTime: event?.createTime || Date.now().toString(),
-			eventDetails: event?.eventDetails,
 		});
 
 		this.source.onEvents({
@@ -267,7 +266,10 @@ class TikTokLiveClient {
 				this.store.updateConnection(data);
 			},
 			chat: (data) => {
-				const msgEvent = imagineMessageEvent(data.event);
+				const msgEvent = imagineMessageEvent({
+					msgId: data.msgId,
+					createTime: data.createTime,
+				});
 				this.store.addChatEvent({
 					id: msgEvent.msgId,
 					type: 'chat',
@@ -280,7 +282,10 @@ class TikTokLiveClient {
 				});
 			},
 			gift: (data) => {
-				const msgEvent = imagineMessageEvent(data.event);
+				const msgEvent = imagineMessageEvent({
+					msgId: data.msgId,
+					createTime: data.createTime,
+				});
 				this.store.addChatEvent({
 					id: msgEvent.msgId,
 					type: 'gift',
@@ -292,26 +297,32 @@ class TikTokLiveClient {
 					status: 'tiktok:live_active',
 				});
 			},
-			follow: (data) => {
-				const msgEvent = imagineMessageEvent(data.event);
-				this.store.addChatEvent({
-					id: msgEvent.msgId,
-					type: 'follow',
-					...data,
-					event: msgEvent,
-				});
-			},
-			share: (data) => {
-				const msgEvent = imagineMessageEvent(data.event);
-				this.store.addChatEvent({
-					id: msgEvent.msgId,
-					type: 'share',
-					...data,
-					event: msgEvent,
-				});
-			},
+			// follow: (data) => {
+			// 	const msgEvent = imagineMessageEvent({
+			// 		msgId: data.event?.msgId,
+			// 		createTime: data.event?.createTime,
+			// 	});
+			// 	this.store.addChatEvent({
+			// 		id: msgEvent.msgId,
+			// 		type: 'follow',
+			// 		...data,
+			// 		event: msgEvent,
+			// 	});
+			// },
+			// share: (data) => {
+			// 	const msgEvent = imagineMessageEvent(data.event);
+			// 	this.store.addChatEvent({
+			// 		id: msgEvent.msgId,
+			// 		type: 'share',
+			// 		...data,
+			// 		event: msgEvent,
+			// 	});
+			// },
 			like: (data) => {
-				const msgEvent = imagineMessageEvent(data.event);
+				const msgEvent = imagineMessageEvent({
+					msgId: data.msgId,
+					createTime: data.createTime,
+				});
 				this.store.addInteractionEvent({
 					id: msgEvent.msgId,
 					type: 'like',
@@ -327,7 +338,10 @@ class TikTokLiveClient {
 				});
 			},
 			member: (data) => {
-				const msgEvent = imagineMessageEvent(data.event);
+				const msgEvent = imagineMessageEvent({
+					msgId: data.msgId,
+					createTime: data.createTime,
+				});
 				this.store.addJoinEvent({
 					id: msgEvent.msgId,
 					type: 'member',
@@ -370,4 +384,4 @@ class TikTokLiveClient {
 	}
 }
 
-export const tikTokLiveClient = new TikTokLiveClient();
+export const liveEventClient = new LiveEventClient();

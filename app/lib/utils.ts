@@ -1,4 +1,4 @@
-import type { LiveGiftMessage } from '~/lib/tiktok-live-store';
+import type { LiveGiftMessage } from '~/lib/live-event-store';
 
 export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 	const seenGroupIds = new Set<LiveGiftMessage['groupId']>();
@@ -6,7 +6,7 @@ export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 		LiveGiftMessage['giftId'],
 		{
 			id: LiveGiftMessage['giftId'];
-			giftDetails: LiveGiftMessage['giftDetails'];
+			giftDetails: LiveGiftMessage;
 			count: number;
 		}
 	>;
@@ -17,7 +17,7 @@ export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 			seenGroupIds.add(gift.groupId);
 			acc.set(gift.giftId, {
 				id: gift.giftId,
-				giftDetails: gift.giftDetails,
+				giftDetails: gift,
 				count: previousCount + gift.repeatCount,
 			});
 		}

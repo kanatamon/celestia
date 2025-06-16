@@ -1,4 +1,5 @@
-import type { Route } from './+types/_tiktok-live-guard';
+import type { ConnectionStatus } from '~/lib/tiktok-live-events';
+import type { Route } from './+types/_live';
 import { Flex, Space } from 'antd';
 import { Outlet } from 'react-router';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
@@ -7,7 +8,7 @@ import { LiveConnectionAlert } from '~/components/live-connection-alert';
 import { LiveLikeCounter } from '~/components/live-like-counter';
 import { LiveStatusBadge } from '~/components/live-status-badge';
 import { LiveViewerCounter } from '~/components/live-viewer-counter';
-import { useTikTokLiveConnection } from '~/lib/use-tiktok-live-connection';
+import { useLiveEventConnection } from '~/lib/use-live-event-connection';
 
 export function clientLoader({ request }: Route.ClientLoaderArgs) {
 	const url = new URL(request.url);
@@ -43,7 +44,7 @@ export const HydrateFallback = () => {
 export default function TikTokLiveGuardLayout({
 	loaderData: { username },
 }: Route.ComponentProps) {
-	const { connection } = useTikTokLiveConnection(username);
+	const { connection } = useLiveEventConnection(username);
 	return (
 		<div
 			style={{
@@ -54,7 +55,9 @@ export default function TikTokLiveGuardLayout({
 				height: '100%',
 			}}
 		>
-			{['connecting', 'tiktok:authenticating'].includes(connection.status) ? (
+			{(['connecting', 'tiktok:authenticating'] as ConnectionStatus[]).includes(
+				connection.status,
+			) ? (
 				<CenteredMessageOverlay>
 					Connecting to <Highlight>@{username}...</Highlight>
 				</CenteredMessageOverlay>

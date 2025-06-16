@@ -1,5 +1,5 @@
 import type { ConnectionStatus } from '~/components/connection-status-badge';
-import type { LiveStreamConnection } from '~/lib/tiktok-live-store';
+import type { LiveStreamConnection } from '~/lib/live-event-store';
 import { Dropdown, Flex, Typography } from 'antd';
 import { LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -7,8 +7,8 @@ import { GlassButton } from '~/components/_ui/glass-button';
 import { GlassModal } from '~/components/_ui/glass-modal';
 import { Highlight } from '~/components/_ui/highlight';
 import { ConnectionStatusBadge } from '~/components/connection-status-badge';
-import { tikTokLiveClient } from '~/lib/tiktok-live-client';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+import { liveEventClient } from '~/lib/live-event-client';
+import { useLiveEventStore } from '~/lib/live-event-store';
 
 const { Paragraph } = Typography;
 
@@ -38,7 +38,7 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 	username,
 }) => {
 	const navigate = useNavigate();
-	const connection = useTikTokLiveStore((state) => state.connection);
+	const connection = useLiveEventStore((state) => state.connection);
 	const status = getLiveStatus(connection);
 	return (
 		<Dropdown
@@ -66,7 +66,7 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 									<RefreshCw
 										size={16}
 										onClick={() => {
-											tikTokLiveClient.retry();
+											liveEventClient.retry();
 										}}
 									/>
 								}
@@ -95,7 +95,7 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										),
 										okText: 'Clear Chat',
 										onOk: () => {
-											tikTokLiveClient.clearStore();
+											liveEventClient.clearStore();
 										},
 									});
 								}}
@@ -134,8 +134,8 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										),
 										okText: 'Leave Stream',
 										onOk: () => {
-											tikTokLiveClient.forceDisconnect();
-											tikTokLiveClient.clearStore();
+											liveEventClient.forceDisconnect();
+											liveEventClient.clearStore();
 											navigate('/');
 										},
 									});

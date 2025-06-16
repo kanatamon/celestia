@@ -1,12 +1,12 @@
-import type { LiveFeedMessage } from '~/lib/tiktok-live-store';
+import type { LiveFeedMessage } from '~/lib/live-event-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
 import { GlassButton } from '~/components/_ui/glass-button';
-import { FollowerEventCard } from '~/components/event-viz/follow-event-card';
+// import { FollowerEventCard } from '~/components/event-viz/follow-event-card';
 import { GiftEventCard } from '~/components/event-viz/gift-event-card';
 import { MessageEventCard } from '~/components/event-viz/message-event-card';
-import { ShareEventComponent } from '~/components/event-viz/share-event-card';
-import { useTikTokLiveStore } from '~/lib/tiktok-live-store';
+// import { ShareEventComponent } from '~/components/event-viz/share-event-card';
+import { useLiveEventStore } from '~/lib/live-event-store';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
 import { AddEventTimestamp } from './add-event-timestamp';
 
@@ -15,7 +15,7 @@ export const LiveChatFeed = ({
 }: {
 	style?: React.CSSProperties;
 }) => {
-	const chatEvents = useTikTokLiveStore((state) => state.chatEvents);
+	const chatEvents = useLiveEventStore((state) => state.chatEvents);
 	const { scrollRef, isAtBottom, scrollToBottom } = useAutoScroll({
 		dependencies: [chatEvents.at(-1)?.id], // Trigger on new messages
 		threshold: 100, // 100px from bottom counts as "at bottom"
@@ -26,10 +26,10 @@ export const LiveChatFeed = ({
 		switch (event.type) {
 			case 'chat':
 				return <MessageEventCard key={event.id} event={event} />;
-			case 'follow':
-				return <FollowerEventCard key={event.id} event={event} />;
-			case 'share':
-				return <ShareEventComponent key={event.id} event={event} />;
+			// case 'follow':
+			// 	return <FollowerEventCard key={event.id} event={event} />;
+			// case 'share':
+			// 	return <ShareEventComponent key={event.id} event={event} />;
 			case 'gift':
 				return <GiftEventCard key={event.id} event={event} />;
 			default:

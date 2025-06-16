@@ -1,4 +1,4 @@
-import type { LiveMemberMessage } from '~/lib/tiktok-live-store';
+import type { LiveMemberMessage } from '~/lib/live-event-store';
 import { Typography } from 'antd';
 import { LogIn } from 'lucide-react';
 
@@ -44,7 +44,7 @@ export const JoinEventCard: React.FC<{
 				</div>
 				<Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px' }}>
 					<Text strong style={{ color: '#60a5fa' }}>
-						{event.user?.nickname || 'New user'}
+						{event.nickname || 'New user'}
 					</Text>{' '}
 					joined
 				</Text>
