@@ -1,8 +1,7 @@
 import type { Route } from './+types/_live.feed.$username.viewer.$viewerMessageId';
 import { Flex } from 'antd';
-import { X } from 'lucide-react';
 import invariant from 'tiny-invariant';
-import { GlassButton } from '~/components/_ui/glass-button';
+import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
 import { ViewerChatFeed } from '~/components/viewer-chat-feed';
 import { useLiveEventStore } from '~/lib/live-event-store';
 
@@ -15,7 +14,7 @@ export default function ViewerRoute({
 	);
 	invariant(
 		viewerUserId,
-		'Viewer user ID not found for message ID: ' + viewerMessageId,
+		'The message you are trying to view does not exist or has been deleted.',
 	);
 	return (
 		<Flex
@@ -34,3 +33,11 @@ export default function ViewerRoute({
 		</Flex>
 	);
 }
+
+export const ErrorBoundary = ({ error }: Route.ErrorBoundaryProps) => {
+	let message = 'An unexpected error occurred.';
+	if (error instanceof Error) {
+		message = error.message;
+	}
+	return <CenteredMessageOverlay>{message}</CenteredMessageOverlay>;
+};

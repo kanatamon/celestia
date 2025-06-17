@@ -4,7 +4,8 @@ const { Text } = Typography;
 
 export const CenteredMessageOverlay: React.FC<{
 	children: React.ReactNode;
-}> = ({ children }) => {
+	textStyle?: React.CSSProperties;
+}> = ({ children, textStyle }) => {
 	return (
 		<div
 			style={{
@@ -19,6 +20,7 @@ export const CenteredMessageOverlay: React.FC<{
 					fontSize: '14px',
 					color: 'rgba(255, 255, 255, 0.95)',
 					textAlign: 'center',
+					...textStyle,
 				}}
 			>
 				{children}
