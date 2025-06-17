@@ -10,9 +10,8 @@ import {
 	Scripts,
 	ScrollRestoration,
 } from 'react-router';
+import appStyleSheet from './app.css?url';
 import { getDefaultStyles } from './components/_ui/glass-modal';
-
-// import './app.css';
 
 export const links: Route.LinksFunction = () => [
 	{ rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -27,7 +26,7 @@ export const links: Route.LinksFunction = () => [
 	},
 	{
 		rel: 'stylesheet',
-		href: './app.css',
+		href: appStyleSheet,
 	},
 ];
 
@@ -74,6 +73,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 				? 'The requested page could not be found.'
 				: error.statusText || details;
 	} else if (import.meta.env.DEV && error && error instanceof Error) {
+		details = error.message;
+		stack = error.stack;
+	}
+
+	if (error instanceof Error) {
 		details = error.message;
 		stack = error.stack;
 	}

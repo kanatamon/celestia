@@ -62,14 +62,10 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 						label: (
 							<GlassButton
 								type="text"
-								icon={
-									<RefreshCw
-										size={16}
-										onClick={() => {
-											liveEventClient.retry();
-										}}
-									/>
-								}
+								icon={<RefreshCw size={16} />}
+								onClick={() => {
+									liveEventClient.retry();
+								}}
 							>
 								Reconnect
 							</GlassButton>
@@ -95,6 +91,7 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										),
 										okText: 'Clear Chat',
 										onOk: () => {
+											navigate(`/feed/${username}`);
 											liveEventClient.clearStore();
 										},
 									});

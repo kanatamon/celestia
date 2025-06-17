@@ -1,5 +1,5 @@
 import type { ConnectionStatus } from '~/lib/tiktok-live-events';
-import type { Route } from './+types/_live';
+import type { Route } from './+types/_live.feed.$username';
 import { Flex, Space } from 'antd';
 import { Outlet } from 'react-router';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
@@ -10,39 +10,19 @@ import { LiveStatusBadge } from '~/components/live-status-badge';
 import { LiveViewerCounter } from '~/components/live-viewer-counter';
 import { useLiveEventConnection } from '~/lib/use-live-event-connection';
 
-export function clientLoader({ request }: Route.ClientLoaderArgs) {
-	const url = new URL(request.url);
-	const username = url.searchParams.get('username');
-	if (!username) {
-		throw new Error(
-			'Username is required in the search params. Example: ?username=your_username',
-		);
-	}
-	return {
-		username: username.replace('@', '').trim(),
-	};
+export function meta({}: Route.MetaArgs) {
+	return [
+		{ title: 'Live Chat' },
+		{
+			name: 'description',
+			content:
+				'View and interact with live stream chat messages in real-time. Follow the conversation and see live reactions from viewers.',
+		},
+	];
 }
 
-export const HydrateFallback = () => {
-	return (
-		<div
-			style={{
-				backgroundImage: 'url(/background_starry_sky.png)',
-				backgroundSize: 'cover',
-				backgroundPosition: 'center',
-				width: '100%',
-				height: '100%',
-				maxWidth: '100vw',
-				overflowX: 'hidden',
-			}}
-		>
-			<CenteredMessageOverlay>Validating...</CenteredMessageOverlay>
-		</div>
-	);
-};
-
-export default function TikTokLiveGuardLayout({
-	loaderData: { username },
+export default function LiveLayout({
+	params: { username },
 }: Route.ComponentProps) {
 	const { connection } = useLiveEventConnection(username);
 	return (

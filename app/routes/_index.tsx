@@ -2,7 +2,7 @@ import type { Route } from './+types/_index';
 import { Button, Input } from 'antd';
 import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { Form } from 'react-router';
+import { Form, useNavigate } from 'react-router';
 
 export function meta({}: Route.MetaArgs) {
 	return [
@@ -14,6 +14,7 @@ export function meta({}: Route.MetaArgs) {
 const DreamyUsernameForm: React.FC = () => {
 	const [username, setUsername] = useState<string>('');
 	const [isFocused, setIsFocused] = useState<boolean>(false);
+	const navigate = useNavigate();
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
 		setUsername(e.target.value);
@@ -122,9 +123,7 @@ const DreamyUsernameForm: React.FC = () => {
 					position: 'relative',
 				}}
 			>
-				<Form
-					action="/feed"
-					method="get"
+				<form
 					style={{
 						position: 'relative',
 						transition: 'transform 0.3s ease',
@@ -132,6 +131,13 @@ const DreamyUsernameForm: React.FC = () => {
 						display: 'flex',
 						gap: '8px',
 						alignItems: 'center',
+					}}
+					onSubmit={(e) => {
+						e.preventDefault();
+						const preferredUsername = username.replace('@', '').trim();
+						if (preferredUsername) {
+							navigate(`/feed/${preferredUsername}`);
+						}
 					}}
 				>
 					<Input
@@ -181,7 +187,7 @@ const DreamyUsernameForm: React.FC = () => {
 
 					{/* Input glow effect */}
 					{isFocused && <div style={glowStyle}></div>}
-				</Form>
+				</form>
 
 				{/* Sparkle effects on focus */}
 				{isFocused && (
