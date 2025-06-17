@@ -224,7 +224,7 @@ export default function IndexRoute() {
 	return (
 		<div
 			style={{
-				backgroundImage: 'url(/background_pink_sky.png)',
+				backgroundImage: 'url(/background_pink_sky.webp)',
 				backgroundSize: 'cover',
 				backgroundPosition: 'center',
 				width: '100%',

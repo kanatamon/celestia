@@ -28,7 +28,7 @@ export default function LiveLayout({
 	return (
 		<div
 			style={{
-				backgroundImage: 'url(/background_starry_sky.png)',
+				backgroundImage: 'url(/background_starry_sky.webp)',
 				backgroundSize: 'cover',
 				backgroundPosition: 'center',
 				width: '100%',
