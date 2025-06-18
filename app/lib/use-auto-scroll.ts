@@ -19,8 +19,13 @@ export const useAutoScroll = (options: UseAutoScrollOptions = {}) => {
 		if (!element) return false;
 
 		const { scrollTop, scrollHeight, clientHeight } = element;
-		const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
+		// If the element doesn't need scrolling, consider it "at bottom"
+		if (scrollHeight <= clientHeight) {
+			return true;
+		}
+
+		const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 		return distanceFromBottom <= threshold;
 	}, [threshold]);
 
