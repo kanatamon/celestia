@@ -1,11 +1,8 @@
 import type { Route } from './+types/_live.feed.$username._index';
-import { Flex, Splitter, Typography } from 'antd';
+import { Flex, Splitter } from 'antd';
 import { Outlet, useNavigate } from 'react-router';
 import { ActivityEventSwitch } from '~/components/activity-event-switch';
 import { LiveChatFeed } from '~/components/live-chat-feed';
-import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-bubble-spawn-point';
-
-const { Title } = Typography;
 
 export default function FeedRoute({
 	params: { username, viewerMessageId },
@@ -76,13 +73,6 @@ export default function FeedRoute({
 			<ActivityEventSwitch
 				style={{
 					marginTop: '8px',
-				}}
-			/>
-			<LiveInteractionBubbleSpawnPoint
-				style={{
-					position: 'absolute',
-					right: '0',
-					pointerEvents: 'none',
 				}}
 			/>
 		</Flex>

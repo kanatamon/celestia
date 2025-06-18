@@ -5,6 +5,7 @@ import { Outlet } from 'react-router';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
 import { Highlight } from '~/components/_ui/highlight';
 import { LiveConnectionAlert } from '~/components/live-connection-alert';
+import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-bubble-spawn-point';
 import { LiveLikeCounter } from '~/components/live-like-counter';
 import { LiveStatusBadge } from '~/components/live-status-badge';
 import { LiveViewerCounter } from '~/components/live-viewer-counter';
@@ -77,6 +78,14 @@ export default function LiveLayout({
 					>
 						<Outlet />
 					</div>
+					<LiveInteractionBubbleSpawnPoint
+						style={{
+							position: 'absolute',
+							bottom: '48px',
+							right: '64px',
+							pointerEvents: 'none',
+						}}
+					/>
 				</Flex>
 			)}
 			<LiveConnectionAlert username={username} />
