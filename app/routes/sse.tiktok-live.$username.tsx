@@ -63,10 +63,9 @@ export async function loader({
 		connection.on('liveIntro', (data) => server.send('live_intro', data));
 
 		// Control events
-		connection.on('disconnected', () => {
+		connection.on('streamEnd', () => {
 			server.send('connection', {
-				status: 'tiktok:error',
-				message: 'Disconnected from TikTok Live',
+				status: 'tiktok:stream_ended',
 			});
 		});
 		connection.on('error', (error) => {
@@ -75,9 +74,10 @@ export async function loader({
 				message: humanizeTikTokError(error),
 			});
 		});
-		connection.on('streamEnd', () => {
+		connection.on('disconnected', () => {
 			server.send('connection', {
-				status: 'tiktok:stream_ended',
+				status: 'tiktok:error',
+				message: 'Disconnected from TikTok Live',
 			});
 		});
 
