@@ -1,11 +1,12 @@
 import { Flex, Image, Space, Typography } from 'antd';
 import { Gift } from 'lucide-react';
-import React from 'react';
+import { useRef } from 'react';
 import { useGiftCounts } from '~/lib/live-event/use-gift-counts';
 
 const { Text } = Typography;
 
 export const EarningGiftsParadeEventCard: React.FC = () => {
+	const lineRef = useRef<HTMLDivElement>(null);
 	const giftCounts = useGiftCounts();
 	return (
 		<div
@@ -37,6 +38,17 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 					/>
 				</Flex>
 				<div
+					ref={(el) => {
+						if (el) {
+							const width = el.getBoundingClientRect().width;
+							el.style.setProperty('--trail-width', `${width}px`);
+						}
+
+						if (lineRef.current) {
+							const width = lineRef.current.getBoundingClientRect().width;
+							el?.style.setProperty('--line-width', `${width}px`);
+						}
+					}}
 					style={
 						{
 							display: 'flex',
@@ -54,11 +66,24 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 					<div
 						style={{
 							width: '100%',
-							animation: 'scroll 15s linear infinite',
+							animation: 'scroll 5s linear infinite',
 							display: 'flex',
 							willChange: 'transform',
 						}}
 					>
+						<style>
+							{`
+								@keyframes scroll {
+									from {
+										transform: translateX(calc(var(--trail-width) + var(--gap)));
+									}
+
+									to {
+										transform: translateX(calc(-1 * var(--line-width)));
+									}
+								}
+							`}
+						</style>
 						<div
 							style={{
 								display: 'flex',
@@ -68,20 +93,7 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 								minWidth: '100%',
 							}}
 						>
-							<style>
-								{`
-								@keyframes scroll {
-									from {
-										transform: translateX(calc(100% + var(--gap) + 300px));
-									}
-
-									to {
-										transform: translateX(calc(-100% - var(--gap)));
-									}
-								}
-								`}
-							</style>
-							<Space size={16}>
+							<Space size={16} ref={lineRef}>
 								{giftCounts.map((gift) => (
 									<Space key={gift.id} size={2} align="center">
 										<Image
