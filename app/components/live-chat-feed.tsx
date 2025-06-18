@@ -29,9 +29,7 @@ export const LiveChatFeed = ({
 								width: '100%',
 								height: '100%',
 								borderRadius: '12px 0 0 12px',
-								backdropFilter: 'blur(2px)',
-								background:
-									'radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 223, 0, 0.4) 50%, rgba(255, 255, 255, 0) 100%)',
+								background: `linear-gradient(to right, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, transparent 100%)`,
 							}}
 						/>
 					)}

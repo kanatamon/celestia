@@ -24,7 +24,11 @@ export default function ViewerRoute({
 				overflow: 'hidden',
 			}}
 		>
-			<ViewerChatFeed style={{ flex: 1 }} viewerUserId={viewerUserId} />
+			<ViewerChatFeed
+				style={{ flex: 1 }}
+				viewerUserId={viewerUserId}
+				viewerMessageId={viewerMessageId}
+			/>
 		</Flex>
 	);
 }

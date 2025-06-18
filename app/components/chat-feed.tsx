@@ -107,6 +107,7 @@ export const ChatFeed: React.FC<{
 						right: '0',
 						width: '100%',
 						height: '160px',
+						marginRight: '8px',
 						background:
 							'linear-gradient(to top, rgba(236, 72, 153, 0.5) 0%, rgba(167, 139, 250, 0.2) 50%, rgba(255, 255, 255, 0) 100%)',
 					}}
