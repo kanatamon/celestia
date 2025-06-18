@@ -109,7 +109,7 @@ export const ChatFeed: React.FC<{
 						height: '160px',
 						marginRight: '8px',
 						background:
-							'linear-gradient(to top, rgba(236, 72, 153, 0.5) 0%, rgba(167, 139, 250, 0.2) 50%, rgba(255, 255, 255, 0) 100%)',
+							'linear-gradient(to top, rgba(37, 99, 235, 0.5) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(255, 255, 255, 0) 100%)',
 					}}
 				>
 					<GlassButton
