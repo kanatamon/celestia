@@ -5,7 +5,7 @@ import type {
 	WebcastLiveIntroMessage,
 	WebcastMemberMessage,
 	WebcastRoomUserSeqMessage,
-} from './live-event-types';
+} from '~/lib/live-event/live-event-types';
 
 export type ConnectionStatus =
 	// Initial States

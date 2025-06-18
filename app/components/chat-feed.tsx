@@ -1,4 +1,4 @@
-import type { LiveFeedMessage } from '~/lib/live-event-store';
+import type { LiveFeedMessage } from '~/lib/live-event/live-event-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
 import { GlassButton } from '~/components/_ui/glass-button';

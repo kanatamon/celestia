@@ -1,16 +1,12 @@
 import { Flex, Image, Space, Typography } from 'antd';
 import { Gift } from 'lucide-react';
 import React from 'react';
-import { useLiveEventStore } from '~/lib/live-event-store';
-import { aggregateGiftCounts } from '~/lib/utils';
+import { useGiftCounts } from '~/lib/live-event/use-gift-counts';
 
 const { Text } = Typography;
 
 export const EarningGiftsParadeEventCard: React.FC = () => {
-	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
-	const giftCounts = [
-		...aggregateGiftCounts([...userGiftEvents.values()].flat()),
-	].sort((a, b) => b.count - a.count);
+	const giftCounts = useGiftCounts();
 	return (
 		<div
 			style={{

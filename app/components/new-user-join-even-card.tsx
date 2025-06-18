@@ -1,5 +1,5 @@
 import { JoinEventCard } from '~/components/event-viz/join-event-card';
-import { useLiveEventStore } from '~/lib/live-event-store';
+import { useLiveEventStore } from '~/lib/live-event/live-event-store';
 
 export const NewUserJoinEventCard = ({
 	style = {},

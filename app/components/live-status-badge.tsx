@@ -1,5 +1,5 @@
 import type { ConnectionStatus } from '~/components/connection-status-badge';
-import type { LiveStreamConnection } from '~/lib/live-event-store';
+import type { LiveStreamConnection } from '~/lib/live-event/live-event-store';
 import { Dropdown, Flex, Typography } from 'antd';
 import { LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -7,8 +7,8 @@ import { GlassButton } from '~/components/_ui/glass-button';
 import { GlassModal } from '~/components/_ui/glass-modal';
 import { Highlight } from '~/components/_ui/highlight';
 import { ConnectionStatusBadge } from '~/components/connection-status-badge';
-import { liveEventClient } from '~/lib/live-event-client';
-import { useLiveEventStore } from '~/lib/live-event-store';
+import { liveEventClient } from '~/lib/live-event/live-event-client';
+import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
 
 const { Paragraph } = Typography;
 
@@ -38,7 +38,8 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 	username,
 }) => {
 	const navigate = useNavigate();
-	const connection = useLiveEventStore((state) => state.connection);
+	const { connection } = useLiveEventConnection(username);
+
 	const status = getLiveStatus(connection);
 	return (
 		<Dropdown

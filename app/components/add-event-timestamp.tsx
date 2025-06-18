@@ -1,4 +1,4 @@
-import type { WebcastMessageEvent } from '~/lib/live-event-types';
+import type { WebcastMessageEvent } from '~/lib/live-event/live-event-types';
 import { Flex, Typography } from 'antd';
 import { formatDistanceToNowStrict } from 'date-fns';
 

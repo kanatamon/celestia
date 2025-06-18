@@ -1,4 +1,4 @@
-import type { LiveMemberMessage } from '~/lib/live-event-store';
+import type { LiveMemberMessage } from '~/lib/live-event/live-event-store';
 import { Typography } from 'antd';
 import { LogIn } from 'lucide-react';
 

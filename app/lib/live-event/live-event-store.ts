@@ -1,3 +1,4 @@
+import type { ConnectionStatus } from '../tiktok-live-events';
 import type {
 	User,
 	WebcastChatMessage,
@@ -6,7 +7,6 @@ import type {
 	WebcastMemberMessage,
 	WebcastMessageEvent,
 } from './live-event-types';
-import type { ConnectionStatus } from './tiktok-live-events';
 import { create } from 'zustand';
 import {
 	createJSONStorage,
@@ -124,15 +124,15 @@ export const useLiveEventStore = create<LiveEventStore>()(
 						};
 					});
 
-					if (newData.type === 'gift' && newData.uniqueId) {
-						const userUniqueId = newData.uniqueId;
+					if (newData.type === 'gift') {
+						const { userId } = newData;
 						set((state) => {
-							const userGifts = state.userGiftEvents.get(userUniqueId) || [];
+							const userGifts = state.userGiftEvents.get(userId) || [];
 							return {
-								userGiftEvents: new Map(state.userGiftEvents).set(
-									userUniqueId,
-									[...userGifts, newData],
-								),
+								userGiftEvents: new Map(state.userGiftEvents).set(userId, [
+									...userGifts,
+									newData,
+								]),
 							};
 						});
 					}

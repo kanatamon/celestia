@@ -1,4 +1,4 @@
-import type { LiveLikeMessage } from '~/lib/live-event-store';
+import type { LiveLikeMessage } from '~/lib/live-event/live-event-store';
 import { Avatar } from 'antd';
 import { Heart } from 'lucide-react';
 import { useState } from 'react';

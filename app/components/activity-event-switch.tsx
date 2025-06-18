@@ -6,8 +6,8 @@ export const ActivityEventSwitch: React.FC<{
 	style?: React.CSSProperties;
 }> = ({ style = {} }) => {
 	const activityEvents = [
-		<NewUserJoinEventCard key="join-event" />,
 		<EarningGiftsParadeEventCard key="gifts-parade" />,
+		<NewUserJoinEventCard key="join-event" />,
 	];
 	const [activeIndex, setActiveIndex] = useState(
 		activityEvents.length > 0 ? 0 : -1,

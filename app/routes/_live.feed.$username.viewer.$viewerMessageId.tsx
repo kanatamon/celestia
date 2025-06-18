@@ -3,15 +3,12 @@ import { Flex } from 'antd';
 import invariant from 'tiny-invariant';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
 import { ViewerChatFeed } from '~/components/viewer-chat-feed';
-import { useLiveEventStore } from '~/lib/live-event-store';
+import { useMessageOwner } from '~/lib/live-event/use-message-owner';
 
 export default function ViewerRoute({
 	params: { viewerMessageId },
 }: Route.ComponentProps) {
-	const viewerUserId = useLiveEventStore(
-		(state) =>
-			state.chatEvents.find((event) => event.id === viewerMessageId)?.userId,
-	);
+	const viewerUserId = useMessageOwner(viewerMessageId)?.userId;
 	invariant(
 		viewerUserId,
 		'The message you are trying to view does not exist or has been deleted.',
@@ -22,14 +19,12 @@ export default function ViewerRoute({
 			justify="start"
 			gap={8}
 			style={{
-				paddingBottom: '24px',
 				height: '100%',
 				position: 'relative',
 				overflow: 'hidden',
 			}}
 		>
 			<ViewerChatFeed style={{ flex: 1 }} viewerUserId={viewerUserId} />
-			<div style={{ height: '48px', width: '100%' }} />
 		</Flex>
 	);
 }

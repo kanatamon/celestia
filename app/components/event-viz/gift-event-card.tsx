@@ -1,4 +1,4 @@
-import type { LiveGiftMessage } from '~/lib/live-event-store';
+import type { LiveGiftMessage } from '~/lib/live-event/live-event-store';
 import { Avatar, Flex, Image, Space, Typography } from 'antd';
 
 const { Text } = Typography;

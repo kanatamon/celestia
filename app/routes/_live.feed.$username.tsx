@@ -8,7 +8,7 @@ import { LiveConnectionAlert } from '~/components/live-connection-alert';
 import { LiveLikeCounter } from '~/components/live-like-counter';
 import { LiveStatusBadge } from '~/components/live-status-badge';
 import { LiveViewerCounter } from '~/components/live-viewer-counter';
-import { useLiveEventConnection } from '~/lib/use-live-event-connection';
+import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
 
 export function meta({}: Route.MetaArgs) {
 	return [

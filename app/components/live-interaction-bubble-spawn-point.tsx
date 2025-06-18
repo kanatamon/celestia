@@ -1,4 +1,4 @@
-import { useLiveEventStore } from '~/lib/live-event-store';
+import { useLiveEventStore } from '~/lib/live-event/live-event-store';
 import { LikeEventBubble } from './event-viz/like-event-bubble';
 
 export const LiveInteractionBubbleSpawnPoint: React.FC<{

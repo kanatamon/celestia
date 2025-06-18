@@ -1,7 +1,7 @@
 import type { WebcastMessageEvent } from './live-event-types';
 import invariant from 'tiny-invariant';
-import { useLiveEventStore } from '~/lib/live-event-store';
-import { TikTokLiveEventSource } from './tiktok-live-events';
+import { useLiveEventStore } from '~/lib/live-event/live-event-store';
+import { TikTokLiveEventSource } from '../tiktok-live-events';
 
 interface RetryConfiguration {
 	maxRetries?: number; // How many times to retry connection

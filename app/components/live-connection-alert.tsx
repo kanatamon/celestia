@@ -3,8 +3,8 @@ import { Unplug } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { Highlight } from '~/components/_ui/highlight';
-import { liveEventClient } from '~/lib/live-event-client';
-import { useLiveEventStore } from '~/lib/live-event-store';
+import { liveEventClient } from '~/lib/live-event/live-event-client';
+import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
 import { isConnectionError } from '~/lib/tiktok-live-events';
 
 const { Title, Paragraph } = Typography;
@@ -12,7 +12,7 @@ const { Title, Paragraph } = Typography;
 export const LiveConnectionAlert: React.FC<{ username: string }> = ({
 	username,
 }) => {
-	const connection = useLiveEventStore((state) => state.connection);
+	const { connection } = useLiveEventConnection(username);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	useEffect(() => {

@@ -1,8 +1,7 @@
-import type { LiveChatMessage } from '~/lib/live-event-store';
+import type { LiveChatMessage } from '~/lib/live-event/live-event-store';
 import { Avatar, Image, Space, Typography } from 'antd';
 import { Highlight } from '~/components/_ui/highlight';
-import { useLiveEventStore } from '~/lib/live-event-store';
-import { aggregateGiftCounts } from '~/lib/utils';
+import { useUserGiftCounts } from '~/lib/live-event/use-gift-counts';
 
 const { Text } = Typography;
 
@@ -22,11 +21,7 @@ const highlightMentions = (text: string) => {
 export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	event,
 }) => {
-	const giftEvents = useLiveEventStore((state) =>
-		state.userGiftEvents.get(event.uniqueId),
-	);
-	const gifts = giftEvents ? aggregateGiftCounts(giftEvents) : [];
-
+	const gifts = useUserGiftCounts(event.userId);
 	return (
 		<div
 			style={{

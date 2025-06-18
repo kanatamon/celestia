@@ -1,4 +1,5 @@
-import type { LiveGiftMessage } from '~/lib/live-event-store';
+import type { LiveGiftMessage } from '~/lib/live-event/live-event-store';
+import { useLiveEventStore } from './live-event-store';
 
 export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 	const seenGroupIds = new Set<LiveGiftMessage['groupId']>();
@@ -24,4 +25,18 @@ export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 		return acc;
 	}, new Map());
 	return Array.from(gifts.values());
+};
+
+export const useGiftCounts = () => {
+	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
+	const giftCounts = [
+		...aggregateGiftCounts([...userGiftEvents.values()].flat()),
+	].sort((a, b) => b.count - a.count);
+	return giftCounts;
+};
+
+export const useUserGiftCounts = (userId: string) => {
+	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
+	const giftEvents = userGiftEvents.get(userId);
+	return giftEvents ? aggregateGiftCounts(giftEvents) : [];
 };

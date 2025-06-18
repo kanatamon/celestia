@@ -12,7 +12,8 @@ export default function FeedRoute({
 }: Route.ComponentProps) {
 	const navigate = useNavigate();
 	return (
-		<div
+		<Flex
+			vertical
 			style={{
 				width: '100%',
 				height: '100%',
@@ -21,7 +22,7 @@ export default function FeedRoute({
 		>
 			<Splitter
 				style={{
-					height: '100%',
+					flex: 1,
 					overflow: 'hidden',
 					boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
 					position: 'relative',
@@ -40,7 +41,6 @@ export default function FeedRoute({
 					<Flex
 						vertical
 						style={{
-							paddingBottom: '24px',
 							height: '100%',
 							position: 'relative',
 							overflow: 'hidden',
@@ -61,11 +61,6 @@ export default function FeedRoute({
 								}
 							}}
 						/>
-						<ActivityEventSwitch
-							style={{
-								marginTop: '8px',
-							}}
-						/>
 					</Flex>
 				</Splitter.Panel>
 				<Splitter.Panel
@@ -78,6 +73,11 @@ export default function FeedRoute({
 					<Outlet />
 				</Splitter.Panel>
 			</Splitter>
+			<ActivityEventSwitch
+				style={{
+					marginTop: '8px',
+				}}
+			/>
 			<LiveInteractionBubbleSpawnPoint
 				style={{
 					position: 'absolute',
@@ -85,6 +85,6 @@ export default function FeedRoute({
 					pointerEvents: 'none',
 				}}
 			/>
-		</div>
+		</Flex>
 	);
 }

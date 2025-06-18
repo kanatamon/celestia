@@ -1,6 +1,6 @@
-import type { LiveFeedMessage } from '~/lib/live-event-store';
+import type { LiveFeedMessage } from '~/lib/live-event/live-event-store';
 import { X } from 'lucide-react';
-import { useLiveEventStore } from '~/lib/live-event-store';
+import { useChatEvents } from '~/lib/live-event/use-chat-events';
 import { cx } from '~/lib/styles';
 import { GlassButton } from './_ui/glass-button';
 import { ChatFeed } from './chat-feed';
@@ -14,7 +14,7 @@ export const LiveChatFeed = ({
 	pinnedMessageId?: string | null | undefined;
 	onPinnedMessageChange?: (message: LiveFeedMessage | null | undefined) => void;
 }) => {
-	const chatEvents = useLiveEventStore((state) => state.chatEvents);
+	const chatEvents = useChatEvents();
 	return (
 		<ChatFeed
 			style={style}
