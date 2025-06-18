@@ -74,12 +74,6 @@ export async function loader({
 				message: humanizeTikTokError(error),
 			});
 		});
-		connection.on('disconnected', () => {
-			server.send('connection', {
-				status: 'tiktok:error',
-				message: 'Disconnected from TikTok Live',
-			});
-		});
 
 		return () => {
 			connection.disconnect();
