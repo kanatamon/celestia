@@ -28,7 +28,6 @@ export const LiveChatFeed = ({
 								inset: 0,
 								width: '100%',
 								height: '100%',
-								borderRadius: '12px 0 0 12px',
 								background: `linear-gradient(to right, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, transparent 100%)`,
 							}}
 						/>
