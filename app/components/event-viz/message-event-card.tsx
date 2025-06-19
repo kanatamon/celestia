@@ -7,7 +7,7 @@ const { Text } = Typography;
 
 // Helper function to highlight mentions
 const highlightMentions = (text: string) => {
-	const mentionRegex = /@(\w+)/g;
+	const mentionRegex = /@([^\s]+)/g;
 	const parts = text.split(mentionRegex);
 
 	return parts.map((part, index) => {
