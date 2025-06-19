@@ -1,6 +1,7 @@
 import type { LiveFeedMessage } from '~/lib/live-event/live-event-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
+import { useEffect } from 'react';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { GiftEventCard } from '~/components/event-viz/gift-event-card';
 import { MessageEventCard } from '~/components/event-viz/message-event-card';
@@ -34,6 +35,9 @@ export const ChatFeed: React.FC<{
 		threshold: 100,
 		behavior: 'smooth',
 	});
+	useEffect(() => {
+		scrollToBottom();
+	}, []);
 
 	const renderMessage = (event: LiveFeedMessage) => {
 		const defaultRender = (() => {
