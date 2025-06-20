@@ -43,7 +43,12 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 					</Text>
 				</Flex>
 				<Space size={8} align="end">
-					<Image width={40} alt={event.giftName} src={event.giftPictureUrl} />
+					<Image
+						preview={false}
+						width={40}
+						alt={event.giftName}
+						src={event.giftPictureUrl}
+					/>
 					<Space
 						size={2}
 						align="baseline"

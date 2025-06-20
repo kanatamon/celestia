@@ -59,6 +59,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 								{gifts.map((gift, index) => (
 									<Space key={index} size={2} align="center">
 										<Image
+											preview={false}
 											src={gift.giftDetails.giftPictureUrl}
 											width={18}
 											alt={gift.giftDetails?.giftName}

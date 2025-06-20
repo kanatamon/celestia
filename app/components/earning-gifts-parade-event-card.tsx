@@ -97,6 +97,7 @@ export const EarningGiftsParadeEventCard: React.FC = () => {
 								{giftCounts.map((gift) => (
 									<Space key={gift.id} size={2} align="center">
 										<Image
+											preview={false}
 											src={gift.giftDetails.giftPictureUrl}
 											width={24}
 											alt={gift.giftDetails.giftName}
