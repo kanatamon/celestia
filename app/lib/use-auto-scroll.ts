@@ -7,7 +7,11 @@ interface UseAutoScrollOptions {
 }
 
 export const useAutoScroll = (options: UseAutoScrollOptions = {}) => {
-	const { threshold = 50, behavior = 'smooth', dependencies = [] } = options;
+	const {
+		threshold = 50,
+		behavior: controlBehavior = 'smooth',
+		dependencies = [],
+	} = options;
 
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [isAtBottom, setIsAtBottom] = useState(true);
@@ -30,15 +34,18 @@ export const useAutoScroll = (options: UseAutoScrollOptions = {}) => {
 	}, [threshold]);
 
 	// Scroll to bottom function
-	const scrollToBottom = useCallback(() => {
-		const element = scrollRef.current;
-		if (!element) return;
+	const scrollToBottom = useCallback(
+		(behavior: 'smooth' | 'instant' = controlBehavior) => {
+			const element = scrollRef.current;
+			if (!element) return;
 
-		element.scrollTo({
-			top: element.scrollHeight,
-			behavior,
-		});
-	}, [behavior]);
+			element.scrollTo({
+				top: element.scrollHeight,
+				behavior,
+			});
+		},
+		[controlBehavior],
+	);
 
 	// Handle scroll events - detect if user scrolled away from bottom
 	const handleScroll = useCallback(() => {

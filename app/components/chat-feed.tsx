@@ -1,11 +1,11 @@
 import type { LiveFeedMessage } from '~/lib/live-event/live-event-store';
 import { Flex } from 'antd';
 import { ArrowDownToLine } from 'lucide-react';
-import { useEffect } from 'react';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { GiftEventCard } from '~/components/event-viz/gift-event-card';
 import { MessageEventCard } from '~/components/event-viz/message-event-card';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
+import { useIsomorphicLayoutEffect } from '~/lib/use-isomorphic-layout-effect';
 import { AddEventTimestamp } from './add-event-timestamp';
 
 export const ChatFeed: React.FC<{
@@ -35,8 +35,8 @@ export const ChatFeed: React.FC<{
 		threshold: 100,
 		behavior: 'smooth',
 	});
-	useEffect(() => {
-		scrollToBottom();
+	useIsomorphicLayoutEffect(() => {
+		scrollToBottom('instant');
 	}, []);
 
 	const renderMessage = (event: LiveFeedMessage) => {
@@ -117,7 +117,7 @@ export const ChatFeed: React.FC<{
 					}}
 				>
 					<GlassButton
-						onClick={scrollToBottom}
+						onClick={() => scrollToBottom()}
 						style={{
 							position: 'absolute',
 							bottom: '64px',
