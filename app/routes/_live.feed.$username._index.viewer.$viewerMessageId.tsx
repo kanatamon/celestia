@@ -1,4 +1,4 @@
-import type { Route } from './+types/_live.feed.$username.viewer.$viewerMessageId';
+import type { Route } from './+types/_live.feed.$username._index.viewer.$viewerMessageId';
 import { Flex } from 'antd';
 import invariant from 'tiny-invariant';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';

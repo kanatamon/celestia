@@ -10,7 +10,7 @@ export default [
 				index('./routes/_live.feed.$username._index.index.tsx'),
 				route(
 					'viewer/:viewerMessageId',
-					'./routes/_live.feed.$username.viewer.$viewerMessageId.tsx',
+					'./routes/_live.feed.$username._index.viewer.$viewerMessageId.tsx',
 				),
 			]),
 		]),

@@ -26,13 +26,22 @@ export default function FeedRoute({
 				}}
 			>
 				<Splitter.Panel
+					style={{
+						height: '100%',
+						overflow: 'hidden',
+						paddingRight: '8px',
+					}}
+				>
+					<Outlet />
+				</Splitter.Panel>
+				<Splitter.Panel
 					defaultSize="50%"
 					min="30%"
 					max="70%"
 					style={{
 						height: '100%',
 						overflow: 'hidden',
-						paddingRight: '8px',
+						paddingLeft: '8px',
 					}}
 				>
 					<Flex
@@ -59,15 +68,6 @@ export default function FeedRoute({
 							}}
 						/>
 					</Flex>
-				</Splitter.Panel>
-				<Splitter.Panel
-					style={{
-						height: '100%',
-						overflow: 'hidden',
-						paddingLeft: '8px',
-					}}
-				>
-					<Outlet />
 				</Splitter.Panel>
 			</Splitter>
 			<ActivityEventSwitch
