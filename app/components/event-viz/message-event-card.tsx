@@ -52,7 +52,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 								textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)', // Subtle shadow for softer appearance
 							}}
 						>
-							{event.uniqueId || 'Anonymous'}
+							{event.nickname || 'Anonymous'}
 						</Text>
 						{gifts[0] && (
 							<Space size={6}>
