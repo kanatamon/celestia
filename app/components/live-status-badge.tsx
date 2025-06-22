@@ -17,10 +17,10 @@ const getLiveStatus = (connection: LiveStreamConnection): ConnectionStatus => {
 		return 'live';
 	}
 	if (connection.status === 'tiktok:room_found') {
-		return 'starting';
+		return 'connecting';
 	}
 	if (connection.status === 'tiktok:authenticating') {
-		return 'starting';
+		return 'connecting';
 	}
 	if (connection.status === 'connecting') {
 		return 'connecting';

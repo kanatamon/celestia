@@ -36,9 +36,7 @@ export default function LiveLayout({
 				height: '100%',
 			}}
 		>
-			{(['connecting', 'tiktok:authenticating'] as ConnectionStatus[]).includes(
-				connection.status,
-			) ? (
+			{connection.status === 'connecting' ? (
 				<CenteredMessageOverlay>
 					Connecting to <Highlight>@{username}...</Highlight>
 				</CenteredMessageOverlay>
