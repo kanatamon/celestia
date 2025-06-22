@@ -5,6 +5,7 @@
 		"**/.client/**/*",
 		".react-router/types/**/*"
 	],
+	"exclude": ["public"],
 	"compilerOptions": {
 		"types": ["node", "vite/client"],
 		"moduleResolution": "bundler",
