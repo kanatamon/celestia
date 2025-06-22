@@ -1,6 +1,7 @@
 import '@ant-design/v5-patch-for-react-19';
 
 import type { Route } from './+types/root';
+import * as Sentry from '@sentry/react-router';
 import { ConfigProvider } from 'antd';
 import {
 	isRouteErrorResponse,
@@ -72,9 +73,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 			error.status === 404
 				? 'The requested page could not be found.'
 				: error.statusText || details;
-	} else if (import.meta.env.DEV && error && error instanceof Error) {
-		details = error.message;
-		stack = error.stack;
+	} else if (error && error instanceof Error) {
+		Sentry.captureException(error);
+		if (import.meta.env.DEV) {
+			details = error.message;
+			stack = error.stack;
+		}
 	}
 
 	if (error instanceof Error) {
