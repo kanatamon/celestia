@@ -1,3 +1,5 @@
+import '../instrument.server.mjs';
+
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import type {
 	AppLoadContext,

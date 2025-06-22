@@ -5,8 +5,8 @@
   "scripts": {
     "build": "react-router build",
     "typecheck": "react-router typegen && tsc",
-    "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router dev",
-    "start": "NODE_OPTIONS='--import ./instrument.server.mjs' react-router-serve ./build/server/index.js"
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js"
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
