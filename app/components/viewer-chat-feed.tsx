@@ -1,4 +1,4 @@
-import { useUserRelatedChatEvents } from '~/lib/live-event/use-chat-events';
+import { useViewerChatEvents } from '~/lib/live-event/use-chat-events';
 import { cx } from '~/lib/styles';
 import { ChatFeed } from './chat-feed';
 
@@ -11,7 +11,7 @@ export const ViewerChatFeed = ({
 	viewerUserId: string;
 	viewerMessageId: string;
 }) => {
-	const chatEvents = useUserRelatedChatEvents(viewerUserId);
+	const chatEvents = useViewerChatEvents(viewerUserId);
 	return (
 		<ChatFeed
 			style={style}
