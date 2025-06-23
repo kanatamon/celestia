@@ -13,22 +13,6 @@ const sentryConfig: SentryReactRouterBuildOptions = {
 };
 
 export default defineConfig((config) => {
-	console.log('=== RAILWAY DEBUG INFO ===');
-	console.log('Command:', config.command);
-	console.log('Mode:', config.mode);
-	console.log('NODE_ENV:', process.env.NODE_ENV);
-	console.log('Railway Environment:', process.env.RAILWAY_ENVIRONMENT);
-	console.log(
-		'Available env keys:',
-		Object.keys(process.env).filter(
-			(key) => key.includes('SENTRY') || key.includes('NODE_ENV'),
-		),
-	);
-
-	const env = loadEnv(config.mode, process.cwd(), '');
-	console.log('Loaded env:', env);
-	console.log('=========================');
-
 	return {
 		plugins: [
 			reactRouter(),
