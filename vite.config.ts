@@ -4,17 +4,30 @@ import { sentryReactRouter } from '@sentry/react-router';
 import { defineConfig, loadEnv } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-export default defineConfig((config) => {
-	// Load env file based on `mode` in the current working directory.
-	const env = loadEnv(config.mode, process.cwd(), '');
+const sentryConfig: SentryReactRouterBuildOptions = {
+	org: process.env.VITE_SENTRY_ORG,
+	project: process.env.VITE_SENTRY_PROJECT,
+	// An auth token is required for uploading source maps.
+	authToken: process.env.VITE_SENTRY_AUTH_TOKEN,
+	// ...
+};
 
-	const sentryConfig: SentryReactRouterBuildOptions = {
-		org: env.SENTRY_ORG,
-		project: env.SENTRY_PROJECT,
-		// An auth token is required for uploading source maps.
-		authToken: env.SENTRY_AUTH_TOKEN,
-		// ...
-	};
+export default defineConfig((config) => {
+	console.log('=== RAILWAY DEBUG INFO ===');
+	console.log('Command:', config.command);
+	console.log('Mode:', config.mode);
+	console.log('NODE_ENV:', process.env.NODE_ENV);
+	console.log('Railway Environment:', process.env.RAILWAY_ENVIRONMENT);
+	console.log(
+		'Available env keys:',
+		Object.keys(process.env).filter(
+			(key) => key.includes('SENTRY') || key.includes('NODE_ENV'),
+		),
+	);
+
+	const env = loadEnv(config.mode, process.cwd(), '');
+	console.log('Loaded env:', env);
+	console.log('=========================');
 
 	return {
 		plugins: [
@@ -22,11 +35,5 @@ export default defineConfig((config) => {
 			tsconfigPaths(),
 			sentryReactRouter(sentryConfig, config),
 		],
-		define: {
-			'process.env.SENTRY_DSN': JSON.stringify(env.SENTRY_DSN),
-			'process.env.SENTRY_ENVIRONMENT': JSON.stringify(env.SENTRY_ENVIRONMENT),
-			'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
-			'process.env.SENTRY_DEBUG': JSON.stringify(env.SENTRY_DEBUG),
-		},
 	};
 });

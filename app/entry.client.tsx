@@ -3,14 +3,14 @@ import { startTransition, StrictMode } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 
-if (process.env.SENTRY_DSN) {
+if (import.meta.env.VITE_SENTRY_DSN) {
 	const isDevelopment = process.env.NODE_ENV === 'development';
 	const isProduction = process.env.NODE_ENV === 'production';
-	const isDebugMode = process.env.SENTRY_DEBUG === 'true';
+	const isDebugMode = import.meta.env.VITE_SENTRY_DEBUG === 'true';
 
 	Sentry.init({
-		dsn: process.env.SENTRY_DSN,
-		environment: process.env.SENTRY_ENVIRONMENT,
+		dsn: import.meta.env.VITE_SENTRY_DSN,
+		environment: import.meta.env.VITE_SENTRY_ENVIRONMENT,
 		sendDefaultPii: true,
 		integrations: [Sentry.reactRouterTracingIntegration()],
 
