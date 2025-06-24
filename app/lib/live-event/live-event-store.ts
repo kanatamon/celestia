@@ -214,9 +214,23 @@ export const useLiveEventStore = create<LiveEventStore>()(
 				}),
 
 				// Handle rehydration - convert Array back to Map
-				onRehydrateStorage: () => (state) => {
-					if (state && Array.isArray(state.userGiftEvents)) {
+				onRehydrateStorage: () => (state, error) => {
+					if (error) {
+						console.error('Failed to rehydrate Zustand store:', error);
+						return;
+					}
+
+					if (!state) {
+						console.warn('Rehydrated Zustand store is undefined');
+						return;
+					}
+
+					if (Array.isArray(state.userGiftEvents)) {
 						state.userGiftEvents = new Map(state.userGiftEvents);
+					}
+
+					if (!state.viewerCount) {
+						state.viewerCount = 0;
 					}
 				},
 
