@@ -206,8 +206,9 @@ export const useLiveEventStore = create<LiveEventStore>()(
 				name: 'tiktok-live-events-store',
 				storage: createJSONStorage(() => localStorage),
 
-				// 🎯 ONLY persist these 3 fields
+				// 🎯 ONLY persist these 4 fields
 				partialize: (state) => ({
+					viewerCount: state.viewerCount,
 					likeCount: state.likeCount,
 					chatEvents: state.chatEvents,
 					userGiftEvents: Array.from(state.userGiftEvents.entries()),
