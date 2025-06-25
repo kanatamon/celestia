@@ -5,6 +5,8 @@ import { useUserGiftCounts } from '~/lib/live-event/use-gift-counts';
 
 const { Text } = Typography;
 
+const MAX_GIFTS_DISPLAY = 2;
+
 // Helper function to highlight mentions
 const highlightMentions = (text: string) => {
 	const mentionRegex = /@([^\s]+)/g;
@@ -22,6 +24,12 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	event,
 }) => {
 	const gifts = useUserGiftCounts(event.userId);
+	const heartMeGift = gifts.find(
+		(gift) => gift.giftDetails.giftName === 'Heart Me',
+	);
+	const paidGifts = gifts.filter(
+		(gift) => gift.giftDetails.giftName !== 'Heart Me',
+	);
 	return (
 		<div
 			style={{
@@ -35,7 +43,32 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 			}}
 		>
 			<div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-				<Avatar src={event.userDetails.profilePictureUrls?.at(-1)} size={36} />
+				<div
+					style={{
+						position: 'relative',
+					}}
+				>
+					<Avatar
+						src={event.userDetails.profilePictureUrls?.at(-1)}
+						size={36}
+					/>
+					{heartMeGift && (
+						<div
+							style={{
+								position: 'absolute',
+								top: '-4px',
+								right: '-4px',
+							}}
+						>
+							<Image
+								preview={false}
+								src={heartMeGift.giftDetails.giftPictureUrl}
+								width={24}
+								alt="Follower Gift"
+							/>
+						</div>
+					)}
+				</div>
 				<div style={{ flex: 1 }}>
 					<div
 						style={{
@@ -54,9 +87,9 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 						>
 							{event.nickname || 'Anonymous'}
 						</Text>
-						{gifts[0] && (
+						{paidGifts[0] && (
 							<Space size={6}>
-								{gifts.map((gift, index) => (
+								{paidGifts.slice(0, MAX_GIFTS_DISPLAY).map((gift, index) => (
 									<Space key={index} size={2} align="center">
 										<Image
 											preview={false}
@@ -92,6 +125,17 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 										</Space>
 									</Space>
 								))}
+								{paidGifts.length > MAX_GIFTS_DISPLAY && (
+									<Text
+										style={{
+											color: 'rgba(255, 255, 255, 0.6)',
+											fontSize: '12px',
+											fontStyle: 'italic',
+										}}
+									>
+										+{paidGifts.length - MAX_GIFTS_DISPLAY} more
+									</Text>
+								)}
 							</Space>
 						)}
 					</div>

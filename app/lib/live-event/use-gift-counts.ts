@@ -31,7 +31,11 @@ export const useGiftCounts = () => {
 	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
 	const giftCounts = [
 		...aggregateGiftCounts([...userGiftEvents.values()].flat()),
-	].sort((a, b) => b.count - a.count);
+	].sort((a, b) => {
+		const aCost = a.giftDetails.diamondCount * a.count;
+		const bCost = b.giftDetails.diamondCount * b.count;
+		return bCost - aCost;
+	});
 	return giftCounts;
 };
 
