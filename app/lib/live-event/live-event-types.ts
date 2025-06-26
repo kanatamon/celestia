@@ -121,28 +121,3 @@ export interface WebcastMessageEvent {
 	msgId: string;
 	createTime: string;
 }
-
-// // Type guards for event discrimination
-// export function isLiveIntroEvent(event: TikTokLiveEvent): event is TikTokLiveEvent & { event: 'live_intro'; data: WebcastLiveIntroMessage } {
-//   return event.event === 'live_intro';
-// }
-
-// export function isChatEvent(event: TikTokLiveEvent): event is TikTokLiveEvent & { event: 'chat'; data: WebcastChatMessage } {
-//   return event.event === 'chat';
-// }
-
-// export function isRoomUserEvent(event: TikTokLiveEvent): event is TikTokLiveEvent & { event: 'room_user'; data: WebcastRoomUserSeqMessage } {
-//   return event.event === 'room_user';
-// }
-
-// export function isMemberEvent(event: TikTokLiveEvent): event is TikTokLiveEvent & { event: 'member'; data: WebcastMemberMessage } {
-//   return event.event === 'member';
-// }
-
-// export function isLikeEvent(event: TikTokLiveEvent): event is TikTokLiveEvent & { event: 'like'; data: WebcastLikeMessage } {
-//   return event.event === 'like';
-// }
-
-// export function isGiftEvent(event: TikTokLiveEvent): event is TikTokLiveEvent & { event: 'gift'; data: WebcastGiftMessage } {
-//   return event.event === 'gift';
-// }

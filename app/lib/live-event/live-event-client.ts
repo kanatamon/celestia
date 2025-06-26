@@ -266,10 +266,7 @@ class LiveEventClient {
 				this.store.updateConnection(data);
 			},
 			chat: (data) => {
-				const msgEvent = imagineMessageEvent({
-					msgId: data.msgId,
-					createTime: data.createTime,
-				});
+				const msgEvent = imagineMessageEvent(data);
 				this.store.addChatEvent({
 					id: msgEvent.msgId,
 					type: 'chat',
@@ -282,10 +279,7 @@ class LiveEventClient {
 				});
 			},
 			gift: (data) => {
-				const msgEvent = imagineMessageEvent({
-					msgId: data.msgId,
-					createTime: data.createTime,
-				});
+				const msgEvent = imagineMessageEvent(data);
 				this.store.addChatEvent({
 					id: msgEvent.msgId,
 					type: 'gift',
@@ -338,10 +332,7 @@ class LiveEventClient {
 				});
 			},
 			member: (data) => {
-				const msgEvent = imagineMessageEvent({
-					msgId: data.msgId,
-					createTime: data.createTime,
-				});
+				const msgEvent = imagineMessageEvent(data);
 				this.store.addJoinEvent({
 					id: msgEvent.msgId,
 					type: 'member',
