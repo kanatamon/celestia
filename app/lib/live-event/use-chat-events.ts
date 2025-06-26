@@ -6,7 +6,7 @@ export const useViewerChatEvents = (viewerUserId: string) => {
 		(event) => event.userId === viewerUserId,
 	)?.nickname;
 	return chatEvents.filter((event) => {
-		if (event.type === 'chat' && viewerName) {
+		if (event.type === 'chat' && viewerName && event.comment) {
 			return (
 				event.comment.includes(`@${viewerName}`) ||
 				event.userId === viewerUserId

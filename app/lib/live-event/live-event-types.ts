@@ -59,7 +59,7 @@ export interface WebcastLiveIntroMessage {
 
 export interface WebcastChatMessage extends User {
 	emotes: any[];
-	comment: string;
+	comment?: string;
 	msgId: string;
 	createTime: string;
 }
