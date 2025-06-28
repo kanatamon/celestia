@@ -6,7 +6,8 @@ RUN npm ci
 FROM node:20-alpine AS production-dependencies-env
 COPY ./package.json package-lock.json /app/
 WORKDIR /app
-RUN npm install --production --frozen-lockfile
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm ci --omit=dev
 
 FROM node:20-alpine AS build-env
 ARG VITE_SENTRY_DSN
