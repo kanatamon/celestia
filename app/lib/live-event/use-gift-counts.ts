@@ -1,6 +1,14 @@
 import type { LiveGiftMessage } from '~/lib/live-event/live-event-store';
 import { useLiveEventStore } from './live-event-store';
 
+/**
+ * Certain gifts, such as "Heart Me," are always associated with a groupId of '0'.
+ * To guarantee uniqueness, the msgId is used for these gifts instead.
+ */
+const getUniqueGiftGroupId = (gift: LiveGiftMessage) => {
+	return gift.groupId === '0' ? gift.msgId : gift.groupId;
+};
+
 export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 	const seenGroupIds = new Set<LiveGiftMessage['groupId']>();
 	type Gifts = Map<
@@ -14,8 +22,8 @@ export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 	const gifts = events.reduceRight<Gifts>((acc, gift) => {
 		const existing = acc.get(gift.giftId);
 		const previousCount = existing?.count || 0;
-		if (gift.repeatEnd || !seenGroupIds.has(gift.groupId)) {
-			seenGroupIds.add(gift.groupId);
+		if (!seenGroupIds.has(getUniqueGiftGroupId(gift))) {
+			seenGroupIds.add(getUniqueGiftGroupId(gift));
 			acc.set(gift.giftId, {
 				id: gift.giftId,
 				giftDetails: gift,
