@@ -19,8 +19,13 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 				boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)',
 			}}
 		>
-			<div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
-				<Avatar src={event.userDetails.profilePictureUrls?.at(-1)} size={36} />
+			<Flex gap={12}>
+				<Flex align="center">
+					<Avatar
+						src={event.userDetails.profilePictureUrls?.at(-1)}
+						size={36}
+					/>
+				</Flex>
 				<Flex style={{ flex: 1 }} vertical justify="space-between">
 					<Text
 						strong
@@ -78,7 +83,7 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 						</Text>
 					</Space>
 				</Space>
-			</div>
+			</Flex>
 		</div>
 	);
 };
