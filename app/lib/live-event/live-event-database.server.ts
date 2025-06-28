@@ -8,6 +8,7 @@ import type {
 	WebcastMemberMessage,
 	WebcastRoomUserSeqMessage,
 } from './live-event-types';
+import { userSchema } from './live-event-schemas';
 
 export class LiveEventDatabaseService {
 	constructor(private prisma: PrismaClient) {}
@@ -69,10 +70,8 @@ export class LiveEventDatabaseService {
 			await this.upsertUser(data);
 
 			// Then create the chat message (ignore if duplicate msgId)
-			await this.prisma.webcastChatMessage.upsert({
-				where: { msgId: data.msgId },
-				update: {}, // Don't update existing messages
-				create: {
+			await this.prisma.webcastChatMessage.create({
+				data: {
 					roomId,
 					id: data.msgId,
 					msgId: data.msgId,
@@ -80,7 +79,6 @@ export class LiveEventDatabaseService {
 					comment: data.comment,
 					emotes: data.emotes,
 					createTime: data.createTime,
-					createdAt: new Date(),
 				},
 			});
 		} catch (error) {
@@ -93,10 +91,8 @@ export class LiveEventDatabaseService {
 		try {
 			await this.upsertUser(data);
 
-			await this.prisma.webcastGiftMessage.upsert({
-				where: { msgId: data.msgId },
-				update: {},
-				create: {
+			await this.prisma.webcastGiftMessage.create({
+				data: {
 					id: data.msgId,
 					roomId: roomId,
 					msgId: data.msgId,
@@ -115,7 +111,6 @@ export class LiveEventDatabaseService {
 					timestamp: data.timestamp,
 					receiverUserId: data.receiverUserId,
 					createTime: data.createTime,
-					createdAt: new Date(),
 				},
 			});
 		} catch (error) {
@@ -128,10 +123,8 @@ export class LiveEventDatabaseService {
 		try {
 			await this.upsertUser(data);
 
-			await this.prisma.webcastLikeMessage.upsert({
-				where: { msgId: data.msgId },
-				update: {},
-				create: {
+			await this.prisma.webcastLikeMessage.create({
+				data: {
 					id: data.msgId,
 					roomId,
 					msgId: data.msgId,
@@ -140,9 +133,7 @@ export class LiveEventDatabaseService {
 					totalLikeCount: data.totalLikeCount,
 					displayType: data.displayType,
 					label: data.label,
-					// createTime: new Date(data.createTime),
 					createTime: data.createTime,
-					createdAt: new Date(),
 				},
 			});
 		} catch (error) {
@@ -152,22 +143,34 @@ export class LiveEventDatabaseService {
 
 	// Save member message
 	async saveMemberMessage(data: WebcastMemberMessage, roomId: string) {
-		try {
-			await this.upsertUser(data);
+		const parsedUser = userSchema.safeParse(data);
+		if (!parsedUser.success) {
+			console.warn(
+				`Member message has no userId, skipping for msgId: ${data.msgId}.`,
+			);
+			return;
+		}
 
-			await this.prisma.webcastMemberMessage.upsert({
-				where: { msgId: data.msgId },
-				update: {},
-				create: {
+		if (!data.displayType || !data.label) {
+			console.warn(
+				`Member message missing displayType or label, skipping for msgId: ${data.msgId}.`,
+			);
+			return;
+		}
+
+		try {
+			await this.upsertUser(parsedUser.data);
+
+			await this.prisma.webcastMemberMessage.create({
+				data: {
 					roomId,
 					id: data.msgId,
 					msgId: data.msgId,
-					userId: data.userId,
+					userId: parsedUser.data.userId,
 					actionId: data.actionId,
 					displayType: data.displayType,
 					label: data.label,
 					createTime: data.createTime,
-					createdAt: new Date(),
 				},
 			});
 		} catch (error) {
@@ -186,7 +189,6 @@ export class LiveEventDatabaseService {
 				data: {
 					roomId,
 					viewerCount: data.viewerCount,
-					createdAt: new Date(),
 				},
 			});
 		} catch (error) {
@@ -202,7 +204,6 @@ export class LiveEventDatabaseService {
 				data: {
 					...data,
 					roomId,
-					createdAt: new Date(),
 				},
 			});
 		} catch (error) {

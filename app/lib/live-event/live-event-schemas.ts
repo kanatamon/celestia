@@ -76,12 +76,12 @@ export const webcastRoomUserSeqMessageSchema = z.object({
 	viewerCount: z.number(),
 });
 
-export const webcastMemberMessageSchema = userSchema.extend({
+export const webcastMemberMessageSchema = userSchema.partial().extend({
 	actionId: z.number(),
 	msgId: z.string(),
 	createTime: z.string(),
-	displayType: z.string(),
-	label: z.string(),
+	displayType: z.string().optional(),
+	label: z.string().optional(),
 });
 
 export const webcastLikeMessageSchema = userSchema.extend({
