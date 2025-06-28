@@ -42,21 +42,9 @@ export const userSchema = z.object({
 	teamMemberLevel: z.number(),
 });
 
-export const webcastLiveIntroMessageSchema = z.object({
+export const webcastLiveIntroMessageSchema = userSchema.extend({
+	id: z.string(),
 	description: z.string(),
-	userId: z.string(),
-	secUid: z.string(),
-	nickname: z.string(),
-	profilePictureUrl: z.string(),
-	userBadges: z.array(userBadgeSchema),
-	userSceneTypes: z.array(z.number()),
-	userDetails: userDetailsSchema,
-	isModerator: z.boolean(),
-	isNewGifter: z.boolean(),
-	isSubscriber: z.boolean(),
-	topGifterRank: z.number().nullable(),
-	gifterLevel: z.number(),
-	teamMemberLevel: z.number(),
 });
 
 export const webcastChatMessageSchema = userSchema.extend({

@@ -28,11 +28,12 @@ model User {
   updatedAt         DateTime @updatedAt
 
   // Relations
-  followInfo     FollowInfo?
-  chatMessages   WebcastChatMessage[]
-  memberMessages WebcastMemberMessage[]
-  likeMessages   WebcastLikeMessage[]
-  giftMessages   WebcastGiftMessage[]
+  followInfo        FollowInfo?
+  chatMessages      WebcastChatMessage[]
+  memberMessages    WebcastMemberMessage[]
+  likeMessages      WebcastLikeMessage[]
+  giftMessages      WebcastGiftMessage[]
+  liveIntroMessages WebcastLiveIntroMessage[]
 
   @@map("users")
 }
@@ -54,14 +55,14 @@ model FollowInfo {
 }
 
 model WebcastLiveIntroMessage {
-  id                String   @id @default(uuid())
-  roomId            String
-  description       String
-  userId            String
-  secUid            String
-  nickname          String
-  profilePictureUrl String
-  createdAt         DateTime @default(now())
+  id          String   @id @default(uuid())
+  roomId      String
+  description String
+  userId      String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("webcast_live_intro_messages")
 }
