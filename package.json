@@ -6,7 +6,14 @@
     "build": "react-router build",
     "typecheck": "react-router typegen && tsc",
     "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js"
+    "start": "react-router-serve ./build/server/index.js",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:reset": "prisma migrate reset",
+    "db:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
