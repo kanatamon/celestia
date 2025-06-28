@@ -6,7 +6,7 @@ RUN npm ci
 FROM node:20-alpine AS production-dependencies-env
 COPY ./package.json package-lock.json /app/
 WORKDIR /app
-RUN npm ci --omit=dev
+RUN npm install --production --frozen-lockfile
 
 FROM node:20-alpine AS build-env
 ARG VITE_SENTRY_DSN
