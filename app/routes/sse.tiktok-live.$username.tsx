@@ -93,7 +93,7 @@ export async function loader({
 				liveEventSchemas.webcastChatMessage,
 				(data) => {
 					server.send('chat', data);
-					database.saveChatMessage(data, roomId!);
+					if (roomId) database.saveChatMessage(data, roomId);
 				},
 			),
 		);
@@ -103,7 +103,7 @@ export async function loader({
 				liveEventSchemas.webcastGiftMessage,
 				(data) => {
 					server.send('gift', data);
-					database.saveGiftMessage(data, roomId!);
+					if (roomId) database.saveGiftMessage(data, roomId);
 				},
 			),
 		);
@@ -113,7 +113,7 @@ export async function loader({
 				liveEventSchemas.webcastLikeMessage,
 				(data) => {
 					server.send('like', data);
-					database.saveLikeMessage(data, roomId!);
+					if (roomId) database.saveLikeMessage(data, roomId);
 				},
 			),
 		);
@@ -123,7 +123,7 @@ export async function loader({
 				liveEventSchemas.webcastRoomUserSeqMessage,
 				(data) => {
 					server.send('room_user', data);
-					database.saveRoomUserSeqMessage(data, roomId!);
+					if (roomId) database.saveRoomUserSeqMessage(data, roomId);
 				},
 			),
 		);
@@ -133,7 +133,7 @@ export async function loader({
 				liveEventSchemas.webcastMemberMessage,
 				(data) => {
 					server.send('member', data);
-					database.saveMemberMessage(data, roomId!);
+					if (roomId) database.saveMemberMessage(data, roomId);
 				},
 			),
 		);
@@ -143,7 +143,7 @@ export async function loader({
 				liveEventSchemas.webcastLiveIntroMessage,
 				(data) => {
 					server.send('live_intro', data);
-					database.saveLiveIntroMessage(data, roomId!);
+					if (roomId) database.saveLiveIntroMessage(data, roomId);
 				},
 			),
 		);
