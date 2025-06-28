@@ -1,12 +1,15 @@
 FROM node:20-alpine AS development-dependencies-env
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 COPY . /app
 WORKDIR /app
 RUN npm ci
 
 FROM node:20-alpine AS production-dependencies-env
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 COPY ./package.json package-lock.json /app/
 WORKDIR /app
-ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm ci --omit=dev
 
 FROM node:20-alpine AS build-env
