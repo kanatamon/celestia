@@ -149,7 +149,7 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 						margin: 0,
 					}}
 				>
-					{event.comment ? highlightMentions(event.comment) : ''}
+					{highlightMentions(event.comment)}
 				</Paragraph>
 			</div>
 		</Flex>

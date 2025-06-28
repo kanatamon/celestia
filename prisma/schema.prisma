@@ -14,7 +14,7 @@ model User {
   userId            String   @id
   secUid            String
   uniqueId          String?
-  nickname          String
+  nickname          String?
   profilePictureUrl String?
   followRole        Int?
   userSceneTypes    Json // Array of numbers
@@ -28,49 +28,13 @@ model User {
   updatedAt         DateTime @updatedAt
 
   // Relations
-  userBadges       UserBadge[]
-  userDetails      UserDetails?
-  followInfo       FollowInfo?
-  chatMessages     WebcastChatMessage[]
-  memberMessages   WebcastMemberMessage[]
-  likeMessages     WebcastLikeMessage[]
-  giftMessages     WebcastGiftMessage[]
-  topViewerEntries TopViewer[]
+  followInfo     FollowInfo?
+  chatMessages   WebcastChatMessage[]
+  memberMessages WebcastMemberMessage[]
+  likeMessages   WebcastLikeMessage[]
+  giftMessages   WebcastGiftMessage[]
 
   @@map("users")
-}
-
-model UserBadge {
-  id             String   @id
-  type           String
-  badgeSceneType Int?
-  displayType    Int?
-  url            String?
-  privilegeId    String?
-  level          Int?
-  name           String?
-  userId         String
-  createdAt      DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
-
-  @@map("user_badges")
-}
-
-model UserDetails {
-  id                 String   @id
-  createTime         String
-  bioDescription     String
-  profilePictureUrls Json? // Array of strings
-  userId             String   @unique
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
-
-  @@map("user_details")
 }
 
 model FollowInfo {
@@ -90,22 +54,13 @@ model FollowInfo {
 }
 
 model WebcastLiveIntroMessage {
-  id                String   @id
+  id                String   @id @default(uuid())
   roomId            String
   description       String
   userId            String
   secUid            String
   nickname          String
   profilePictureUrl String
-  userBadges        Json // Array of UserBadge objects
-  userSceneTypes    Json // Array of numbers
-  userDetails       Json // UserDetails object
-  isModerator       Boolean  @default(false)
-  isNewGifter       Boolean  @default(false)
-  isSubscriber      Boolean  @default(false)
-  topGifterRank     Int?
-  gifterLevel       Int      @default(0)
-  teamMemberLevel   Int      @default(0)
   createdAt         DateTime @default(now())
 
   @@map("webcast_live_intro_messages")
@@ -128,29 +83,12 @@ model WebcastChatMessage {
 }
 
 model WebcastRoomUserSeqMessage {
-  id          String   @id
+  id          String   @id @default(uuid())
   roomId      String
   viewerCount Int      @default(0)
   createdAt   DateTime @default(now())
 
-  // Relations
-  topViewers TopViewer[]
-
   @@map("webcast_room_user_seq_messages")
-}
-
-model TopViewer {
-  id                          String   @id
-  coinCount                   Int      @default(0)
-  userId                      String
-  webcastRoomUserSeqMessageId String?
-  createdAt                   DateTime @default(now())
-
-  // Relations
-  user                      User                       @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  webcastRoomUserSeqMessage WebcastRoomUserSeqMessage? @relation(fields: [webcastRoomUserSeqMessageId], references: [id], onDelete: Cascade)
-
-  @@map("top_viewers")
 }
 
 model WebcastMemberMessage {
@@ -188,20 +126,6 @@ model WebcastLikeMessage {
   @@map("webcast_like_messages")
 }
 
-model Gift {
-  id           String   @id
-  gift_id      Int
-  repeat_count Int      @default(0)
-  repeat_end   Int      @default(0)
-  gift_type    Int      @default(0)
-  createdAt    DateTime @default(now())
-
-  // Relations
-  giftMessages WebcastGiftMessage[]
-
-  @@map("gifts")
-}
-
 model WebcastGiftMessage {
   id             String   @id
   roomId         String
@@ -221,12 +145,10 @@ model WebcastGiftMessage {
   timestamp      BigInt
   receiverUserId String
   userId         String
-  giftModelId    String?
   createdAt      DateTime @default(now())
 
   // Relations
-  user User  @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  gift Gift? @relation(fields: [giftModelId], references: [id], onDelete: SetNull)
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("webcast_gift_messages")
 }
