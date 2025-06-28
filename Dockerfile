@@ -9,6 +9,7 @@ FROM node:20-alpine AS production-dependencies-env
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 COPY ./package.json package-lock.json /app/
+COPY ./prisma /app/prisma
 WORKDIR /app
 RUN npm ci --omit=dev
 
