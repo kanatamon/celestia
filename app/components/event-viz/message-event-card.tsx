@@ -1,7 +1,10 @@
 import type { LiveChatMessage } from '~/lib/live-event/live-event-store';
 import { Avatar, Flex, Image, Space, Typography } from 'antd';
 import { Highlight } from '~/components/_ui/highlight';
-import { useUserGiftCounts } from '~/lib/live-event/use-gift-counts';
+import {
+	compareGiftsByTotalCostDesc,
+	useUserGiftCounts,
+} from '~/lib/live-event/use-gift-counts';
 
 const { Text, Paragraph } = Typography;
 
@@ -27,9 +30,9 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 	const heartMeGift = gifts.find(
 		(gift) => gift.giftDetails.giftName === 'Heart Me',
 	);
-	const paidGifts = gifts.filter(
-		(gift) => gift.giftDetails.giftName !== 'Heart Me',
-	);
+	const paidGifts = gifts
+		.filter((gift) => gift.giftDetails.giftName !== 'Heart Me')
+		.sort(compareGiftsByTotalCostDesc);
 
 	if (!event.comment) {
 		console.warn('MessageEventCard: No comment found in event', event);
