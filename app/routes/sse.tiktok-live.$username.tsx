@@ -44,14 +44,14 @@ const humanizeTikTokError = (error: unknown) => {
 
 export async function loader({
 	request,
-	params: { username },
+	params: { username: streamerUniqueId },
 }: Route.LoaderArgs) {
 	const sessionId = requireEnv('SESSION_ID');
 	return eventStream(request.signal, (send) => {
 		let roomId: string | undefined;
 		const database = createRateLimitedLiveEventDatabaseService();
 		const server = new LiveEventServerSender(send);
-		const connection = new WebcastPushConnection(username, {
+		const connection = new WebcastPushConnection(streamerUniqueId, {
 			sessionId,
 		});
 		server.send('connection', {
@@ -65,6 +65,12 @@ export async function loader({
 					server.send('connection', {
 						status: 'tiktok:room_found',
 					});
+					database.saveLiveIntroMessage(
+						{
+							streamerUniqueId,
+						},
+						state.roomId,
+					);
 				} else {
 					server.send('connection', {
 						status: 'tiktok:room_not_found',
@@ -132,7 +138,10 @@ export async function loader({
 				liveEventSchemas.webcastMemberMessage,
 				(data) => {
 					server.send('member', data);
-					if (roomId) database.saveMemberMessage(data, roomId);
+					// Warning: This event is highly triggered and can $cost a lot of writes.
+					// At the moment, we don't know what benefit it brings to our business.
+					// So we are commenting it out for now.
+					// if (roomId) database.saveMemberMessage(data, roomId);
 				},
 			),
 		);
@@ -142,7 +151,15 @@ export async function loader({
 				liveEventSchemas.webcastLiveIntroMessage,
 				(data) => {
 					server.send('live_intro', data);
-					if (roomId) database.saveLiveIntroMessage(data, roomId);
+					if (roomId) {
+						database.saveLiveIntroMessage(
+							{
+								description: data.description,
+								streamerUniqueId,
+							},
+							roomId,
+						);
+					}
 				},
 			),
 		);

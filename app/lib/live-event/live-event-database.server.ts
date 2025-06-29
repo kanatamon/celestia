@@ -185,8 +185,10 @@ export class LiveEventDatabaseService {
 	) {
 		try {
 			// Save room stats
+			const uniqueId = `${roomId}:${Math.floor(Date.now() / 1000)}:${data.viewerCount}`;
 			await this.prisma.webcastRoomUserSeqMessage.create({
 				data: {
+					id: uniqueId,
 					roomId,
 					viewerCount: data.viewerCount,
 				},
@@ -196,14 +198,25 @@ export class LiveEventDatabaseService {
 		}
 	}
 
-	async saveLiveIntroMessage(data: WebcastLiveIntroMessage, roomId: string) {
+	async saveLiveIntroMessage(
+		data: {
+			description?: string;
+			streamerUniqueId: string;
+		},
+		roomId: string,
+	) {
 		try {
-			await this.upsertUser(data);
-
-			await this.prisma.webcastLiveIntroMessage.create({
-				data: {
-					...data,
+			const id = `${data.streamerUniqueId}:${roomId}`;
+			await this.prisma.webcastLiveIntroMessage.upsert({
+				where: { id },
+				update: {
+					description: data.description,
+				},
+				create: {
+					id,
 					roomId,
+					streamerUniqueId: data.streamerUniqueId,
+					description: data.description,
 				},
 			});
 		} catch (error) {

@@ -31,15 +31,17 @@ const defaultConfig: TikTokLiveEventConfig = {
 		alwaysAllow: true,
 	},
 	like: {
-		batchSize: 50,
-		batchTimeoutMs: 100000,
+		batchSize: 10,
+		batchTimeoutMs: 10_000,
 	},
 	member: {
 		batchSize: 50,
-		batchTimeoutMs: 100000,
+		batchTimeoutMs: 10_000,
 	},
 	roomUser: {
-		maxPerMinute: 10,
+		maxPerMinute: 5,
+		batchSize: 10,
+		batchTimeoutMs: 30_000,
 	},
 	liveIntro: {
 		alwaysAllow: true,
@@ -48,6 +50,8 @@ const defaultConfig: TikTokLiveEventConfig = {
 
 // Enhanced database service using the rate limiter
 export class RateLimitedLiveEventDatabaseService {
+	private lastViewerCount: number | undefined;
+
 	constructor(
 		private database: LiveEventDatabaseService,
 		private rateLimiter: RateLimiter<TikTokLiveEventType>,
@@ -101,6 +105,12 @@ export class RateLimitedLiveEventDatabaseService {
 		data: WebcastRoomUserSeqMessage,
 		roomId: string,
 	) {
+		// Avoid saving if viewer count hasn't changed
+		if (this.lastViewerCount === data.viewerCount) {
+			return false;
+		}
+		this.lastViewerCount = data.viewerCount;
+
 		const result = await this.rateLimiter.executeRateLimited(
 			'roomUser',
 			roomId,
@@ -111,7 +121,13 @@ export class RateLimitedLiveEventDatabaseService {
 		return result.success;
 	}
 
-	async saveLiveIntroMessage(data: WebcastLiveIntroMessage, roomId: string) {
+	async saveLiveIntroMessage(
+		data: {
+			description?: string;
+			streamerUniqueId: string;
+		},
+		roomId: string,
+	) {
 		const result = await this.rateLimiter.executeRateLimited(
 			'liveIntro',
 			roomId,
