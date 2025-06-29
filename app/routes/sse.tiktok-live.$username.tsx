@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '~/lib/db.server';
 import { requireEnv } from '~/lib/env-utils.server';
 import { eventStream } from '~/lib/event-stream.sever';
+import { createRateLimitedLiveEventDatabaseService } from '~/lib/live-event/live-event-database-rate-limiter.server';
 import { LiveEventDatabaseService } from '~/lib/live-event/live-event-database.server';
 import { liveEventSchemas } from '~/lib/live-event/live-event-schemas';
 import { TikTokLiveEventSender } from '~/lib/tiktok-live-events';
@@ -50,7 +51,7 @@ export async function loader({
 	const sessionId = requireEnv('SESSION_ID');
 	return eventStream(request.signal, (send) => {
 		let roomId: string | undefined;
-		const database = new LiveEventDatabaseService(prisma);
+		const database = createRateLimitedLiveEventDatabaseService();
 		const server = new TikTokLiveEventSender(send);
 		const connection = new WebcastPushConnection(username, {
 			sessionId,
