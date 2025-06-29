@@ -38,7 +38,7 @@ export const isConnectionError = (status: string) => {
 	);
 };
 
-type _TikTokLiveEvent =
+type _LiveEvent =
 	| {
 			event: 'connection';
 			data: {
@@ -72,29 +72,26 @@ type _TikTokLiveEvent =
 	  };
 
 // Extract event names for type safety
-export type TikTokLiveEventName = _TikTokLiveEvent['event'];
+export type LiveEventName = _LiveEvent['event'];
 
 // Helper type to get data type for specific event
-export type TikTokLiveEventData<T extends TikTokLiveEventName> = Extract<
-	_TikTokLiveEvent,
+export type LiveEventData<T extends LiveEventName> = Extract<
+	_LiveEvent,
 	{ event: T }
 >['data'];
 
-export type TikTokLiveEvent<T extends TikTokLiveEventName> = {
+export type LiveEvent<T extends LiveEventName> = {
 	event: T;
-	data: TikTokLiveEventData<T>;
+	data: LiveEventData<T>;
 };
 
 // Server-side helpers
-export class TikTokLiveEventSender {
+export class LiveEventServerSender {
 	constructor(
 		private _send: (event: { event: string; data: string }) => void,
 	) {}
 
-	send<T extends TikTokLiveEventName>(
-		event: T,
-		data: TikTokLiveEventData<T>,
-	): void {
+	send<T extends LiveEventName>(event: T, data: LiveEventData<T>): void {
 		this._send({
 			event,
 			data: JSON.stringify(data),
@@ -103,15 +100,15 @@ export class TikTokLiveEventSender {
 }
 
 // Client-side helpers
-export type TikTokLiveEventHandler<T extends TikTokLiveEventName> = (
-	data: TikTokLiveEventData<T>,
+export type LiveEventHandler<T extends LiveEventName> = (
+	data: LiveEventData<T>,
 ) => void;
 
-export type TikTokLiveEventHandlers = {
-	[K in TikTokLiveEventName]?: TikTokLiveEventHandler<K>;
+export type LiveEventHandlers = {
+	[K in LiveEventName]?: LiveEventHandler<K>;
 };
 
-export class TikTokLiveEventSource {
+export class LiveEventClientSource {
 	private source: EventSource;
 	private controllers: AbortController[] = [];
 
@@ -142,9 +139,9 @@ export class TikTokLiveEventSource {
 		);
 	}
 
-	on<T extends TikTokLiveEventName>(
+	on<T extends LiveEventName>(
 		eventName: T,
-		handler: TikTokLiveEventHandler<T>,
+		handler: LiveEventHandler<T>,
 		options?: { signal?: AbortSignal },
 	): void {
 		const controller = new AbortController();
@@ -159,7 +156,7 @@ export class TikTokLiveEventSource {
 			eventName,
 			(event: MessageEvent) => {
 				try {
-					const data = JSON.parse(event.data) as TikTokLiveEventData<T>;
+					const data = JSON.parse(event.data) as LiveEventData<T>;
 					handler(data);
 				} catch (error) {
 					console.error(`Failed to parse ${eventName} event data:`, error);
@@ -170,11 +167,9 @@ export class TikTokLiveEventSource {
 	}
 
 	// Method to register multiple handlers at once
-	onEvents(handlers: TikTokLiveEventHandlers): void {
+	onEvents(handlers: LiveEventHandlers): void {
 		(
-			Object.entries(handlers) as Array<
-				[TikTokLiveEventName, TikTokLiveEventHandler<any>]
-			>
+			Object.entries(handlers) as Array<[LiveEventName, LiveEventHandler<any>]>
 		).forEach(([eventName, handler]) => {
 			this.on(eventName, handler);
 		});

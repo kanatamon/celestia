@@ -1,4 +1,3 @@
-import type { ConnectionStatus } from '~/lib/tiktok-live-events';
 import type { Route } from './+types/_live.feed.$username';
 import { Flex, Space } from 'antd';
 import { Outlet } from 'react-router';

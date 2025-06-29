@@ -2,13 +2,11 @@ import type { ZodSchema } from 'zod';
 import type { Route } from './+types/sse.tiktok-live.$username';
 import { WebcastPushConnection } from 'tiktok-live-connector';
 import { z } from 'zod';
-import { prisma } from '~/lib/db.server';
 import { requireEnv } from '~/lib/env-utils.server';
 import { eventStream } from '~/lib/event-stream.sever';
+import { LiveEventServerSender } from '~/lib/live-event/live-event-communication';
 import { createRateLimitedLiveEventDatabaseService } from '~/lib/live-event/live-event-database-rate-limiter.server';
-import { LiveEventDatabaseService } from '~/lib/live-event/live-event-database.server';
 import { liveEventSchemas } from '~/lib/live-event/live-event-schemas';
-import { TikTokLiveEventSender } from '~/lib/tiktok-live-events';
 
 const createEventParser = <T extends ZodSchema>(
 	eventName: string,
@@ -52,7 +50,7 @@ export async function loader({
 	return eventStream(request.signal, (send) => {
 		let roomId: string | undefined;
 		const database = createRateLimitedLiveEventDatabaseService();
-		const server = new TikTokLiveEventSender(send);
+		const server = new LiveEventServerSender(send);
 		const connection = new WebcastPushConnection(username, {
 			sessionId,
 		});

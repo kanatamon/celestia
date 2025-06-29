@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { Highlight } from '~/components/_ui/highlight';
 import { liveEventClient } from '~/lib/live-event/live-event-client';
+import { isConnectionError } from '~/lib/live-event/live-event-communication';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
-import { isConnectionError } from '~/lib/tiktok-live-events';
 
 const { Title, Paragraph } = Typography;
 

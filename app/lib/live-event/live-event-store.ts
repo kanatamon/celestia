@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from '../tiktok-live-events';
+import type { ConnectionStatus } from './live-event-communication';
 import type {
 	User,
 	WebcastChatMessage,

@@ -1,7 +1,7 @@
 import type { WebcastMessageEvent } from './live-event-types';
 import invariant from 'tiny-invariant';
 import { useLiveEventStore } from '~/lib/live-event/live-event-store';
-import { TikTokLiveEventSource } from '../tiktok-live-events';
+import { LiveEventClientSource } from './live-event-communication';
 
 interface RetryConfiguration {
 	maxRetries?: number; // How many times to retry connection
@@ -11,7 +11,7 @@ interface RetryConfiguration {
 }
 
 class LiveEventClient {
-	private source: TikTokLiveEventSource | null = null;
+	private source: LiveEventClientSource | null = null;
 	private subscribers = new Set<string>(); // Track components using service
 	private currentUsername: string | null = null;
 
@@ -73,7 +73,7 @@ class LiveEventClient {
 			status: phase,
 		});
 
-		this.source = new TikTokLiveEventSource(
+		this.source = new LiveEventClientSource(
 			`/sse/tiktok-live/${this.currentUsername}`,
 			{
 				onError: (error) => {
