@@ -128,7 +128,7 @@ model WebcastLikeMessage {
 }
 
 model WebcastGiftMessage {
-  id             String   @id
+  id             String   @id @default(uuid())
   roomId         String
   msgId          String   @unique
   giftId         Int

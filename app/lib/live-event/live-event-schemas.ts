@@ -43,7 +43,6 @@ export const userSchema = z.object({
 });
 
 export const webcastLiveIntroMessageSchema = userSchema.extend({
-	id: z.string(),
 	description: z.string(),
 });
 
