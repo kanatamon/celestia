@@ -3,6 +3,7 @@ export interface RateLimitConfig {
 	maxPerHour?: number;
 	batchSize?: number;
 	batchTimeoutMs?: number;
+	minIntervalMs?: number; // Minimum interval between events (frequency reduction)
 	alwaysAllow?: boolean; // Skip rate limiting entirely
 }
 
@@ -10,6 +11,8 @@ export interface RateLimitStats {
 	minuteCount: number;
 	hourCount: number;
 	pendingBatch?: number;
+	lastExecutionTime?: number; // Timestamp of last execution
+	nextAllowedTime?: number; // When next execution is allowed
 }
 
 export class RateLimiter<TEventType extends string = string> {
@@ -20,6 +23,7 @@ export class RateLimiter<TEventType extends string = string> {
 			hour: number;
 			lastResetMinute: number;
 			lastResetHour: number;
+			lastExecutionTime?: number; // Track last execution for frequency reduction
 		}
 	>();
 
@@ -69,6 +73,14 @@ export class RateLimiter<TEventType extends string = string> {
 			this.eventCounts.set(key, counters);
 		}
 
+		// Check frequency reduction (minimum interval)
+		if (config.minIntervalMs && counters.lastExecutionTime) {
+			const timeSinceLastExecution = now - counters.lastExecutionTime;
+			if (timeSinceLastExecution < config.minIntervalMs) {
+				return false;
+			}
+		}
+
 		// Reset minute counter if needed
 		if (counters.lastResetMinute !== currentMinute) {
 			counters.minute = 0;
@@ -81,24 +93,19 @@ export class RateLimiter<TEventType extends string = string> {
 			counters.lastResetHour = currentHour;
 		}
 
-		// Check limits
+		// Check rate limits
 		if (config.maxPerMinute && counters.minute >= config.maxPerMinute) {
-			console.log(
-				`Rate limit exceeded for ${eventType}[${identifier}]: ${counters.minute}/${config.maxPerMinute} per minute`,
-			);
 			return false;
 		}
 
 		if (config.maxPerHour && counters.hour >= config.maxPerHour) {
-			console.log(
-				`Rate limit exceeded for ${eventType}[${identifier}]: ${counters.hour}/${config.maxPerHour} per hour`,
-			);
 			return false;
 		}
 
-		// Increment counters
+		// Increment counters and update last execution time
 		counters.minute++;
 		counters.hour++;
+		counters.lastExecutionTime = now;
 
 		return true;
 	}
@@ -161,9 +168,6 @@ export class RateLimiter<TEventType extends string = string> {
 
 		try {
 			await Promise.allSettled(operations.map((op) => op()));
-			console.log(
-				`Executed batch of ${operations.length} operations for ${key}`,
-			);
 		} catch (error) {
 			console.error(`Batch execution failed for ${key}:`, error);
 		}
@@ -199,6 +203,28 @@ export class RateLimiter<TEventType extends string = string> {
 		}
 	}
 
+	// Utility method to check when next execution is allowed
+	getNextAllowedTime(eventType: TEventType, identifier: string): number | null {
+		const config = this.config[eventType];
+		if (!config?.minIntervalMs) return null;
+
+		const key = `${this.namespace}:${eventType}:${identifier}`;
+		const counters = this.eventCounts.get(key);
+
+		if (!counters?.lastExecutionTime) return null;
+
+		const nextAllowedTime = counters.lastExecutionTime + config.minIntervalMs;
+		return Math.max(nextAllowedTime, Date.now());
+	}
+
+	// Utility method to get remaining wait time in milliseconds
+	getRemainingWaitTime(eventType: TEventType, identifier: string): number {
+		const nextAllowedTime = this.getNextAllowedTime(eventType, identifier);
+		if (!nextAllowedTime) return 0;
+
+		return Math.max(0, nextAllowedTime - Date.now());
+	}
+
 	// Cleanup method - execute all pending batches
 	async cleanup(): Promise<void> {
 		// Execute all pending batches
@@ -215,9 +241,16 @@ export class RateLimiter<TEventType extends string = string> {
 		const stats: Record<string, RateLimitStats> = {};
 
 		for (const [key, counters] of this.eventCounts.entries()) {
+			const nextAllowedTime = this.getNextAllowedTime(
+				key.split(':')[1] as TEventType,
+				key.split(':')[2] as string,
+			);
+
 			stats[key] = {
 				minuteCount: counters.minute,
 				hourCount: counters.hour,
+				lastExecutionTime: counters.lastExecutionTime,
+				nextAllowedTime: nextAllowedTime || undefined,
 			};
 		}
 
@@ -239,6 +272,15 @@ export class RateLimiter<TEventType extends string = string> {
 	// Get current configuration
 	getConfig(): Record<TEventType, RateLimitConfig> {
 		return { ...this.config };
+	}
+
+	// Reset frequency tracking for a specific event (useful for testing or manual overrides)
+	resetFrequencyTracking(eventType: TEventType, identifier: string): void {
+		const key = `${this.namespace}:${eventType}:${identifier}`;
+		const counters = this.eventCounts.get(key);
+		if (counters) {
+			delete counters.lastExecutionTime;
+		}
 	}
 }
 

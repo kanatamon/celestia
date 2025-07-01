@@ -3,7 +3,6 @@ import type {
 	WebcastChatMessage,
 	WebcastGiftMessage,
 	WebcastLikeMessage,
-	WebcastLiveIntroMessage,
 	WebcastMemberMessage,
 	WebcastRoomUserSeqMessage,
 } from './live-event-types';
@@ -39,9 +38,7 @@ const defaultConfig: TikTokLiveEventConfig = {
 		batchTimeoutMs: 10_000,
 	},
 	roomUser: {
-		maxPerMinute: 5,
-		batchSize: 10,
-		batchTimeoutMs: 30_000,
+		minIntervalMs: 10_000, // 10 seconds
 	},
 	liveIntro: {
 		alwaysAllow: true,
