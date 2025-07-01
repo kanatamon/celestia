@@ -138,10 +138,7 @@ export async function loader({
 				liveEventSchemas.webcastMemberMessage,
 				(data) => {
 					server.send('member', data);
-					// Warning: This event is highly triggered and can $cost a lot of writes.
-					// At the moment, we don't know what benefit it brings to our business.
-					// So we are commenting it out for now.
-					// if (roomId) database.saveMemberMessage(data, roomId);
+					if (roomId) database.saveMemberMessage(data, roomId);
 				},
 			),
 		);

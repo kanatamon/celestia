@@ -143,33 +143,11 @@ export class LiveEventDatabaseService {
 
 	// Save member message
 	async saveMemberMessage(data: WebcastMemberMessage, roomId: string) {
-		const parsedUser = userSchema.safeParse(data);
-		if (!parsedUser.success) {
-			console.warn(
-				`Member message has no userId, skipping for msgId: ${data.msgId}.`,
-			);
-			return;
-		}
-
-		if (!data.displayType || !data.label) {
-			console.warn(
-				`Member message missing displayType or label, skipping for msgId: ${data.msgId}.`,
-			);
-			return;
-		}
-
 		try {
-			await this.upsertUser(parsedUser.data);
-
 			await this.prisma.webcastMemberMessage.create({
 				data: {
 					roomId,
 					id: data.msgId,
-					msgId: data.msgId,
-					userId: parsedUser.data.userId,
-					actionId: data.actionId,
-					displayType: data.displayType,
-					label: data.label,
 					createTime: data.createTime,
 				},
 			});

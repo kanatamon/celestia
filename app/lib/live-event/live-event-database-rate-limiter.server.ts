@@ -30,12 +30,12 @@ const defaultConfig: TikTokLiveEventConfig = {
 		alwaysAllow: true,
 	},
 	like: {
-		batchSize: 10,
-		batchTimeoutMs: 10_000,
+		batchSize: 50,
+		batchTimeoutMs: 30_000,
 	},
 	member: {
-		batchSize: 50,
-		batchTimeoutMs: 10_000,
+		batchSize: 100,
+		batchTimeoutMs: 30_000,
 	},
 	roomUser: {
 		minIntervalMs: 10_000, // 10 seconds
