@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { liveEventClient } from './live-event-client';
+import { liveEventManager } from './live-event-manager.client';
 import { useLiveEventStore } from './live-event-store';
 
 export const useLiveEventConnection = (username: string) => {
@@ -9,7 +9,7 @@ export const useLiveEventConnection = (username: string) => {
 	useEffect(() => {
 		if (username) {
 			// Register this component with the service
-			const componentId = liveEventClient.connect(username);
+			const componentId = liveEventManager.connect(username);
 			componentIdRef.current = componentId;
 
 			console.log(`🎯 Component ${componentId} connected to @${username}`);
@@ -17,7 +17,7 @@ export const useLiveEventConnection = (username: string) => {
 
 		return () => {
 			if (componentIdRef.current) {
-				liveEventClient.disconnect(componentIdRef.current);
+				liveEventManager.disconnect(componentIdRef.current);
 				console.log(`🎯 Component ${componentIdRef.current} disconnected`);
 				componentIdRef.current = null;
 			}
@@ -26,7 +26,7 @@ export const useLiveEventConnection = (username: string) => {
 
 	return {
 		reconnect: () => {
-			liveEventClient.retry(componentIdRef.current || undefined);
+			liveEventManager.retry(componentIdRef.current || undefined);
 		},
 		connection,
 	};

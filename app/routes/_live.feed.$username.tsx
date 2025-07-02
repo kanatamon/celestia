@@ -8,6 +8,8 @@ import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-b
 import { LiveLikeCounter } from '~/components/live-like-counter';
 import { LiveStatusBadge } from '~/components/live-status-badge';
 import { LiveViewerCounter } from '~/components/live-viewer-counter';
+import { ChatNotification } from '~/lib/chat-notification';
+import { ClientOnly } from '~/lib/client-only';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
 
 export function meta({}: Route.MetaArgs) {
@@ -26,67 +28,72 @@ export default function LiveLayout({
 }: Route.ComponentProps) {
 	const { connection } = useLiveEventConnection(username);
 	return (
-		<div
-			style={{
-				backgroundImage: 'url(/background_starry_sky.webp)',
-				backgroundSize: 'cover',
-				backgroundPosition: 'center',
-				width: '100%',
-				height: '100%',
-				overflow: 'hidden',
-			}}
-		>
-			{connection.status === 'connecting' ? (
-				<CenteredMessageOverlay>
-					Connecting to <Highlight>@{username}...</Highlight>
-				</CenteredMessageOverlay>
-			) : (
-				<Flex
-					vertical
-					style={{
-						maxWidth: '1024px',
-						width: '100%',
-						height: '100%',
-						margin: '0 auto',
-						position: 'relative',
-					}}
-				>
+		<>
+			<div
+				style={{
+					backgroundImage: 'url(/background_starry_sky.webp)',
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+					width: '100%',
+					height: '100%',
+					overflow: 'hidden',
+				}}
+			>
+				{connection.status === 'connecting' ? (
+					<CenteredMessageOverlay>
+						Connecting to <Highlight>@{username}...</Highlight>
+					</CenteredMessageOverlay>
+				) : (
 					<Flex
-						gap={8}
+						vertical
 						style={{
-							padding: '16px',
+							maxWidth: '1024px',
+							width: '100%',
+							height: '100%',
+							margin: '0 auto',
+							position: 'relative',
 						}}
 					>
-						<Space
-							align="center"
+						<Flex
+							gap={8}
 							style={{
-								marginLeft: 'auto',
+								padding: '16px',
 							}}
 						>
-							<LiveLikeCounter />
-							<LiveViewerCounter />
-							<LiveStatusBadge username={username} />
-						</Space>
+							<Space
+								align="center"
+								style={{
+									marginLeft: 'auto',
+								}}
+							>
+								<LiveLikeCounter />
+								<LiveViewerCounter />
+								<LiveStatusBadge username={username} />
+							</Space>
+						</Flex>
+						<div
+							style={{
+								flex: 1,
+								overflow: 'hidden',
+							}}
+						>
+							<Outlet />
+						</div>
+						<LiveInteractionBubbleSpawnPoint
+							style={{
+								position: 'absolute',
+								bottom: '48px',
+								right: '64px',
+								pointerEvents: 'none',
+							}}
+						/>
 					</Flex>
-					<div
-						style={{
-							flex: 1,
-							overflow: 'hidden',
-						}}
-					>
-						<Outlet />
-					</div>
-					<LiveInteractionBubbleSpawnPoint
-						style={{
-							position: 'absolute',
-							bottom: '48px',
-							right: '64px',
-							pointerEvents: 'none',
-						}}
-					/>
-				</Flex>
-			)}
-			<LiveConnectionAlert username={username} />
-		</div>
+				)}
+				<LiveConnectionAlert username={username} />
+			</div>
+			<ClientOnly>
+				<ChatNotification />
+			</ClientOnly>
+		</>
 	);
 }

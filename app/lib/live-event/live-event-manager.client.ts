@@ -10,7 +10,7 @@ interface RetryConfiguration {
 	backoffFactor?: number; // Factor to increase delay after each retry
 }
 
-class LiveEventClient {
+class LiveEventManager {
 	private source: LiveEventClientSource | null = null;
 	private subscribers = new Set<string>(); // Track components using service
 	private currentUsername: string | null = null;
@@ -375,4 +375,4 @@ class LiveEventClient {
 	}
 }
 
-export const liveEventClient = new LiveEventClient();
+export const liveEventManager = new LiveEventManager();

@@ -7,7 +7,7 @@ import { GlassButton } from '~/components/_ui/glass-button';
 import { GlassModal } from '~/components/_ui/glass-modal';
 import { Highlight } from '~/components/_ui/highlight';
 import { ConnectionStatusBadge } from '~/components/connection-status-badge';
-import { liveEventClient } from '~/lib/live-event/live-event-client';
+import { liveEventManager } from '~/lib/live-event/live-event-manager.client';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
 
 const { Paragraph } = Typography;
@@ -65,7 +65,7 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 								type="text"
 								icon={<RefreshCw size={16} />}
 								onClick={() => {
-									liveEventClient.retry();
+									liveEventManager.retry();
 								}}
 							>
 								Reconnect
@@ -93,7 +93,7 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										okText: 'Clear Chat',
 										onOk: () => {
 											navigate(`/feed/${username}`);
-											liveEventClient.clearStore();
+											liveEventManager.clearStore();
 										},
 									});
 								}}
@@ -132,8 +132,8 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										),
 										okText: 'Leave Stream',
 										onOk: () => {
-											liveEventClient.forceDisconnect();
-											liveEventClient.clearStore();
+											liveEventManager.forceDisconnect();
+											liveEventManager.clearStore();
 											navigate('/');
 										},
 									});
