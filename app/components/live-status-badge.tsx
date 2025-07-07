@@ -45,12 +45,6 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 		<Dropdown
 			trigger={['click', 'hover']}
 			menu={{
-				style: {
-					background: `rgba(255, 255, 255, 0.1)`,
-					backdropFilter: 'blur(10px)',
-					borderRadius: '8px',
-					boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-				},
 				items: [
 					{
 						key: 'current-username',

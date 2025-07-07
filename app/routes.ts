@@ -4,6 +4,7 @@ import { index, layout, prefix, route } from '@react-router/dev/routes';
 export default [
 	index('./routes/_index.tsx'),
 	route('sse/tiktok-live/:username', './routes/sse.tiktok-live.$username.tsx'),
+	route('/dashboard/:username', './routes/dashboard.$username.tsx'),
 	...prefix('feed/:username', [
 		layout('./routes/_live.feed.$username.tsx', [
 			layout('./routes/_live.feed.$username._index.tsx', [

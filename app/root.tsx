@@ -2,7 +2,7 @@ import '@ant-design/v5-patch-for-react-19';
 
 import type { Route } from './+types/root';
 import * as Sentry from '@sentry/react-router';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, theme } from 'antd';
 import {
 	isRouteErrorResponse,
 	Links,
@@ -52,6 +52,57 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
 	return (
 		<ConfigProvider
+			theme={{
+				token: {
+					colorPrimary: '#a78bfa',
+					colorBgElevated: 'rgba(255, 255, 255, 0.2)',
+				},
+				algorithm: theme.darkAlgorithm,
+			}}
+			typography={{
+				style: {
+					margin: 0,
+				},
+			}}
+			drawer={{
+				closable: false,
+				styles: {
+					content: {
+						backdropFilter: 'blur(25px)',
+					},
+				},
+			}}
+			rangePicker={{
+				style: {
+					background: 'rgba(255, 255, 255, 0.2)',
+					backdropFilter: 'blur(10px)',
+					border: '1px solid rgba(255, 255, 255, 0.3)',
+					color: 'rgba(255, 255, 255, 0.95)',
+				},
+			}}
+			menu={{
+				style: {
+					padding: 0,
+					background: `rgba(255, 255, 255, 0.1)`,
+					backdropFilter: 'blur(10px)',
+					borderRadius: '8px',
+					boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+					border: 0,
+				},
+			}}
+			popover={{
+				styles: {
+					body: {
+						backgroundColor: 'rgba(0, 0, 0, 0.8)',
+						backdropFilter: 'blur(5px)',
+						fontSize: '14px',
+						padding: '8px',
+					},
+					root: {
+						'--antd-arrow-background-color': 'rgba(0, 0, 0, 0.8)',
+					} as React.CSSProperties,
+				},
+			}}
 			modal={{
 				closable: false,
 				styles: getDefaultStyles(),

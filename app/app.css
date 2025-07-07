@@ -36,3 +36,7 @@ body {
 *::after {
 	box-sizing: border-box;
 }
+
+.ant-picker-panel-container.ant-picker-date-panel-container {
+	backdrop-filter: blur(15px);
+}
