@@ -136,7 +136,7 @@ const DreamyUsernameForm: React.FC = () => {
 						e.preventDefault();
 						const preferredUsername = username.replace('@', '').trim();
 						if (preferredUsername) {
-							navigate(`/feed/${preferredUsername}`);
+							navigate(`/live/${preferredUsername}/feed`);
 						}
 					}}
 				>

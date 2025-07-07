@@ -1,4 +1,4 @@
-import type { Route } from './+types/dashboard.$username';
+import type { Route } from './+types/live.$username.dashboard';
 import { Button, Drawer, Flex, Menu, Space } from 'antd';
 import { format, parseISO, startOfDay, subDays } from 'date-fns';
 import * as Icon from 'lucide-react';
@@ -6,9 +6,12 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { DatePicker, getPeriodPresets } from '~/components/date-picker';
 import { HotTimeRevenueHeatmap } from '~/components/hot-time-revenue-heatmap';
+import { ChatNotification } from '~/lib/chat-notification';
 import { ClientOnly } from '~/lib/client-only';
 import { dateRangeFormSchema, dateRangeSchema } from '~/lib/form-validations';
 import { LiveInsightsService } from '~/lib/live-insights-service.server';
+import { useNavigationDrawerStore } from '~/lib/navigation/navigation-drawer-store';
+import { NavigationMenu } from '~/lib/navigation/navigation-menu';
 import { useDateRangeSearchParams } from '~/lib/use-date-range-search-params';
 
 const { RangePicker } = DatePicker;
@@ -100,7 +103,6 @@ export const loader = async ({
 
 const DashboardRoute = ({ loaderData: { data } }: Route.ComponentProps) => {
 	const { dateRange, setDateRange } = useDateRangeSearchParams();
-	const [open, setOpen] = useState(false);
 
 	return (
 		<>
@@ -124,44 +126,29 @@ const DashboardRoute = ({ loaderData: { data } }: Route.ComponentProps) => {
 						position: 'relative',
 					}}
 				>
-					<Flex
-						gap={8}
-						style={{
-							padding: '16px',
-						}}
-					>
-						<Button
-							icon={<Icon.Menu />}
-							type="text"
-							onClick={() => setOpen(true)}
-						/>
-
-						<Space
-							align="center"
-							style={{
-								marginLeft: 'auto',
+					{/* Navigation */}
+					<NavigationMenu>
+						<RangePicker
+							format={(date: Date) => format(date, 'MMM d, yyyy')}
+							presets={getPeriodPresets()}
+							maxDate={new Date()}
+							value={[dateRange.from, dateRange.to]}
+							onChange={(range) => {
+								if (range && range[0] && range[1]) {
+									setDateRange({
+										from: range[0],
+										to: range[1],
+									});
+								}
 							}}
-						>
-							<RangePicker
-								format={(date: Date) => format(date, 'MMM d, yyyy')}
-								presets={getPeriodPresets()}
-								maxDate={new Date()}
-								value={[dateRange.from, dateRange.to]}
-								onChange={(range) => {
-									if (range && range[0] && range[1]) {
-										setDateRange({
-											from: range[0],
-											to: range[1],
-										});
-									}
-								}}
-							/>
-						</Space>
-					</Flex>
+						/>
+					</NavigationMenu>
+
+					{/* Main Content */}
 					<div
 						style={{
 							flex: 1,
-							overflow: 'hidden',
+							overflow: 'auto',
 							padding: '0px 16px',
 						}}
 					>
@@ -171,66 +158,16 @@ const DashboardRoute = ({ loaderData: { data } }: Route.ComponentProps) => {
 								data={data}
 							/>
 						</ClientOnly>
-						{/* <Outlet /> */}
 					</div>
 				</Flex>
 			</div>
-			<Drawer
-				placement="left"
-				onClose={() => setOpen(false)}
-				open={open}
-				width={256}
-				styles={{
-					body: {
-						padding: 0,
-						display: 'flex',
-						flexDirection: 'column',
-						height: '100%',
-					},
-					footer: {
-						padding: 0,
-					},
-				}}
-				footer={
-					<Menu
-						mode="inline"
-						items={[
-							{
-								key: 'leave',
-								icon: <Icon.LogOut size={20} />,
-								label: 'Leave',
-								danger: true,
-							},
-						]}
-						style={{
-							background: 'transparent',
-							boxShadow: 'none',
-							backdropFilter: 'none',
-						}}
-					/>
-				}
-			>
-				<Menu
-					mode="inline"
-					items={[
-						{
-							key: 'live-feed',
-							icon: <Icon.Radio size={20} />,
-							label: 'Live Feed',
-						},
-						{
-							key: 'dashboard',
-							icon: <Icon.ChartNoAxesCombined size={20} />,
-							label: 'Dashboard',
-						},
-					]}
-					style={{
-						background: 'transparent',
-						boxShadow: 'none',
-						backdropFilter: 'none',
+			<ClientOnly>
+				<ChatNotification
+					options={{
+						enableWhenUserActive: true,
 					}}
 				/>
-			</Drawer>
+			</ClientOnly>
 		</>
 	);
 };

@@ -17,7 +17,7 @@ type SoundMapping = Record<
 >;
 
 // Hook options
-interface UseChatNotificationsOptions {
+export interface UseChatNotificationsOptions {
 	soundMapping?: SoundMapping;
 	enableWhenUserActive?: boolean;
 	onNotificationPlayed?: (

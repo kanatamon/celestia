@@ -4,16 +4,23 @@ import { index, layout, prefix, route } from '@react-router/dev/routes';
 export default [
 	index('./routes/_index.tsx'),
 	route('sse/tiktok-live/:username', './routes/sse.tiktok-live.$username.tsx'),
-	route('/dashboard/:username', './routes/dashboard.$username.tsx'),
-	...prefix('feed/:username', [
-		layout('./routes/_live.feed.$username.tsx', [
-			layout('./routes/_live.feed.$username._index.tsx', [
-				index('./routes/_live.feed.$username._index.index.tsx'),
-				route(
-					'viewer/:viewerMessageId',
-					'./routes/_live.feed.$username._index.viewer.$viewerMessageId.tsx',
-				),
+	...prefix('live/:username', [
+		layout('./routes/live.$username_.tsx', [
+			route('dashboard', './routes/live.$username.dashboard.tsx'),
+			...prefix('feed', [
+				layout('./routes/live.$username.feed_.tsx', [
+					index('./routes/live.$username.feed.index.tsx'),
+					route(
+						'messages/:messageId',
+						'./routes/live.$username.feed.messages.$messageId.tsx',
+					),
+				]),
 			]),
 		]),
 	]),
+	// ...prefix('feed/:username', [
+	// 	layout('./routes/_live.feed.$username.tsx', [
+
+	// 	]),
+	// ]),
 ] satisfies RouteConfig;

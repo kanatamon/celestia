@@ -1,4 +1,4 @@
-import type { Route } from './+types/_live.feed.$username._index.viewer.$viewerMessageId';
+import type { Route } from './+types/live.$username.feed.messages.$messageId';
 import { Flex } from 'antd';
 import invariant from 'tiny-invariant';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
@@ -6,7 +6,7 @@ import { ViewerChatFeed } from '~/components/viewer-chat-feed';
 import { useMessageOwner } from '~/lib/live-event/use-message-owner';
 
 export default function ViewerRoute({
-	params: { viewerMessageId },
+	params: { messageId: viewerMessageId },
 }: Route.ComponentProps) {
 	const viewerUserId = useMessageOwner(viewerMessageId)?.userId;
 	invariant(
