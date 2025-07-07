@@ -54,10 +54,16 @@ model FollowInfo {
 
 model WebcastLiveIntroMessage {
   id               String   @id
-  roomId           String
+  roomId           String   @unique
   description      String?
   streamerUniqueId String
   createdAt        DateTime @default(now())
+
+  chatMessages    WebcastChatMessage[]
+  likeMessages    WebcastLikeMessage[]
+  giftMessages    WebcastGiftMessage[]
+  viewerSequences WebcastRoomUserSeqMessage[]
+  memberJoins     WebcastMemberMessage[]
 
   @@map("webcast_live_intro_messages")
 }
@@ -73,7 +79,8 @@ model WebcastChatMessage {
   createdAt  DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user    User                    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  session WebcastLiveIntroMessage @relation(fields: [roomId], references: [roomId])
 
   @@map("webcast_chat_messages")
 }
@@ -84,14 +91,19 @@ model WebcastRoomUserSeqMessage {
   viewerCount Int      @default(0)
   createdAt   DateTime @default(now())
 
+  session WebcastLiveIntroMessage @relation(fields: [roomId], references: [roomId])
+
   @@map("webcast_room_user_seq_messages")
 }
 
 model WebcastMemberMessage {
   id         String   @id
   roomId     String
+  userId     String?
   createTime String
   createdAt  DateTime @default(now())
+
+  session WebcastLiveIntroMessage @relation(fields: [roomId], references: [roomId])
 
   @@map("webcast_member_messages")
 }
@@ -109,7 +121,8 @@ model WebcastLikeMessage {
   createdAt      DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user    User                    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  session WebcastLiveIntroMessage @relation(fields: [roomId], references: [roomId])
 
   @@map("webcast_like_messages")
 }
@@ -136,7 +149,8 @@ model WebcastGiftMessage {
   createdAt      DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user    User                    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  session WebcastLiveIntroMessage @relation(fields: [roomId], references: [roomId])
 
   @@map("webcast_gift_messages")
 }

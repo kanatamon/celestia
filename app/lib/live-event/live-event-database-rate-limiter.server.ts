@@ -108,11 +108,18 @@ export class RateLimitedLiveEventDatabaseService {
 		}
 		this.lastViewerCount = data.viewerCount;
 
+		const eventArrivalDate = new Date();
 		const result = await this.rateLimiter.executeRateLimited(
 			'roomUser',
 			roomId,
 			async () => {
-				await this.database.saveRoomUserSeqMessage(data, roomId);
+				await this.database.saveRoomUserSeqMessage(
+					{
+						...data,
+						eventArrivalDate,
+					},
+					roomId,
+				);
 			},
 		);
 		return result.success;

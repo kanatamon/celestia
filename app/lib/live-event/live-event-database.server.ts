@@ -79,6 +79,7 @@ export class LiveEventDatabaseService {
 					comment: data.comment,
 					emotes: data.emotes,
 					createTime: data.createTime,
+					createdAt: new Date(+data.createTime),
 				},
 			});
 		} catch (error) {
@@ -111,6 +112,7 @@ export class LiveEventDatabaseService {
 					timestamp: data.timestamp,
 					receiverUserId: data.receiverUserId,
 					createTime: data.createTime,
+					createdAt: new Date(+data.createTime),
 				},
 			});
 		} catch (error) {
@@ -134,6 +136,7 @@ export class LiveEventDatabaseService {
 					displayType: data.displayType,
 					label: data.label,
 					createTime: data.createTime,
+					createdAt: new Date(+data.createTime),
 				},
 			});
 		} catch (error) {
@@ -148,7 +151,9 @@ export class LiveEventDatabaseService {
 				data: {
 					roomId,
 					id: data.msgId,
+					userId: data.userId,
 					createTime: data.createTime,
+					createdAt: new Date(+data.createTime),
 				},
 			});
 		} catch (error) {
@@ -158,7 +163,7 @@ export class LiveEventDatabaseService {
 
 	// Save room user sequence message
 	async saveRoomUserSeqMessage(
-		data: WebcastRoomUserSeqMessage,
+		data: WebcastRoomUserSeqMessage & { eventArrivalDate: Date },
 		roomId: string,
 	) {
 		try {
@@ -169,6 +174,7 @@ export class LiveEventDatabaseService {
 					id: uniqueId,
 					roomId,
 					viewerCount: data.viewerCount,
+					createdAt: data.eventArrivalDate,
 				},
 			});
 		} catch (error) {
