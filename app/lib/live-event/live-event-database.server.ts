@@ -8,6 +8,7 @@ import type {
 	WebcastMemberMessage,
 	WebcastRoomUserSeqMessage,
 } from './live-event-types';
+import { Prisma } from '@prisma/client';
 import { userSchema } from './live-event-schemas';
 
 export class LiveEventDatabaseService {
@@ -58,6 +59,16 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Only log non-constraint errors
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				(error.code === 'P2002' || // Unique constraint failed
+					error.code === 'P2003' || // Foreign key constraint failed
+					error.code === 'P2025') // Record to update not found
+			) {
+				// Silently ignore constraint violations, unique constraint failures, etc.
+				return null;
+			}
 			console.error('Failed to upsert user:', error);
 			throw error;
 		}
@@ -83,6 +94,13 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Silently ignore constraint violations (duplicate entries)
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2002' // Unique constraint failed
+			) {
+				return;
+			}
 			console.error('Failed to save chat message:', error);
 		}
 	}
@@ -116,6 +134,13 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Silently ignore constraint violations
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2002' // Unique constraint failed
+			) {
+				return;
+			}
 			console.error('Failed to save gift message:', error);
 		}
 	}
@@ -140,6 +165,13 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Silently ignore constraint violations
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2002' // Unique constraint failed
+			) {
+				return;
+			}
 			console.error('Failed to save like message:', error);
 		}
 	}
@@ -157,6 +189,13 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Silently ignore constraint violations
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2002' // Unique constraint failed
+			) {
+				return;
+			}
 			console.error('Failed to save member message:', error);
 		}
 	}
@@ -178,6 +217,13 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Silently ignore constraint violations
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2002' // Unique constraint failed
+			) {
+				return;
+			}
 			console.error('Failed to save room user sequence message:', error);
 		}
 	}
@@ -204,6 +250,14 @@ export class LiveEventDatabaseService {
 				},
 			});
 		} catch (error) {
+			// Silently ignore constraint violations
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				(error.code === 'P2002' || // Unique constraint failed
+					error.code === 'P2025') // Record to update not found
+			) {
+				return;
+			}
 			console.error('Failed to save live intro message:', error);
 		}
 	}
