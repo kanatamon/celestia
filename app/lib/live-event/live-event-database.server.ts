@@ -4,18 +4,54 @@ import type {
 	WebcastChatMessage,
 	WebcastGiftMessage,
 	WebcastLikeMessage,
-	WebcastLiveIntroMessage,
 	WebcastMemberMessage,
 	WebcastRoomUserSeqMessage,
 } from './live-event-types';
 import { Prisma } from '@prisma/client';
-import { userSchema } from './live-event-schemas';
+
+/**
+ * Helper function to check if a Prisma error should be silently ignored
+ * @param error - The error to check
+ * @returns true if the error should be silently ignored, false otherwise
+ */
+const shouldSilentlyIgnoreError = (error: unknown): boolean => {
+	return (
+		error instanceof Prisma.PrismaClientKnownRequestError &&
+		(error.code === 'P2002' || // Unique constraint failed
+			error.code === 'P2003' || // Foreign key constraint failed
+			error.code === 'P2025') // Record to update not found
+	);
+};
+
+/**
+ * Execute a database operation with silent error handling for common constraint violations
+ * @param operation - The async database operation to execute
+ * @param errorMessage - Optional custom error message for logging
+ * @returns The result of the operation or null if silently ignored
+ */
+const executeWithSilentErrors = async <T>(
+	operation: () => Promise<T>,
+	errorMessage?: string,
+): Promise<T | null> => {
+	try {
+		return await operation();
+	} catch (error) {
+		if (shouldSilentlyIgnoreError(error)) {
+			// Silently ignore constraint violations, unique constraint failures, etc.
+			return null;
+		}
+		if (errorMessage) {
+			console.error(errorMessage, error);
+		}
+		throw error;
+	}
+};
 
 export class LiveEventDatabaseService {
 	constructor(private prisma: PrismaClient) {}
 
 	private async upsertUser(userData: User) {
-		try {
+		return executeWithSilentErrors(async () => {
 			return await this.prisma.user.upsert({
 				where: { userId: userData.userId },
 				update: {
@@ -58,30 +94,17 @@ export class LiveEventDatabaseService {
 					},
 				},
 			});
-		} catch (error) {
-			// Only log non-constraint errors
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				(error.code === 'P2002' || // Unique constraint failed
-					error.code === 'P2003' || // Foreign key constraint failed
-					error.code === 'P2025') // Record to update not found
-			) {
-				// Silently ignore constraint violations, unique constraint failures, etc.
-				return null;
-			}
-			console.error('Failed to upsert user:', error);
-			throw error;
-		}
+		}, 'Failed to upsert user:');
 	}
 
 	// Save chat message
 	async saveChatMessage(data: WebcastChatMessage, roomId: string) {
-		try {
-			// First upsert the user
-			await this.upsertUser(data);
+		// First upsert the user
+		await this.upsertUser(data);
 
-			// Then create the chat message (ignore if duplicate msgId)
-			await this.prisma.webcastChatMessage.create({
+		// Then create the chat message (ignore if duplicate msgId)
+		return executeWithSilentErrors(async () => {
+			return await this.prisma.webcastChatMessage.create({
 				data: {
 					roomId,
 					id: data.msgId,
@@ -93,24 +116,15 @@ export class LiveEventDatabaseService {
 					createdAt: new Date(+data.createTime),
 				},
 			});
-		} catch (error) {
-			// Silently ignore constraint violations (duplicate entries)
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === 'P2002' // Unique constraint failed
-			) {
-				return;
-			}
-			console.error('Failed to save chat message:', error);
-		}
+		}, 'Failed to save chat message:');
 	}
 
 	// Save gift message
 	async saveGiftMessage(data: WebcastGiftMessage, roomId: string) {
-		try {
-			await this.upsertUser(data);
+		await this.upsertUser(data);
 
-			await this.prisma.webcastGiftMessage.create({
+		return executeWithSilentErrors(async () => {
+			return await this.prisma.webcastGiftMessage.create({
 				data: {
 					id: data.msgId,
 					roomId: roomId,
@@ -133,24 +147,15 @@ export class LiveEventDatabaseService {
 					createdAt: new Date(+data.createTime),
 				},
 			});
-		} catch (error) {
-			// Silently ignore constraint violations
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === 'P2002' // Unique constraint failed
-			) {
-				return;
-			}
-			console.error('Failed to save gift message:', error);
-		}
+		}, 'Failed to save gift message:');
 	}
 
 	// Save like message
 	async saveLikeMessage(data: WebcastLikeMessage, roomId: string) {
-		try {
-			await this.upsertUser(data);
+		await this.upsertUser(data);
 
-			await this.prisma.webcastLikeMessage.create({
+		return executeWithSilentErrors(async () => {
+			return await this.prisma.webcastLikeMessage.create({
 				data: {
 					id: data.msgId,
 					roomId,
@@ -164,22 +169,13 @@ export class LiveEventDatabaseService {
 					createdAt: new Date(+data.createTime),
 				},
 			});
-		} catch (error) {
-			// Silently ignore constraint violations
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === 'P2002' // Unique constraint failed
-			) {
-				return;
-			}
-			console.error('Failed to save like message:', error);
-		}
+		}, 'Failed to save like message:');
 	}
 
 	// Save member message
 	async saveMemberMessage(data: WebcastMemberMessage, roomId: string) {
-		try {
-			await this.prisma.webcastMemberMessage.create({
+		return executeWithSilentErrors(async () => {
+			return await this.prisma.webcastMemberMessage.create({
 				data: {
 					roomId,
 					id: data.msgId,
@@ -188,16 +184,7 @@ export class LiveEventDatabaseService {
 					createdAt: new Date(+data.createTime),
 				},
 			});
-		} catch (error) {
-			// Silently ignore constraint violations
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === 'P2002' // Unique constraint failed
-			) {
-				return;
-			}
-			console.error('Failed to save member message:', error);
-		}
+		}, 'Failed to save member message:');
 	}
 
 	// Save room user sequence message
@@ -205,10 +192,9 @@ export class LiveEventDatabaseService {
 		data: WebcastRoomUserSeqMessage & { eventArrivalDate: Date },
 		roomId: string,
 	) {
-		try {
-			// Save room stats
-			const uniqueId = `${roomId}:${Math.floor(Date.now() / 1000)}:${data.viewerCount}`;
-			await this.prisma.webcastRoomUserSeqMessage.create({
+		const uniqueId = `${roomId}:${Math.floor(Date.now() / 1000)}:${data.viewerCount}`;
+		return executeWithSilentErrors(async () => {
+			return await this.prisma.webcastRoomUserSeqMessage.create({
 				data: {
 					id: uniqueId,
 					roomId,
@@ -216,16 +202,7 @@ export class LiveEventDatabaseService {
 					createdAt: data.eventArrivalDate,
 				},
 			});
-		} catch (error) {
-			// Silently ignore constraint violations
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				error.code === 'P2002' // Unique constraint failed
-			) {
-				return;
-			}
-			console.error('Failed to save room user sequence message:', error);
-		}
+		}, 'Failed to save room user sequence message:');
 	}
 
 	async saveLiveIntroMessage(
@@ -235,9 +212,9 @@ export class LiveEventDatabaseService {
 		},
 		roomId: string,
 	) {
-		try {
-			const id = `${data.streamerUniqueId}:${roomId}`;
-			await this.prisma.webcastLiveIntroMessage.upsert({
+		const id = `${data.streamerUniqueId}:${roomId}`;
+		return executeWithSilentErrors(async () => {
+			return await this.prisma.webcastLiveIntroMessage.upsert({
 				where: { id },
 				update: {
 					description: data.description,
@@ -249,16 +226,6 @@ export class LiveEventDatabaseService {
 					description: data.description,
 				},
 			});
-		} catch (error) {
-			// Silently ignore constraint violations
-			if (
-				error instanceof Prisma.PrismaClientKnownRequestError &&
-				(error.code === 'P2002' || // Unique constraint failed
-					error.code === 'P2025') // Record to update not found
-			) {
-				return;
-			}
-			console.error('Failed to save live intro message:', error);
-		}
+		}, 'Failed to save live intro message:');
 	}
 }
