@@ -1,87 +1,165 @@
-# Welcome to React Router!
+# TikTok Divine Live
 
-A modern, production-ready template for building full-stack React applications using React Router.
+## Migration Strategy Guidelines
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+### Overview
 
-## Features
+This project uses Prisma for database management. Proper migration handling is
+crucial for maintaining data integrity across development, staging, and
+production environments.
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+### Environment-Specific Commands
 
-## Getting Started
-
-### Installation
-
-Install the dependencies:
+#### Development Environment
 
 ```bash
-npm install
+# Create and apply migration with descriptive name
+npx prisma migrate dev --name add_user_preferences
+
+# Reset database (⚠️ DESTRUCTIVE - only use in development)
+npx prisma migrate reset
+
+# Push schema changes without creating migration (prototyping only)
+npx prisma db push
+
+# Check migration status
+npx prisma migrate status
 ```
 
-### Development
-
-Start the development server with HMR:
+#### Staging/Production Environment
 
 ```bash
-npm run dev
+# Check current migration status
+npx prisma migrate status
+
+# Deploy pending migrations (never use migrate dev in production!)
+npx prisma migrate deploy
+
+# Generate Prisma client after migration
+npx prisma generate
 ```
 
-Your application will be available at `http://localhost:5173`.
+### Safe Migration Patterns
 
-## Building for Production
+#### ✅ Always Safe Operations
 
-Create a production build:
+- Adding optional columns
+- Creating new tables
+- Adding indexes
+- Adding constraints to new columns
+- Making required fields optional
+
+#### ⚠️ Requires Planning
+
+- Adding required columns to existing tables
+- Adding unique constraints to existing data
+- Changing column types
+- Renaming columns/tables
+
+#### ❌ Potentially Breaking Operations
+
+- Dropping columns/tables
+- Making optional fields required
+- Adding foreign key constraints to existing data
+
+### Multi-Step Migration Strategy
+
+For breaking changes, use a 3-step approach:
+
+#### Example: Adding Required Email Field
+
+**Step 1: Add Optional Field**
+
+```prisma
+model User {
+  id       String @id
+  email    String? // Start as optional
+}
+```
 
 ```bash
-npm run build
+npx prisma migrate dev --name add_optional_email_field
 ```
 
-## Deployment
+**Step 2: Populate Data** Create a data migration script or manual SQL:
 
-### Docker Deployment
+```sql
+-- Update existing records
+UPDATE "User" SET email = CONCAT('user', id, '@temp.com') WHERE email IS NULL;
+```
 
-To build and run using Docker:
+**Step 3: Make Required**
+
+```prisma
+model User {
+  id       String @id
+  email    String @unique // Now required and unique
+}
+```
 
 ```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
+npx prisma migrate dev --name make_email_required
 ```
 
-The containerized application can be deployed to any platform that supports Docker, including:
+### Production Migration Checklist
 
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
+Before deploying migrations to production:
 
-### DIY Deployment
+- [ ] Test migration on staging environment with production-like data
+- [ ] Review generated SQL in migration files
+- [ ] Ensure backward compatibility if possible
+- [ ] Have rollback plan ready
+- [ ] Schedule maintenance window if needed
+- [ ] Backup database before migration
+- [ ] Monitor application after deployment
 
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
+### Common Migration Issues & Solutions
 
-Make sure to deploy the output of `npm run build`
+#### Issue: Adding Required Column to Non-Empty Table
 
 ```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
+Error: Cannot add required column without default value
 ```
 
-## Styling
+**Solution:** Use multi-step approach above or add temporary default:
 
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+```sql
+-- Add with default
+ALTER TABLE "users" ADD COLUMN "email" TEXT NOT NULL DEFAULT 'temp@example.com';
+-- Update with real values
+UPDATE "users" SET "email" = CONCAT('user', id, '@example.com');
+-- Remove default
+ALTER TABLE "users" ALTER COLUMN "email" DROP DEFAULT;
+```
 
----
+#### Issue: Migration Drift
 
-Built with ❤️ using React Router.
+```
+Error: Schema drift detected
+```
+
+**Solution:** Reset development database or resolve conflicts manually:
+
+```bash
+# Development only!
+npx prisma migrate reset
+```
+
+### CI/CD Pipeline Integration
+
+```yaml
+# Example GitHub Actions workflow
+deploy:
+  steps:
+    - name: Check Migration Status
+      run: npx prisma migrate status
+
+    - name: Deploy Database Migrations
+      run: npx prisma migrate deploy
+
+    - name: Generate Prisma Client
+      run: npx prisma generate
+
+    - name: Deploy Application
+      run: # your deployment command
+```
