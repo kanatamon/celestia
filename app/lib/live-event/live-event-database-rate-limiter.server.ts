@@ -38,7 +38,7 @@ const defaultConfig: TikTokLiveEventConfig = {
 		batchTimeoutMs: 30_000,
 	},
 	roomUser: {
-		minIntervalMs: 10_000, // 10 seconds
+		minIntervalMs: 30_000, // 30 seconds
 	},
 	liveIntro: {
 		alwaysAllow: true,
