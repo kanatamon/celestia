@@ -81,7 +81,6 @@ export default function FeedRoute({
 							style={{
 								flex: 1,
 								overflow: 'hidden',
-								boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
 								position: 'relative',
 							}}
 						>
