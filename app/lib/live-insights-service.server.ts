@@ -1,4 +1,6 @@
 import type { WebcastGiftMessage } from '@prisma/client';
+import type { DateRange } from './form-validations';
+import { startOfDay } from 'date-fns';
 import _ from 'lodash';
 import { prisma } from './db.server';
 
@@ -460,6 +462,62 @@ export class LiveInsightsService {
 			bestHours,
 			bestDays: dayAggregated,
 			peakTimeSlot,
+		};
+	}
+
+	/**
+	 * Get the available date range for analytics.
+	 * Returns the range of dates for which data is available.
+	 * Defaults to today if no data is found.
+	 */
+	static async getAvailableDateRange({
+		streamerUniqueId,
+	}: {
+		streamerUniqueId?: string;
+	} = {}): Promise<DateRange> {
+		const oldestMessage = prisma.webcastRoomUserSeqMessage.findFirst({
+			where: {
+				session: {
+					streamerUniqueId,
+				},
+			},
+			select: {
+				createdAt: true,
+			},
+			orderBy: {
+				createdAt: 'asc',
+			},
+			take: 1, // We only need the min and max dates
+		});
+
+		const newestMessage = prisma.webcastRoomUserSeqMessage.findFirst({
+			where: {
+				session: {
+					streamerUniqueId,
+				},
+			},
+			select: {
+				createdAt: true,
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+			take: 1, // We only need the min and max dates
+		});
+
+		const [oldest, newest] = await Promise.all([oldestMessage, newestMessage]);
+
+		if (!oldest && !newest) {
+			// No data available
+			return {
+				from: startOfDay(new Date()),
+				to: new Date(),
+			};
+		}
+
+		return {
+			from: oldest?.createdAt || startOfDay(new Date()),
+			to: newest?.createdAt || new Date(),
 		};
 	}
 

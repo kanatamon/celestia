@@ -1,12 +1,4 @@
-import {
-	format,
-	isAfter,
-	isBefore,
-	isValid,
-	parseISO,
-	startOfDay,
-	subDays,
-} from 'date-fns';
+import { isAfter, isBefore, isValid, parseISO, subDays } from 'date-fns';
 import { z } from 'zod';
 
 // Zod schema for date string validation
@@ -113,3 +105,5 @@ export const dateRangeSchema = z.object({
 	from: z.date(),
 	to: z.date(),
 });
+
+export type DateRange = z.infer<typeof dateRangeSchema>;

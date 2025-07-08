@@ -1,16 +1,16 @@
 import type { Route } from './+types/live.$username.dashboard';
-import { Button, Drawer, Flex, Menu, Space } from 'antd';
+import { Flex } from 'antd';
 import { format, parseISO, startOfDay, subDays } from 'date-fns';
-import * as Icon from 'lucide-react';
-import { useState } from 'react';
+import { Suspense } from 'react';
+import { Await } from 'react-router';
 import { z } from 'zod';
+import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
 import { DatePicker, getPeriodPresets } from '~/components/date-picker';
 import { HotTimeRevenueHeatmap } from '~/components/hot-time-revenue-heatmap';
 import { ChatNotification } from '~/lib/chat-notification';
 import { ClientOnly } from '~/lib/client-only';
 import { dateRangeFormSchema, dateRangeSchema } from '~/lib/form-validations';
 import { LiveInsightsService } from '~/lib/live-insights-service.server';
-import { useNavigationDrawerStore } from '~/lib/navigation/navigation-drawer-store';
 import { NavigationMenu } from '~/lib/navigation/navigation-menu';
 import { useDateRangeSearchParams } from '~/lib/use-date-range-search-params';
 
@@ -37,10 +37,10 @@ export const loader = async ({
 		if (!validatedParams.from || !validatedParams.to) {
 			// Use defaults when both are missing
 			const now = new Date();
-			const thirtyDaysAgo = subDays(startOfDay(now), 29);
+			const svenDaysAgo = subDays(startOfDay(now), 6);
 
 			dateRange = {
-				from: thirtyDaysAgo,
+				from: svenDaysAgo,
 				to: now,
 			};
 		} else {
@@ -55,15 +55,19 @@ export const loader = async ({
 		const validatedDateRange = dateRangeSchema.parse(dateRange);
 
 		// Fetch data with validated date range
-		const data = await LiveInsightsService.getHotTimeRevenueHeatmap({
+		const hotTimeRevenueHeatmapData =
+			LiveInsightsService.getHotTimeRevenueHeatmap({
+				streamerUniqueId: username,
+				from: validatedDateRange.from,
+				to: validatedDateRange.to,
+			});
+		const availableDateRange = LiveInsightsService.getAvailableDateRange({
 			streamerUniqueId: username,
-			from: validatedDateRange.from,
-			to: validatedDateRange.to,
 		});
 
 		return {
-			data,
-			dateRange: validatedDateRange,
+			hotTimeRevenueHeatmapData,
+			availableDateRange,
 		};
 	} catch (error) {
 		// Handle Zod validation errors
@@ -101,9 +105,12 @@ export const loader = async ({
 	}
 };
 
-const DashboardRoute = ({ loaderData: { data } }: Route.ComponentProps) => {
-	const { dateRange, setDateRange } = useDateRangeSearchParams();
-
+const DashboardRoute = ({
+	loaderData: { hotTimeRevenueHeatmapData, availableDateRange },
+}: Route.ComponentProps) => {
+	const { dateRange, setDateRange } = useDateRangeSearchParams({
+		defaultDays: 7,
+	});
 	return (
 		<>
 			<div
@@ -126,39 +133,56 @@ const DashboardRoute = ({ loaderData: { data } }: Route.ComponentProps) => {
 						position: 'relative',
 					}}
 				>
-					{/* Navigation */}
-					<NavigationMenu>
-						<RangePicker
-							format={(date: Date) => format(date, 'MMM d, yyyy')}
-							presets={getPeriodPresets()}
-							maxDate={new Date()}
-							value={[dateRange.from, dateRange.to]}
-							onChange={(range) => {
-								if (range && range[0] && range[1]) {
-									setDateRange({
-										from: range[0],
-										to: range[1],
-									});
-								}
-							}}
-						/>
-					</NavigationMenu>
-
-					{/* Main Content */}
-					<div
-						style={{
-							flex: 1,
-							overflow: 'auto',
-							padding: '0px 16px',
-						}}
+					<Suspense
+						fallback={
+							<CenteredMessageOverlay>
+								Loading analytics data...
+							</CenteredMessageOverlay>
+						}
 					>
-						<ClientOnly>
-							<HotTimeRevenueHeatmap
-								key={`${dateRange.from.getTime()}:${dateRange.to.getTime()}`}
-								data={data}
-							/>
-						</ClientOnly>
-					</div>
+						{/* Navigation */}
+						<NavigationMenu>
+							<Await resolve={availableDateRange}>
+								{(resolvedData) => (
+									<RangePicker
+										format={(date: Date) => format(date, 'MMM d, yyyy')}
+										presets={getPeriodPresets()}
+										maxDate={resolvedData.to}
+										minDate={resolvedData.from}
+										value={[dateRange.from, dateRange.to]}
+										onChange={(range) => {
+											if (range && range[0] && range[1]) {
+												setDateRange({
+													from: range[0],
+													to: range[1],
+												});
+											}
+										}}
+									/>
+								)}
+							</Await>
+						</NavigationMenu>
+
+						{/* Main Content */}
+						<div
+							style={{
+								flex: 1,
+								overflow: 'auto',
+								padding: '0px 16px',
+							}}
+						>
+							<Await resolve={hotTimeRevenueHeatmapData}>
+								{(resolvedData) => (
+									<ClientOnly>
+										<HotTimeRevenueHeatmap
+											key={`${dateRange.from.getTime()}:${dateRange.to.getTime()}`}
+											data={resolvedData}
+										/>
+									</ClientOnly>
+								)}
+							</Await>
+						</div>
+					</Suspense>
 				</Flex>
 			</div>
 			<ClientOnly>
