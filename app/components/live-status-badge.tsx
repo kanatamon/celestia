@@ -128,7 +128,9 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										onOk: () => {
 											liveEventManager.forceDisconnect();
 											liveEventManager.clearStore();
-											navigate('/');
+											navigate('/', {
+												replace: true,
+											});
 										},
 									});
 								}}

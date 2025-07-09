@@ -6,8 +6,8 @@ import { Form, useNavigate } from 'react-router';
 
 export function meta({}: Route.MetaArgs) {
 	return [
-		{ title: 'TikTok Divine Live' },
-		{ name: 'description', content: 'Welcome to TikTok Divine Live' },
+		{ title: 'Celestia' },
+		{ name: 'description', content: 'Welcome to Celestia' },
 	];
 }
 
@@ -136,7 +136,9 @@ const DreamyUsernameForm: React.FC = () => {
 						e.preventDefault();
 						const preferredUsername = username.replace('@', '').trim();
 						if (preferredUsername) {
-							navigate(`/live/${preferredUsername}/feed`);
+							navigate(`/live/${preferredUsername}/feed`, {
+								replace: true,
+							});
 						}
 					}}
 				>

@@ -1,4 +1,4 @@
-# TikTok Divine Live
+# Celestia
 
 ## Migration Strategy Guidelines
 

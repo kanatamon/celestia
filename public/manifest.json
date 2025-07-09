@@ -1,0 +1,53 @@
+{
+	"name": "Celestia",
+	"short_name": "Celestia",
+	"description": "A modern, PWA-ready TikTok Live assistant designed to manage Oracle and Tarot reading queues with clarity and ease during livestreams.",
+	"start_url": "/",
+	"display": "standalone",
+	"theme_color": "#002b5f",
+	"background_color": "#002b5f",
+	"orientation": "portrait-primary",
+	"categories": ["productivity"],
+	"icons": [
+		{
+			"src": "/icons/icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/icons/icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/screenshots/desktop-screenshot.webp",
+			"sizes": "1280x720",
+			"type": "image/png",
+			"form_factor": "wide",
+			"label": "Desktop view of the application"
+		},
+		{
+			"src": "/screenshots/mobile-screenshot.webp",
+			"sizes": "640x1136",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "Mobile view of the application"
+		}
+	]
+}
