@@ -6,7 +6,7 @@
 	"display": "standalone",
 	"theme_color": "#002b5f",
 	"background_color": "#002b5f",
-	"orientation": "portrait-primary",
+	"orientation": "any",
 	"categories": ["productivity"],
 	"icons": [
 		{
