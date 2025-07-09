@@ -72,6 +72,7 @@ export const useChatNotifications = (
 	const processedEventsRef = useRef<Set<string>>(new Set());
 	const missedEventsRef = useRef<LiveFeedMessage[]>([]);
 	const lastUserAttentionState = useRef(userAttentionManager.getState());
+	const isInitialMountRef = useRef(true);
 
 	// Play notification sound and handle browser notification
 	const playNotification = useCallback(
@@ -132,6 +133,11 @@ export const useChatNotifications = (
 			processedEventsRef.current.add(event.id);
 		});
 
+		// Skip notifications on initial mount
+		if (isInitialMountRef.current) {
+			return;
+		}
+
 		const currentAttentionState = userAttentionManager.getState();
 		const shouldPlayNotification =
 			enableWhenUserActive || !currentAttentionState.isActive;
@@ -185,6 +191,11 @@ export const useChatNotifications = (
 		const unsubscribe = userAttentionManager.subscribe(handleAttentionChange);
 		return unsubscribe;
 	}, [onUserReturns]);
+
+	// Prevent notifications on initial mount
+	useEffect(() => {
+		isInitialMountRef.current = false;
+	}, []);
 
 	return {
 		missedCount: missedEventsRef.current.length,
