@@ -71,7 +71,6 @@ export default function FeedRoute({
 						style={{
 							flex: 1,
 							overflow: 'auto',
-							padding: '0px 16px',
 							width: '100%',
 							height: '100%',
 							position: 'relative',
@@ -119,13 +118,12 @@ export default function FeedRoute({
 								</Flex>
 							</Splitter.Panel>
 						</Splitter>
-						<ActivityEventSwitch
-							style={{
-								marginTop: '8px',
-							}}
-						/>
 					</Flex>
-
+					<ActivityEventSwitch
+						style={{
+							marginTop: '8px',
+						}}
+					/>
 					<LiveInteractionBubbleSpawnPoint
 						style={{
 							position: 'absolute',
