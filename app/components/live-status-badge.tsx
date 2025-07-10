@@ -86,7 +86,9 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 										),
 										okText: 'Clear Chat',
 										onOk: () => {
-											// navigate(`/live/${username}/feed`);
+											navigate(`/live/${username}/feed`, {
+												replace: true,
+											});
 											liveEventManager.clearStore();
 										},
 									});

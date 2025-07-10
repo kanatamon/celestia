@@ -4,6 +4,7 @@ import { Flex, Space, Splitter } from 'antd';
 import { Outlet, useNavigate } from 'react-router';
 import { ActivityEventSwitch } from '~/components/activity-event-switch';
 import { LiveChatFeed } from '~/components/live-chat-feed';
+import { LiveConnectionAlert } from '~/components/live-connection-alert';
 import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-bubble-spawn-point';
 import { LiveLikeCounter } from '~/components/live-like-counter';
 import { LiveStatusBadge } from '~/components/live-status-badge';
@@ -136,6 +137,7 @@ export default function FeedRoute({
 			</div>
 			<ClientOnly>
 				<ChatNotification />
+				<LiveConnectionAlert username={username} />
 			</ClientOnly>
 		</>
 	);
