@@ -1,18 +1,12 @@
 import type { Route } from './+types/live.$username.feed.messages.$messageId';
 import { Flex } from 'antd';
-import invariant from 'tiny-invariant';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
-import { ViewerChatFeed } from '~/components/viewer-chat-feed';
-import { useMessageOwner } from '~/lib/live-event/use-message-owner';
+import { MessageViewer } from '~/components/message-viewer';
+import { ClientOnly } from '~/lib/client-only';
 
-export default function ViewerRoute({
+export default function MessageRoute({
 	params: { messageId: viewerMessageId },
 }: Route.ComponentProps) {
-	const viewerUserId = useMessageOwner(viewerMessageId)?.userId;
-	invariant(
-		viewerUserId,
-		'The message you are trying to view does not exist or has been deleted.',
-	);
 	return (
 		<Flex
 			vertical
@@ -24,11 +18,9 @@ export default function ViewerRoute({
 				overflow: 'hidden',
 			}}
 		>
-			<ViewerChatFeed
-				style={{ flex: 1 }}
-				viewerUserId={viewerUserId}
-				viewerMessageId={viewerMessageId}
-			/>
+			<ClientOnly>
+				<MessageViewer messageId={viewerMessageId} />
+			</ClientOnly>
 		</Flex>
 	);
 }
