@@ -1,12 +1,17 @@
-import { Drawer, Menu } from 'antd';
+import { Drawer, Flex, Menu, Typography } from 'antd';
 import * as Icon from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
+import { GlassModal } from '~/components/_ui/glass-modal';
+import { useVersionInfo } from '../use-version-info';
 import { useNavigationDrawerStore } from './navigation-drawer-store';
+
+const { Text } = Typography;
 
 export const NavigationDrawer = ({ username }: { username: string }) => {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { open, setOpen } = useNavigationDrawerStore();
+	const versionInfo = useVersionInfo();
 
 	const getSelectedKey = () => {
 		if (location.pathname.includes('/feed')) {
@@ -76,6 +81,31 @@ export const NavigationDrawer = ({ username }: { username: string }) => {
 						label: 'Dashboard',
 						onClick: () => {
 							navigate(`/live/${username}/dashboard`, { replace: true });
+							setOpen(false);
+						},
+					},
+					{
+						key: 'about',
+						icon: <Icon.Info size={20} />,
+						label: 'About',
+						onClick: () => {
+							GlassModal.info({
+								title: 'About This Celestia',
+								content: (
+									<Flex vertical gap={4}>
+										<Text style={{ color: 'currentcolor' }}>
+											Version: {versionInfo.version}
+										</Text>
+										<Text style={{ color: 'currentcolor' }}>
+											Build: {versionInfo.buildNumber}
+										</Text>
+										<Text style={{ color: 'currentcolor' }}>
+											Commit: {versionInfo.git.shortCommit}
+										</Text>
+									</Flex>
+								),
+								onOk: () => setOpen(false),
+							});
 							setOpen(false);
 						},
 					},

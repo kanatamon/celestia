@@ -13,6 +13,7 @@ import {
 } from 'react-router';
 import appStyleSheet from './app.css?url';
 import { getDefaultStyles } from './components/_ui/glass-modal';
+import { getVersionInfo } from './lib/version.server';
 
 export const links: Route.LinksFunction = () => [
 	{ rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -49,6 +50,12 @@ export const links: Route.LinksFunction = () => [
 		href: '/favicon-32x32.png',
 	},
 ];
+
+export const loader = async ({}: Route.LoaderArgs) => {
+	return {
+		versionInfo: getVersionInfo(),
+	};
+};
 
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
