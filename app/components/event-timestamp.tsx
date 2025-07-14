@@ -27,14 +27,10 @@ const getUpdateInterval = (relativeTime: string): number => {
 	return 1000 * 60 * 60 * 24; // Update every day
 };
 
-/**
- * @deprecated Use `EventTimestamp` instead.
- */
-export const AddEventTimestamp: React.FC<{
+export const EventTimestamp: React.FC<{
 	event: LiveEvent;
-	children: React.ReactNode;
-	timestampStyle?: React.CSSProperties;
-}> = ({ children, event, timestampStyle = {} }) => {
+	style?: React.CSSProperties;
+}> = ({ event, style = {} }) => {
 	const [relativeTime, setRelativeTime] = useState(() =>
 		formatRelativeTime(new Date(+event.event.createTime)),
 	);
@@ -43,19 +39,16 @@ export const AddEventTimestamp: React.FC<{
 		setRelativeTime(formatRelativeTime(new Date(+event.event.createTime)));
 	}, updateInterval);
 	return (
-		<Flex align="end" gap={4}>
-			{children}
-			<Text
-				style={{
-					fontSize: '10px',
-					color: 'rgba(255, 255, 255, 0.5)',
-					flexShrink: 0,
-					isolation: 'isolate',
-					...timestampStyle,
-				}}
-			>
-				{relativeTime}
-			</Text>
-		</Flex>
+		<Text
+			style={{
+				fontSize: '10px',
+				color: 'rgba(255, 255, 255, 0.5)',
+				flexShrink: 0,
+				isolation: 'isolate',
+				...style,
+			}}
+		>
+			{relativeTime}
+		</Text>
 	);
 };

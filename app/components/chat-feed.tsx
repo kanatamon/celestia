@@ -94,9 +94,7 @@ export const ChatFeed: React.FC<{
 							onMessageClick?.(event, mouseEvent.currentTarget);
 						}}
 					>
-						<AddEventTimestamp event={event}>
-							{renderMessage(event)}
-						</AddEventTimestamp>
+						{renderMessage(event)}
 					</Flex>
 				))}
 			</Flex>

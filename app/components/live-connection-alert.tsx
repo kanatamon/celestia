@@ -6,6 +6,7 @@ import { Highlight } from '~/components/_ui/highlight';
 import { isConnectionError } from '~/lib/live-event/live-event-communication';
 import { liveEventManager } from '~/lib/live-event/live-event-manager.client';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
+import { getDangerStyles } from './_ui/glass-modal';
 
 const { Title, Paragraph } = Typography;
 
@@ -49,6 +50,7 @@ export const LiveConnectionAlert: React.FC<{ username: string }> = ({
 					Retry
 				</GlassButton>,
 			]}
+			styles={getDangerStyles()}
 		>
 			<Space align="start">
 				<div
