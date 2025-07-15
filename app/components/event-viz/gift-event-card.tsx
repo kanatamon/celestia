@@ -46,7 +46,9 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 								textShadow: '0 0 6px rgba(255, 223, 0, 0.6)',
 							}}
 						>
-							Sent {event.giftName || 'a gift'}
+							{`Sent ${event.giftName || 'a gift'} (${event.diamondCount.toLocaleString()} diamond${
+								event.diamondCount > 1 ? 's' : ''
+							})`}
 						</Text>
 					</Flex>
 					<Space size={8} align="end">
