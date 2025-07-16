@@ -136,7 +136,10 @@ export default function FeedRoute({
 				</Flex>
 			</div>
 			<ClientOnly>
-				<ChatNotification />
+				<ChatNotification
+				options={{
+					enableWhenUserActive: true
+				}} />
 				<LiveConnectionAlert username={username} />
 			</ClientOnly>
 		</>

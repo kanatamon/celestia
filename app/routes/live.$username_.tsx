@@ -1,6 +1,5 @@
 import type { Route } from './+types/live.$username_';
 import { Outlet } from 'react-router';
-import { ChatNotification } from '~/lib/chat-notification';
 import { ClientOnly } from '~/lib/client-only';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
 import { NavigationDrawer } from '~/lib/navigation/navigation-drawer';
