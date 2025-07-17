@@ -95,6 +95,11 @@ export const useLiveEventStore = create<LiveEventStore>()(
 									return false;
 								}
 
+								if (newData.type === 'gift' && newData.groupId === '0') {
+									// Ignore special gift with groupId '0'
+									return true;
+								}
+
 								/**
 								 * Gift Message Deduplication Logic
 								 *
