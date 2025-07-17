@@ -129,7 +129,7 @@ export default function FeedRoute({
 						style={{
 							position: 'absolute',
 							bottom: '48px',
-							right: '64px',
+							right: '100px',
 							pointerEvents: 'none',
 						}}
 					/>
@@ -137,9 +137,10 @@ export default function FeedRoute({
 			</div>
 			<ClientOnly>
 				<ChatNotification
-				options={{
-					enableWhenUserActive: true
-				}} />
+					options={{
+						enableWhenUserActive: true,
+					}}
+				/>
 				<LiveConnectionAlert username={username} />
 			</ClientOnly>
 		</>
