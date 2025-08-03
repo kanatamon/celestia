@@ -32,14 +32,49 @@ const createEventParser = <T extends ZodSchema>(
 	] as const;
 };
 
+const MUTED_ERROR_PATTERNS = [
+	'Error while fetching webcast data via request polling',
+	// Add more error patterns here as needed
+] as const;
+
+const shouldMuteError = (error: unknown): boolean => {
+	if (!error) return false;
+
+	if (typeof error === 'object' && 'info' in error) {
+		const errorInfo = (error as { info?: string }).info;
+		if (
+			errorInfo &&
+			MUTED_ERROR_PATTERNS.some((pattern) => errorInfo.includes(pattern))
+		) {
+			return true;
+		}
+	}
+
+	if (error instanceof Error) {
+		return MUTED_ERROR_PATTERNS.some((pattern) =>
+			error.message.includes(pattern),
+		);
+	}
+
+	const errorString = String(error);
+	return MUTED_ERROR_PATTERNS.some((pattern) => errorString.includes(pattern));
+};
+
 const humanizeTikTokError = (error: unknown) => {
-	if (!(error instanceof Error)) {
-		return String(error);
+	if (!error) {
+		return `Empty error received. This might be due to a network issue or the TikTok server being unreachable.`;
 	}
-	if (error.message === 'LIVE has ended') {
-		return 'LIVE has ended';
+	if (typeof error === 'object' && 'info' in error) {
+		return (
+			(error as { info?: string }).info ||
+			'An unknown error occurred while fetching TikTok data.'
+		);
 	}
-	return error.message;
+	if (error instanceof Error) {
+		return error.message;
+	}
+	console.error(`[HumanizeTikTokError] Unexpected error type:`, error);
+	return String(error);
 };
 
 export async function loader({
@@ -168,6 +203,10 @@ export async function loader({
 			});
 		});
 		connection.on('error', (error) => {
+			if (shouldMuteError(error)) {
+				return;
+			}
+
 			server.send('connection', {
 				status: 'tiktok:error',
 				message: humanizeTikTokError(error),
