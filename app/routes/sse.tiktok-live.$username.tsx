@@ -1,5 +1,6 @@
 import type { ZodSchema } from 'zod';
 import type { Route } from './+types/sse.tiktok-live.$username';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { WebcastPushConnection } from 'tiktok-live-connector';
 import { z } from 'zod';
 import { requireEnv } from '~/lib/env-utils.server';
@@ -82,12 +83,17 @@ export async function loader({
 	params: { username: streamerUniqueId },
 }: Route.LoaderArgs) {
 	const sessionId = requireEnv('SESSION_ID');
+	const socksProxyUrl = requireEnv('SOCKS_PROXY_URL');
 	return eventStream(request.signal, (send) => {
 		let roomId: string | undefined;
 		const database = createRateLimitedLiveEventDatabaseService();
 		const server = new LiveEventServerSender(send);
 		const connection = new WebcastPushConnection(streamerUniqueId, {
 			sessionId,
+			websocketOptions: {
+				agent: new SocksProxyAgent(socksProxyUrl),
+				timeout: 10000, // 10 seconds
+			},
 		});
 		server.send('connection', {
 			status: 'tiktok:authenticating',
