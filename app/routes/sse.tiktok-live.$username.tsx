@@ -3,7 +3,7 @@ import type { Route } from './+types/sse.tiktok-live.$username';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { WebcastPushConnection } from 'tiktok-live-connector';
 import { z } from 'zod';
-import { requireEnv } from '~/lib/env-utils.server';
+import { optionalEnv, requireEnv } from '~/lib/env-utils.server';
 import { eventStream } from '~/lib/event-stream.sever';
 import { LiveEventServerSender } from '~/lib/live-event/live-event-communication';
 import { createRateLimitedLiveEventDatabaseService } from '~/lib/live-event/live-event-database-rate-limiter.server';
@@ -83,17 +83,21 @@ export async function loader({
 	params: { username: streamerUniqueId },
 }: Route.LoaderArgs) {
 	const sessionId = requireEnv('SESSION_ID');
-	const socksProxyUrl = requireEnv('SOCKS_PROXY_URL');
+	const socksProxyUrl = optionalEnv('SOCKS_PROXY_URL');
 	return eventStream(request.signal, (send) => {
 		let roomId: string | undefined;
 		const database = createRateLimitedLiveEventDatabaseService();
 		const server = new LiveEventServerSender(send);
+
+		const websocketOptions: any = {};
+
+		if (socksProxyUrl) {
+			websocketOptions.agent = new SocksProxyAgent(socksProxyUrl);
+		}
+
 		const connection = new WebcastPushConnection(streamerUniqueId, {
 			sessionId,
-			websocketOptions: {
-				agent: new SocksProxyAgent(socksProxyUrl),
-				timeout: 10000, // 10 seconds
-			},
+			websocketOptions,
 		});
 		server.send('connection', {
 			status: 'tiktok:authenticating',
