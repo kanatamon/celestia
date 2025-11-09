@@ -9,6 +9,7 @@ import { LiveInteractionBubbleSpawnPoint } from '~/components/live-interaction-b
 import { LiveLikeCounter } from '~/components/live-like-counter';
 import { LiveStatusBadge } from '~/components/live-status-badge';
 import { LiveViewerCounter } from '~/components/live-viewer-counter';
+import { ViewerQueueFeed } from '~/components/viewer-queue-feed';
 import { ChatNotification } from '~/lib/chat-notification';
 import { ClientOnly } from '~/lib/client-only';
 import { NavigationMenu } from '~/lib/navigation/navigation-menu';
@@ -91,7 +92,28 @@ export default function FeedRoute({
 									paddingRight: '8px',
 								}}
 							>
-								<Outlet />
+								<Splitter layout="vertical">
+									<Splitter.Panel
+										defaultSize="40%"
+										min="20%"
+										max="60%"
+										style={{
+											paddingBottom: '8px',
+										}}
+									>
+										<ViewerQueueFeed
+											pinnedMessageId={messageId}
+											onPinnedMessageChange={updateViewerMessage}
+										/>
+									</Splitter.Panel>
+									<Splitter.Panel
+										style={{
+											paddingTop: '8px',
+										}}
+									>
+										<Outlet />
+									</Splitter.Panel>
+								</Splitter>
 							</Splitter.Panel>
 							<Splitter.Panel
 								defaultSize="50%"

@@ -13,6 +13,7 @@ import {
 	persist,
 	subscribeWithSelector,
 } from 'zustand/middleware';
+import { useGiftQueueStore } from './gift-queue-store';
 
 export type LiveChatMessage = WebcastChatMessage & {
 	id: string;
@@ -140,6 +141,8 @@ export const useLiveEventStore = create<LiveEventStore>()(
 								]),
 							};
 						});
+
+						useGiftQueueStore.getState().addGiftToQueue(newData);
 					}
 				};
 
@@ -188,6 +191,7 @@ export const useLiveEventStore = create<LiveEventStore>()(
 						interactionEvents: [],
 						joinEvents: [],
 					});
+					useGiftQueueStore.getState().reset();
 				};
 
 				return {
