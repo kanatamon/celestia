@@ -370,9 +370,7 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 					},
 
 					_calculateTier: (diamondCount: number): PriorityTier => {
-						if (diamondCount > 300) return PriorityTier.VIP;
-						if (diamondCount >= 201) return PriorityTier.PREMIUM;
-						if (diamondCount >= 2) return PriorityTier.STANDARD;
+						if (diamondCount >= 299) return PriorityTier.PREMIUM;
 						return PriorityTier.FREE;
 					},
 
