@@ -84,8 +84,8 @@ interface GiftQueueStore {
 // Constants
 // ============================================================================
 
-export const SETTLING_DURATION = 5000; // 5 seconds
-export const REVERTING_DURATION = 3000; // 3 seconds
+export const SETTLING_DURATION = 2000; // 2 seconds
+export const REVERTING_DURATION = 2000; // 2 seconds
 
 let settlingTimers = new Map<string, NodeJS.Timeout>();
 let revertingTimers = new Map<string, NodeJS.Timeout>();
@@ -370,7 +370,9 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 					},
 
 					_calculateTier: (diamondCount: number): PriorityTier => {
-						if (diamondCount >= 299) return PriorityTier.PREMIUM;
+						if (diamondCount === 299) return PriorityTier.VIP;
+						if (diamondCount === 100) return PriorityTier.PREMIUM;
+						if (diamondCount >= 199) return PriorityTier.STANDARD;
 						return PriorityTier.FREE;
 					},
 
