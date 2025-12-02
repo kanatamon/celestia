@@ -10,28 +10,19 @@ import { getDangerStyles } from './_ui/glass-modal';
 
 const { Title, Paragraph } = Typography;
 
-export const LiveConnectionAlert: React.FC<{ username: string }> = ({
-	username,
-}) => {
+export const LiveConnectionAlert: React.FC<{
+	username: string;
+	isOpen?: boolean;
+	onClose?: () => void;
+}> = ({ username, isOpen, onClose }) => {
 	const { connection } = useLiveEventConnection(username);
-	const [isModalOpen, setIsModalOpen] = useState(false);
-
-	useEffect(() => {
-		if (isConnectionError(connection.status)) {
-			showModal();
-		}
-	}, [connection]);
-
-	const showModal = () => {
-		setIsModalOpen(true);
-	};
 
 	const handleClose = () => {
-		setIsModalOpen(false);
+		onClose?.();
 	};
 
 	const handleOk = () => {
-		setIsModalOpen(false);
+		onClose?.();
 		liveEventManager.retry();
 	};
 
@@ -41,7 +32,7 @@ export const LiveConnectionAlert: React.FC<{ username: string }> = ({
 
 	return (
 		<Modal
-			open={isModalOpen}
+			open={isOpen}
 			footer={[
 				<GlassButton key="close" onClick={handleClose}>
 					Close
