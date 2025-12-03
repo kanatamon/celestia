@@ -31,7 +31,7 @@ export const aggregateGiftCounts = (events: LiveGiftMessage[]) => {
 		}
 		return acc;
 	}, new Map());
-	return Array.from(gifts.values());
+	return Array.from(gifts.values()).sort(compareGiftsByTotalCostDesc);
 };
 
 export const compareGiftsByTotalCostDesc = (
@@ -48,8 +48,50 @@ export const useGiftCounts = () => {
 	return aggregateGiftCounts([...userGiftEvents.values()].flat());
 };
 
+const _giftCountsCache = new Map<
+	string,
+	{
+		eventsKey: string;
+		result: {
+			heartMeGift: GiftCountInfo | undefined;
+			paidGifts: GiftCountInfo[];
+		};
+	}
+>();
+
+const _createEventsKey = (events: LiveGiftMessage[]) => {
+	return events.map((e) => `${e.giftId}=${e.repeatCount}`).join(':');
+};
+
+const getUserGiftCounts = (userId: string, events: LiveGiftMessage[]) => {
+	// Check if cache exists and events are the same
+	const cached = _giftCountsCache.get(userId);
+	if (cached && cached.eventsKey === _createEventsKey(events)) {
+		return cached.result;
+	}
+
+	// Compute new result
+	const aggregatedGiftCounts = aggregateGiftCounts(events);
+	const heartMeGift = aggregatedGiftCounts.find(
+		(gift) => gift.giftDetails.giftName === 'Heart Me',
+	);
+	const paidGifts = aggregatedGiftCounts.filter(
+		(gift) => gift.giftDetails.giftName !== 'Heart Me',
+	);
+
+	const result = { heartMeGift, paidGifts };
+
+	// Update cache (overwrites previous cache for this user)
+	_giftCountsCache.set(userId, { eventsKey: _createEventsKey(events), result });
+
+	return result;
+};
+
 export const useUserGiftCounts = (userId: string) => {
 	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
 	const giftEvents = userGiftEvents.get(userId);
-	return giftEvents ? aggregateGiftCounts(giftEvents) : [];
+	if (!giftEvents) {
+		return { heartMeGift: undefined, paidGifts: [] };
+	}
+	return getUserGiftCounts(userId, giftEvents);
 };

@@ -1,17 +1,13 @@
 import { Flex, Image, Space, Typography } from 'antd';
 import { Gift } from 'lucide-react';
 import { useRef } from 'react';
-import {
-	compareGiftsByTotalCostDesc,
-	useGiftCounts,
-} from '~/lib/live-event/use-gift-counts';
+import { useGiftCounts } from '~/lib/live-event/use-gift-counts';
 
 const { Text } = Typography;
 
 export const EarningGiftsParadeEventCard: React.FC = () => {
 	const lineRef = useRef<HTMLDivElement>(null);
 	const giftCounts = useGiftCounts();
-	giftCounts.sort(compareGiftsByTotalCostDesc);
 	return (
 		<div
 			style={{
