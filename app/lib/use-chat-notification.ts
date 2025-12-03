@@ -35,21 +35,21 @@ export interface UseChatNotificationsOptions {
 const DEFAULT_SOUND_MAPPING: SoundMapping = {
 	chat: {
 		soundUrl: '/cartoon-bubbles-popping-gfx-sounds-3-3-00-00.mp3',
-		volume: 0.7,
+		volume: 0.3,
 		showBrowserNotification: false,
 		notificationTitle: 'New Chat Message',
 		priority: 'normal',
 	},
 	gift: {
 		soundUrl: '/Heal.wav',
-		volume: 0.7,
+		volume: 0.3,
 		showBrowserNotification: false,
 		notificationTitle: 'Gift Received!',
 		priority: 'high',
 	},
 	default: {
 		soundUrl: '/cartoon-bubbles-popping-gfx-sounds-3-3-00-00.mp3',
-		volume: 0.5,
+		volume: 0.3,
 		showBrowserNotification: false,
 		notificationTitle: 'New Activity',
 		priority: 'low',
