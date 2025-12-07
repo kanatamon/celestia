@@ -57,6 +57,7 @@ export const LikeEventBubble: React.FC<{
 						padding: '3px',
 						background: `linear-gradient(45deg, ${config.borderColor}, rgba(255, 255, 255, 0.3))`,
 						animation: 'profilePulse 2s ease-in-out infinite',
+						willChange: 'transform',
 					}}
 				>
 					<Avatar
@@ -83,6 +84,7 @@ export const LikeEventBubble: React.FC<{
 						fontSize: '12px',
 						boxShadow: `0 2px 8px ${config.bgColor}`,
 						animation: 'iconBounce 0.6s ease-out',
+						willChange: 'transform',
 					}}
 				>
 					{config.icon}
@@ -111,13 +113,12 @@ export const LikeEventBubble: React.FC<{
           }
 
           @keyframes profilePulse {
+					willChange: 'transform',
             0%, 100% {
               transform: scale(1);
-              filter: brightness(1);
             }
             50% {
               transform: scale(1.05);
-              filter: brightness(1.1);
             }
           }
 
