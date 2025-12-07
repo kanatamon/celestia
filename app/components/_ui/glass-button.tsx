@@ -2,8 +2,12 @@ import type { ComponentProps } from 'react';
 import { Button as BaseButton } from 'antd';
 
 type ButtonType = Exclude<ComponentProps<typeof BaseButton>['type'], undefined>;
+type ButtonColor = 'default' | 'fire';
+type GlassButtonProps = Omit<ComponentProps<typeof BaseButton>, 'color'> & {
+	color?: ButtonColor;
+};
 
-export const glassButtonStyles: Record<ButtonType, React.CSSProperties> = {
+export const glassButtonTypeStyles: Record<ButtonType, React.CSSProperties> = {
 	default: {
 		background: 'rgba(255, 255, 255, 0.2)',
 		backdropFilter: 'blur(10px)',
@@ -25,19 +29,28 @@ export const glassButtonStyles: Record<ButtonType, React.CSSProperties> = {
 	primary: {},
 };
 
+const glassButtonColorStyles: Record<ButtonColor, React.CSSProperties> = {
+	default: {},
+	fire: {
+		background: 'linear-gradient(90deg, #ef4444 0%, #eab308 100%)',
+	},
+};
+
 export const GlassButton = ({
 	style,
 	children,
 	type = 'default',
+	color = 'default',
 	...delegated
-}: ComponentProps<typeof BaseButton>) => {
-	const preferredStyle = glassButtonStyles[type];
+}: GlassButtonProps) => {
+	const typeStyle = glassButtonTypeStyles[type];
+	const colorStyle = glassButtonColorStyles[color];
 	return (
 		<BaseButton
-			key="close"
 			{...delegated}
 			style={{
-				...preferredStyle,
+				...typeStyle,
+				...colorStyle,
 				...style,
 			}}
 		>

@@ -1,6 +1,6 @@
 import { Modal as BaseModal, Flex, Space, Typography } from 'antd';
 import * as Icon from 'lucide-react';
-import { glassButtonStyles } from './glass-button';
+import { glassButtonTypeStyles } from './glass-button';
 
 const { Title } = Typography;
 
@@ -98,10 +98,10 @@ export class GlassModal {
 			onOk,
 			onCancel,
 			okButtonProps: {
-				style: glassButtonStyles.default,
+				style: glassButtonTypeStyles.default,
 			},
 			cancelButtonProps: {
-				style: glassButtonStyles.default,
+				style: glassButtonTypeStyles.default,
 			},
 		});
 	}
@@ -142,7 +142,7 @@ export class GlassModal {
 			okText,
 			onOk,
 			okButtonProps: {
-				style: glassButtonStyles.default,
+				style: glassButtonTypeStyles.default,
 			},
 		});
 	}
