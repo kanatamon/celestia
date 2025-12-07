@@ -6,7 +6,6 @@ import { GiftEventCard } from '~/components/event-viz/gift-event-card';
 import { MessageEventCard } from '~/components/event-viz/message-event-card';
 import { useAutoScroll } from '~/lib/use-auto-scroll';
 import { useIsomorphicLayoutEffect } from '~/lib/use-isomorphic-layout-effect';
-import { AddEventTimestamp } from './add-event-timestamp';
 
 export const ChatFeed: React.FC<{
 	messages: LiveFeedMessage[];
@@ -87,6 +86,7 @@ export const ChatFeed: React.FC<{
 						justify="start"
 						style={{
 							width: '100%',
+							cursor: onMessageClick ? 'pointer' : 'default',
 							...getMessageStyle?.(event),
 						}}
 						className={getMessageClassName?.(event)}
@@ -105,15 +105,25 @@ export const ChatFeed: React.FC<{
 					style={{
 						zIndex: 10,
 						position: 'absolute',
-						bottom: '0',
-						right: '0',
-						width: '100%',
-						height: '160px',
-						marginRight: '8px',
-						background:
-							'linear-gradient(to top, rgba(37, 99, 235, 0.5) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(255, 255, 255, 0) 100%)',
+						bottom: 0,
+						right: 0,
+						left: 0,
 					}}
 				>
+					<div
+						aria-hidden="true"
+						style={{
+							position: 'absolute',
+							bottom: 0,
+							left: 0,
+							width: '100%',
+							height: '160px',
+							marginRight: '8px',
+							pointerEvents: 'none',
+							background:
+								'linear-gradient(to top, rgba(37, 99, 235, 0.5) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(255, 255, 255, 0) 100%)',
+						}}
+					/>
 					<GlassButton
 						onClick={() => scrollToBottom()}
 						style={{
@@ -123,6 +133,7 @@ export const ChatFeed: React.FC<{
 							transform: 'translateX(-50%)',
 						}}
 						shape="round"
+						color="fire"
 						icon={<ArrowDownToLine size={16} />}
 					>
 						New messages
