@@ -21,7 +21,7 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 					boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)',
 				}}
 			>
-				<Flex gap={12}>
+				<Flex gap={8}>
 					<Flex align="center">
 						<Avatar
 							src={event.userDetails.profilePictureUrls?.at(-1)}
@@ -46,9 +46,9 @@ export const GiftEventCard: React.FC<{ event: LiveGiftMessage }> = ({
 								textShadow: '0 0 6px rgba(255, 223, 0, 0.6)',
 							}}
 						>
-							{`Sent ${event.giftName || 'a gift'} (${event.diamondCount.toLocaleString()} diamond${
+							{`${event.diamondCount.toLocaleString()} diamond${
 								event.diamondCount > 1 ? 's' : ''
-							})`}
+							}`}
 						</Text>
 					</Flex>
 					<Space size={8} align="end">

@@ -78,7 +78,7 @@ export const ChatFeed: React.FC<{
 				}}
 				vertical
 				align="start"
-				gap={8}
+				gap={0}
 			>
 				{events.map((event) => (
 					<Flex
@@ -86,6 +86,7 @@ export const ChatFeed: React.FC<{
 						justify="start"
 						style={{
 							width: '100%',
+							paddingBlock: 4,
 							cursor: onMessageClick ? 'pointer' : 'default',
 							...getMessageStyle?.(event),
 						}}

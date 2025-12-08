@@ -117,59 +117,68 @@ export const MessageEventCard: React.FC<{ event: LiveChatMessage }> = ({
 							textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)', // Subtle shadow for softer appearance
 						}}
 					>
-						{event.nickname || 'Anonymous'}
-					</Text>
-					{paidGifts[0] && (
-						<Space size={6}>
-							{paidGifts.slice(0, MAX_GIFTS_DISPLAY).map((gift, index) => (
-								<Space key={index} size={2} align="center">
-									<Image
-										preview={false}
-										src={gift.giftDetails.giftPictureUrl}
-										width={18}
-										alt={gift.giftDetails?.giftName}
-									/>
-									<Space
-										size={2}
-										align="baseline"
+						<span style={{ marginRight: 6 }}>
+							{event.nickname || 'Anonymous'}
+						</span>
+						{paidGifts[0] && (
+							<>
+								{paidGifts.slice(0, MAX_GIFTS_DISPLAY).map((gift, index) => (
+									<span
+										key={index}
 										style={{
-											fontStyle: 'italic',
-											color: 'rgba(255, 255, 255, 0.95)',
-											fontWeight: 'bold',
+											marginRight: 6,
+											whiteSpace: 'nowrap',
 										}}
 									>
-										<Text
+										<Image
+											preview={false}
+											src={gift.giftDetails.giftPictureUrl}
+											width={18}
+											alt={gift.giftDetails?.giftName}
+										/>
+										<Space
+											size={2}
+											align="baseline"
 											style={{
-												color: 'currentcolor',
-												fontSize: '10px',
+												fontStyle: 'italic',
+												color: 'rgba(255, 255, 255, 0.95)',
+												fontWeight: 'bold',
 											}}
 										>
-											x
-										</Text>
-										<Text
-											style={{
-												color: 'currentcolor',
-												fontSize: '14px',
-											}}
-										>
-											{gift.count}
-										</Text>
-									</Space>
-								</Space>
-							))}
-							{paidGifts.length > MAX_GIFTS_DISPLAY && (
-								<Text
-									style={{
-										color: 'rgba(255, 255, 255, 0.6)',
-										fontSize: '12px',
-										fontStyle: 'italic',
-									}}
-								>
-									+{paidGifts.length - MAX_GIFTS_DISPLAY} more
-								</Text>
-							)}
-						</Space>
-					)}
+											<Text
+												style={{
+													color: 'currentcolor',
+													fontSize: '10px',
+												}}
+											>
+												x
+											</Text>
+											<Text
+												style={{
+													color: 'currentcolor',
+													fontSize: '14px',
+												}}
+											>
+												{gift.count}
+											</Text>
+										</Space>
+									</span>
+								))}
+								{paidGifts.length > MAX_GIFTS_DISPLAY && (
+									<Text
+										style={{
+											color: 'rgba(255, 255, 255, 0.6)',
+											fontSize: '12px',
+											fontStyle: 'italic',
+											whiteSpace: 'nowrap',
+										}}
+									>
+										+{paidGifts.length - MAX_GIFTS_DISPLAY} more
+									</Text>
+								)}
+							</>
+						)}
+					</Text>
 				</Space>
 				<Flex align="end" gap={4}>
 					<MessageBubble text={event.comment} />
