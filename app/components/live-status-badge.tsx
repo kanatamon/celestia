@@ -11,6 +11,7 @@ import { ConnectionStatusBadge } from '~/components/connection-status-badge';
 import { isConnectionError } from '~/lib/live-event/live-event-communication';
 import { liveEventManager } from '~/lib/live-event/live-event-manager.client';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
+import { FEED_SETTINGS } from '~/routes/live.$username.feed_';
 import { LiveConnectionAlert } from './live-connection-alert';
 
 const { Paragraph } = Typography;
@@ -121,9 +122,12 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 											),
 											okText: 'Clear Chat',
 											onOk: () => {
-												navigate(`/live/${username}/feed`, {
-													replace: true,
-												});
+												navigate(
+													`/live/${username}/feed/${FEED_SETTINGS[0]!.id}`,
+													{
+														replace: true,
+													},
+												);
 												liveEventManager.clearStore();
 											},
 										});

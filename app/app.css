@@ -40,3 +40,12 @@ body {
 .ant-picker-panel-container.ant-picker-date-panel-container {
 	backdrop-filter: blur(15px);
 }
+
+.feed-tabs .ant-tabs-content,
+.feed-tabs .ant-tabs-tabpane {
+	height: 100%;
+	overflow: hidden;
+}
+.feed-tabs .ant-tabs-nav {
+	margin-bottom: 8px;
+}

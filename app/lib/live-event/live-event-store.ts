@@ -14,6 +14,7 @@ import {
 	subscribeWithSelector,
 } from 'zustand/middleware';
 import { useGiftQueueStore } from './gift-queue-store';
+import { useLiveFeedStore } from './live-feed-store';
 
 export type LiveChatMessage = WebcastChatMessage & {
 	id: string;
@@ -59,12 +60,16 @@ interface LiveEventStore {
 
 	// Event for gifts by users
 	userGiftEvents: Map<User['uniqueId'], LiveGiftMessage[]>;
+	userHighestPaidDiamondCounts: Map<User['uniqueId'], number>;
 
 	// Events for bubble-like interactions (likes, etc.)
 	interactionEvents: InteractionEvent[];
 
 	// Events for join notifications
 	joinEvents: LiveMemberMessage[];
+
+	// Helpers
+	getUserHighestPaidDiamondCount: (userId: User['uniqueId']) => number;
 
 	// Actions
 	addChatEvent: (newData: LiveFeedMessage) => void;
@@ -85,6 +90,10 @@ export const useLiveEventStore = create<LiveEventStore>()(
 				const MAX_INTERACTION_EVENTS = 100;
 
 				const addChatEvent = (newData: LiveFeedMessage) => {
+					if (newData.type === 'chat' && !newData.comment?.trim()) {
+						return;
+					}
+
 					set((state) => {
 						const filteredChatEvents = state.chatEvents
 							.slice(-MAX_CHAT_EVENTS)
@@ -134,16 +143,28 @@ export const useLiveEventStore = create<LiveEventStore>()(
 						const { userId } = newData;
 						set((state) => {
 							const userGifts = state.userGiftEvents.get(userId) || [];
+							const prevUserHighestDiamondCount =
+								state.userHighestPaidDiamondCounts.get(userId) || 0;
 							return {
 								userGiftEvents: new Map(state.userGiftEvents).set(userId, [
 									...userGifts,
 									newData,
 								]),
+								userHighestPaidDiamondCounts: new Map(
+									state.userHighestPaidDiamondCounts,
+								).set(
+									userId,
+									Math.max(prevUserHighestDiamondCount, newData.diamondCount),
+								),
 							};
 						});
 
 						useGiftQueueStore.getState().addGiftToQueue(newData);
 					}
+				};
+
+				const getUserHighestPaidDiamondCount = (userId: User['uniqueId']) => {
+					return get().userHighestPaidDiamondCounts.get(userId) || 0;
 				};
 
 				const addJoinEvent = (newData: LiveMemberMessage) => {
@@ -188,10 +209,12 @@ export const useLiveEventStore = create<LiveEventStore>()(
 						likeCount: 0,
 						chatEvents: [],
 						userGiftEvents: new Map(),
+						userHighestPaidDiamondCounts: new Map(),
 						interactionEvents: [],
 						joinEvents: [],
 					});
 					useGiftQueueStore.getState().reset();
+					useLiveFeedStore.getState().reset();
 				};
 
 				return {
@@ -200,8 +223,10 @@ export const useLiveEventStore = create<LiveEventStore>()(
 					viewerCount: 0,
 					chatEvents: [],
 					userGiftEvents: new Map(),
+					userHighestPaidDiamondCounts: new Map(),
 					interactionEvents: [],
 					joinEvents: [],
+					getUserHighestPaidDiamondCount,
 					addChatEvent,
 					addJoinEvent,
 					addInteractionEvent,
@@ -221,6 +246,9 @@ export const useLiveEventStore = create<LiveEventStore>()(
 					likeCount: state.likeCount,
 					chatEvents: state.chatEvents,
 					userGiftEvents: Array.from(state.userGiftEvents.entries()),
+					userHighestPaidDiamondCounts: Array.from(
+						state.userHighestPaidDiamondCounts.entries(),
+					),
 				}),
 
 				// Handle rehydration - convert Array back to Map
@@ -242,10 +270,16 @@ export const useLiveEventStore = create<LiveEventStore>()(
 					if (!state.viewerCount) {
 						state.viewerCount = 0;
 					}
+
+					if (Array.isArray(state.userHighestPaidDiamondCounts)) {
+						state.userHighestPaidDiamondCounts = new Map(
+							state.userHighestPaidDiamondCounts,
+						);
+					}
 				},
 
 				// Handle version migrations if needed
-				version: 2,
+				version: 3,
 			},
 		),
 	),

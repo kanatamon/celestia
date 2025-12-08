@@ -1,4 +1,5 @@
 import type { LiveFeedMessage } from '~/lib/live-event/live-event-store';
+import type { ChatEventFilter } from '~/lib/live-event/use-chat-events';
 import { X } from 'lucide-react';
 import { useChatEvents } from '~/lib/live-event/use-chat-events';
 import { cx } from '~/lib/styles';
@@ -6,15 +7,20 @@ import { GlassButton } from './_ui/glass-button';
 import { ChatFeed } from './chat-feed';
 
 export const LiveChatFeed = ({
+	filter,
 	style = {},
 	pinnedMessageId,
 	onPinnedMessageChange,
 }: {
+	filter?: ChatEventFilter;
 	style?: React.CSSProperties;
 	pinnedMessageId?: string | null | undefined;
 	onPinnedMessageChange?: (message: LiveFeedMessage | null | undefined) => void;
 }) => {
-	const chatEvents = useChatEvents();
+	const chatEvents = useChatEvents({
+		filter,
+	});
+
 	return (
 		<ChatFeed
 			style={style}

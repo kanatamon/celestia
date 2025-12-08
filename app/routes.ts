@@ -7,7 +7,7 @@ export default [
 	...prefix('live/:username', [
 		layout('./routes/live.$username_.tsx', [
 			route('dashboard', './routes/live.$username.dashboard.tsx'),
-			...prefix('feed', [
+			...prefix('feed/:feedId', [
 				layout('./routes/live.$username.feed_.tsx', [
 					index('./routes/live.$username.feed.index.tsx'),
 					route(
@@ -18,9 +18,4 @@ export default [
 			]),
 		]),
 	]),
-	// ...prefix('feed/:username', [
-	// 	layout('./routes/_live.feed.$username.tsx', [
-
-	// 	]),
-	// ]),
 ] satisfies RouteConfig;

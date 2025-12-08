@@ -2,6 +2,7 @@ import { Drawer, Flex, Menu, Typography } from 'antd';
 import * as Icon from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
 import { GlassModal } from '~/components/_ui/glass-modal';
+import { FEED_SETTINGS } from '~/routes/live.$username.feed_';
 import { useVersionInfo } from '../use-version-info';
 import { useNavigationDrawerStore } from './navigation-drawer-store';
 
@@ -71,7 +72,9 @@ export const NavigationDrawer = ({ username }: { username: string }) => {
 						icon: <Icon.Radio size={20} />,
 						label: 'Live Feed',
 						onClick: () => {
-							navigate(`/live/${username}/feed`, { replace: true });
+							navigate(`/live/${username}/feed/${FEED_SETTINGS[0]!.id}`, {
+								replace: true,
+							});
 							setOpen(false);
 						},
 					},

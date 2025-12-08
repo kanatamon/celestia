@@ -2,7 +2,8 @@ import type { Route } from './+types/_index';
 import { Button, Input } from 'antd';
 import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { Form, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
+import { FEED_SETTINGS } from './live.$username.feed_';
 
 export function meta({}: Route.MetaArgs) {
 	return [
@@ -136,9 +137,12 @@ const DreamyUsernameForm: React.FC = () => {
 						e.preventDefault();
 						const preferredUsername = username.replace('@', '').trim();
 						if (preferredUsername) {
-							navigate(`/live/${preferredUsername}/feed`, {
-								replace: true,
-							});
+							navigate(
+								`/live/${preferredUsername}/feed/${FEED_SETTINGS[0]!.id}`,
+								{
+									replace: true,
+								},
+							);
 						}
 					}}
 				>
