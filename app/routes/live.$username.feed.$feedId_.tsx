@@ -1,6 +1,6 @@
 import type { LiveFeedMessage } from '~/lib/live-event/live-event-store';
 import type { ChatEventFilter } from '~/lib/live-event/use-chat-events';
-import type { Route } from './+types/live.$username.feed_';
+import type { Route } from './+types/live.$username.feed.$feedId_';
 import { Flex, Space, Splitter, Tabs } from 'antd';
 import { Outlet, useNavigate } from 'react-router';
 import { ActivityEventSwitch } from '~/components/activity-event-switch';

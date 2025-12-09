@@ -42,9 +42,8 @@ export const ViewerQueueFeed = ({
 				}}
 				vertical
 				align="start"
-				// gap={4}
 			>
-				{giftQueueEvents.map((event) => (
+				{giftQueueEvents.map((event, eventIdx) => (
 					<div
 						style={{
 							width: '100%',
@@ -56,7 +55,7 @@ export const ViewerQueueFeed = ({
 								pinnedMessageId === event.gift.event.msgId ? '0px' : undefined,
 							zIndex: pinnedMessageId === event.gift.event.msgId ? 10 : 'auto',
 						}}
-						key={event.id}
+						key={eventIdx}
 					>
 						<Flex
 							justify="start"
@@ -80,7 +79,13 @@ export const ViewerQueueFeed = ({
 							<ViewerQueueCard
 								key={event.id}
 								event={event}
-								onPositionClick={() => {
+								onPositionClick={(element) => {
+									if (event.state === 'waiting' && event.position === 1) {
+										element?.scrollIntoView({
+											behavior: 'smooth',
+											block: 'start',
+										});
+									}
 									if (event.state === 'waiting') {
 										moveToSettling(event.id);
 									} else if (event.state === 'settling') {

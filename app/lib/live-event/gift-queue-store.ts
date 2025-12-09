@@ -84,8 +84,8 @@ interface GiftQueueStore {
 // Constants
 // ============================================================================
 
-export const SETTLING_DURATION = 2000; // 2 seconds
-export const REVERTING_DURATION = 2000; // 2 seconds
+export const SETTLING_DURATION = 2000; // 2 second
+export const REVERTING_DURATION = 1000; // 1 second
 
 let settlingTimers = new Map<string, NodeJS.Timeout>();
 let revertingTimers = new Map<string, NodeJS.Timeout>();
@@ -209,6 +209,7 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 
 						// Clear other timers
 						get()._cleanupSettlingTimer(itemId);
+						get()._cleanupRevertingTimer(itemId);
 
 						// Start reverting timer
 						const timer = setTimeout(() => {
@@ -227,6 +228,7 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 
 						// Clear timer
 						get()._cleanupRevertingTimer(itemId);
+						get()._cleanupSettlingTimer(itemId);
 
 						get().moveToCompleted(itemId);
 					},
@@ -249,6 +251,7 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 
 						// Clear other timers
 						get()._cleanupRevertingTimer(itemId);
+						get()._cleanupSettlingTimer(itemId);
 
 						// Start settling timer
 						const timer = setTimeout(() => {
@@ -267,6 +270,7 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 
 						// Clear timer
 						get()._cleanupSettlingTimer(itemId);
+						get()._cleanupRevertingTimer(itemId);
 
 						get().moveToWaiting(itemId);
 					},
@@ -370,9 +374,8 @@ export const useGiftQueueStore = create<GiftQueueStore>()(
 					},
 
 					_calculateTier: (diamondCount: number): PriorityTier => {
-						if (diamondCount === 299) return PriorityTier.VIP;
-						if (diamondCount === 100) return PriorityTier.PREMIUM;
-						if (diamondCount >= 199) return PriorityTier.STANDARD;
+						if (diamondCount >= 299) return PriorityTier.VIP;
+						if (diamondCount >= 100) return PriorityTier.PREMIUM;
 						return PriorityTier.FREE;
 					},
 

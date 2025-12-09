@@ -3,7 +3,7 @@ import { Button, Input } from 'antd';
 import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { FEED_SETTINGS } from './live.$username.feed_';
+import { FEED_SETTINGS } from './live.$username.feed.$feedId_';
 
 export function meta({}: Route.MetaArgs) {
 	return [

@@ -2,7 +2,7 @@ import { Drawer, Flex, Menu, Typography } from 'antd';
 import * as Icon from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
 import { GlassModal } from '~/components/_ui/glass-modal';
-import { FEED_SETTINGS } from '~/routes/live.$username.feed_';
+import { FEED_SETTINGS } from '~/routes/live.$username.feed.$feedId_';
 import { useVersionInfo } from '../use-version-info';
 import { useNavigationDrawerStore } from './navigation-drawer-store';
 
@@ -16,7 +16,10 @@ export const NavigationDrawer = ({ username }: { username: string }) => {
 
 	const getSelectedKey = () => {
 		if (location.pathname.includes('/feed')) {
-			return 'live-feed';
+			return 'feed';
+		}
+		if (location.pathname.includes('/messages')) {
+			return 'queue-messages';
 		}
 		if (location.pathname.includes('/dashboard')) {
 			return 'dashboard';
@@ -68,11 +71,22 @@ export const NavigationDrawer = ({ username }: { username: string }) => {
 				selectedKeys={[getSelectedKey()]}
 				items={[
 					{
-						key: 'live-feed',
-						icon: <Icon.Radio size={20} />,
-						label: 'Live Feed',
+						key: 'feed',
+						icon: <Icon.FileStack size={20} />,
+						label: 'Feed',
 						onClick: () => {
 							navigate(`/live/${username}/feed/${FEED_SETTINGS[0]!.id}`, {
+								replace: true,
+							});
+							setOpen(false);
+						},
+					},
+					{
+						key: 'queue-messages',
+						icon: <Icon.ListOrdered size={20} />,
+						label: 'Queue Messages',
+						onClick: () => {
+							navigate(`/live/${username}/messages`, {
 								replace: true,
 							});
 							setOpen(false);

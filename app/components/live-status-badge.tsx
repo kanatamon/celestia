@@ -3,7 +3,7 @@ import type { LiveStreamConnection } from '~/lib/live-event/live-event-store';
 import { Dropdown, Flex, Typography } from 'antd';
 import { CircleAlert, LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { GlassButton } from '~/components/_ui/glass-button';
 import { GlassModal } from '~/components/_ui/glass-modal';
 import { Highlight } from '~/components/_ui/highlight';
@@ -11,7 +11,7 @@ import { ConnectionStatusBadge } from '~/components/connection-status-badge';
 import { isConnectionError } from '~/lib/live-event/live-event-communication';
 import { liveEventManager } from '~/lib/live-event/live-event-manager.client';
 import { useLiveEventConnection } from '~/lib/live-event/use-live-event-connection';
-import { FEED_SETTINGS } from '~/routes/live.$username.feed_';
+import { FEED_SETTINGS } from '~/routes/live.$username.feed.$feedId_';
 import { LiveConnectionAlert } from './live-connection-alert';
 
 const { Paragraph } = Typography;
@@ -41,6 +41,7 @@ const getLiveStatus = (connection: LiveStreamConnection): ConnectionStatus => {
 export const LiveStatusBadge: React.FC<{ username: string }> = ({
 	username,
 }) => {
+	const location = useLocation();
 	const navigate = useNavigate();
 	const [isErrorInspectionOpen, setIsErrorInspectionOpen] = useState(false);
 	const { connection } = useLiveEventConnection(username);
@@ -122,12 +123,26 @@ export const LiveStatusBadge: React.FC<{ username: string }> = ({
 											),
 											okText: 'Clear Chat',
 											onOk: () => {
-												navigate(
-													`/live/${username}/feed/${FEED_SETTINGS[0]!.id}`,
-													{
+												if (
+													location.pathname.startsWith(
+														`/live/${username}/feed/`,
+													)
+												) {
+													navigate(
+														`/live/${username}/feed/${FEED_SETTINGS[0]!.id}`,
+														{
+															replace: true,
+														},
+													);
+												} else if (
+													location.pathname.startsWith(
+														`/live/${username}/messages`,
+													)
+												) {
+													navigate(`/live/${username}/messages`, {
 														replace: true,
-													},
-												);
+													});
+												}
 												liveEventManager.clearStore();
 											},
 										});

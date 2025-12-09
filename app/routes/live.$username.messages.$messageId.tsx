@@ -1,4 +1,4 @@
-import type { Route } from './+types/live.$username.feed.messages.$messageId';
+import type { Route } from './+types/live.$username.messages.$messageId';
 import { Flex } from 'antd';
 import { CenteredMessageOverlay } from '~/components/_ui/centered-message-overlay';
 import { MessageViewer } from '~/components/message-viewer';
