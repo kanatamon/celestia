@@ -48,11 +48,13 @@ const executeWithSilentErrors = async <T>(
 };
 
 export class LiveEventDatabaseService {
-	constructor(private prisma: PrismaClient) {}
+	constructor(private prisma: PrismaClient | undefined) {}
 
 	private async upsertUser(userData: User) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.user.upsert({
+			return await db.user.upsert({
 				where: { userId: userData.userId },
 				update: {
 					// Update changeable fields
@@ -99,12 +101,14 @@ export class LiveEventDatabaseService {
 
 	// Save chat message
 	async saveChatMessage(data: WebcastChatMessage, roomId: string) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		// First upsert the user
 		await this.upsertUser(data);
 
 		// Then create the chat message (ignore if duplicate msgId)
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.webcastChatMessage.create({
+			return await db.webcastChatMessage.create({
 				data: {
 					roomId,
 					id: data.msgId,
@@ -121,10 +125,12 @@ export class LiveEventDatabaseService {
 
 	// Save gift message
 	async saveGiftMessage(data: WebcastGiftMessage, roomId: string) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		await this.upsertUser(data);
 
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.webcastGiftMessage.create({
+			return await db.webcastGiftMessage.create({
 				data: {
 					id: data.msgId,
 					roomId: roomId,
@@ -152,10 +158,12 @@ export class LiveEventDatabaseService {
 
 	// Save like message
 	async saveLikeMessage(data: WebcastLikeMessage, roomId: string) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		await this.upsertUser(data);
 
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.webcastLikeMessage.create({
+			return await db.webcastLikeMessage.create({
 				data: {
 					id: data.msgId,
 					roomId,
@@ -174,8 +182,10 @@ export class LiveEventDatabaseService {
 
 	// Save member message
 	async saveMemberMessage(data: WebcastMemberMessage, roomId: string) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.webcastMemberMessage.create({
+			return await db.webcastMemberMessage.create({
 				data: {
 					roomId,
 					id: data.msgId,
@@ -192,9 +202,11 @@ export class LiveEventDatabaseService {
 		data: WebcastRoomUserSeqMessage & { eventArrivalDate: Date },
 		roomId: string,
 	) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		const uniqueId = `${roomId}:${Math.floor(Date.now() / 1000)}:${data.viewerCount}`;
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.webcastRoomUserSeqMessage.create({
+			return await db.webcastRoomUserSeqMessage.create({
 				data: {
 					id: uniqueId,
 					roomId,
@@ -212,9 +224,11 @@ export class LiveEventDatabaseService {
 		},
 		roomId: string,
 	) {
+		if (!this.prisma) return null;
+		const db = this.prisma;
 		const id = `${data.streamerUniqueId}:${roomId}`;
 		return executeWithSilentErrors(async () => {
-			return await this.prisma.webcastLiveIntroMessage.upsert({
+			return await db.webcastLiveIntroMessage.upsert({
 				where: { id },
 				update: {
 					description: data.description,

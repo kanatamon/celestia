@@ -1,23 +1,27 @@
 import { PrismaClient } from '@prisma/client';
 
-let prisma: PrismaClient;
+let prisma: PrismaClient | undefined;
 
 declare global {
-	var __db__: PrismaClient;
+	var __db__: PrismaClient | undefined;
 }
 
 // This is needed because in development we don't want to restart
 // the server with every change, but we want to make sure we don't
 // create a new connection to the DB with every change either.
 // In production, we'll have a single instance.
-if (process.env.NODE_ENV === 'production') {
-	prisma = new PrismaClient();
-} else {
-	if (!global.__db__) {
-		global.__db__ = new PrismaClient();
+if (process.env.DATABASE_URL) {
+	if (process.env.NODE_ENV === 'production') {
+		prisma = new PrismaClient();
+	} else {
+		if (!global.__db__) {
+			global.__db__ = new PrismaClient();
+		}
+		prisma = global.__db__;
+		prisma.$connect();
 	}
-	prisma = global.__db__;
-	prisma.$connect();
+} else {
+	console.warn('DATABASE_URL not set. Database features will be disabled.');
 }
 
 export { prisma };

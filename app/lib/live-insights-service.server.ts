@@ -187,6 +187,7 @@ export class LiveInsightsService {
 		from?: Date;
 		to?: Date;
 	} = {}): Promise<SessionWithRevenue[]> {
+		if (!prisma) return [];
 		const sessions = await prisma.webcastLiveIntroMessage.findMany({
 			where: {
 				streamerUniqueId,
@@ -255,6 +256,7 @@ export class LiveInsightsService {
 			totalDiamonds: number;
 		})[]
 	> {
+		if (!prisma) return [];
 		const giftMessages = await prisma.webcastGiftMessage.findMany({
 			where: {
 				createdAt: {
@@ -475,6 +477,12 @@ export class LiveInsightsService {
 	}: {
 		streamerUniqueId?: string;
 	} = {}): Promise<DateRange> {
+		if (!prisma) {
+			return {
+				from: startOfDay(new Date()),
+				to: new Date(),
+			};
+		}
 		const oldestMessage = prisma.webcastRoomUserSeqMessage.findFirst({
 			where: {
 				session: {
