@@ -39,23 +39,11 @@ Before committing, run `npm run typecheck` and `npm run test` to ensure the test
 
 # COMMIT
 
-Make a git commit. Use the repo-local `commit-message-storyteller` skill at
-`.agents/skills/commit-message-storyteller/SKILL.md` to write the commit message
-from the staged diff, issue context, and PRD context.
+Make a git commit with a short message following Conventional Commits:
+`<type>(<optional scope>): <short imperative summary>`
 
-The commit message must:
-
-1. Follow Conventional Commits:
-   `<type>(<optional scope>): <short imperative summary>`
-2. Explain why the change was needed, not just what changed
-3. Include the task completed and PRD reference when available
-4. Mention key decisions made
-5. Summarize files or areas changed
-6. Include blockers, verification gaps, or notes for the next iteration when relevant
-7. Include `Agent: RALPH` in the footer
-
-Keep it concise. Do not use vague messages such as "update files" or
-"misc changes".
+Be specific enough to understand the step at a glance. These commits will be
+squashed, so brevity is fine — no extended body needed.
 
 # THE ISSUE
 
