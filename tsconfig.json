@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"types": ["node"],
+		"noEmit": true
+	},
+	"include": [
+		".sandcastle/**/*.mts",
+		"packages/*/src/**/*.ts",
+		"packages/*/tests/**/*.ts",
+		"apps/*/src/**/*.ts",
+		"apps/*/tests/**/*.ts"
+	],
+	"exclude": ["node_modules", "apps/legacy"]
+}

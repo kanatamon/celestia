@@ -4,17 +4,27 @@
 	"scripts": {
 		"build": "turbo build",
 		"dev": "turbo dev",
+		"sandcastle": "npx tsx .sandcastle/main.mts",
 		"test": "turbo test",
-		"typecheck": "turbo typecheck",
+		"typecheck": "tsc --noEmit",
 		"check": "biome check --write .",
 		"format": "biome format --write .",
-		"lint": "biome lint --write ."
+		"lint": "biome lint --write .",
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@ai-hero/sandcastle": "^0.5.10",
 		"@biomejs/biome": "2.4.15",
+		"@types/node": "^22.0.0",
+		"husky": "^9.1.7",
+		"lint-staged": "^17.0.4",
 		"turbo": "2.9.14",
 		"typescript": "6.0.3"
 	},
-	"packageManager": "pnpm@11.1.1"
+	"packageManager": "pnpm@11.1.1",
+	"lint-staged": {
+		"*.{ts,tsx,js,jsx,mts,mjs,cts,cjs,json,jsonc}": [
+			"biome check --write --no-errors-on-unmatched"
+		]
+	}
 }

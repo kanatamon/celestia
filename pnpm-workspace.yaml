@@ -1,7 +1,7 @@
 packages:
-  - 'apps/*'
-  - '!apps/legacy'
-  - 'packages/*'
+  - "apps/*"
+  - "!apps/legacy"
+  - "packages/*"
 allowBuilds:
-  '@parcel/watcher': true
+  "@parcel/watcher": true
   msgpackr-extract: true
