@@ -3,7 +3,10 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": "src",
-		"types": ["node"]
+		"types": ["node"],
+		"paths": {
+			"@celestia/tiktok-live-core": ["../tiktok-live-core/src/index.ts"]
+		}
 	},
 	"include": ["src/**/*.ts"]
 }
