@@ -1,0 +1,17 @@
+syntax = "proto3";
+package TikTok;
+
+message WebcastWebsocketMessage {
+  uint64 id = 2;
+  string type = 7;
+  bytes binary = 8;
+}
+
+message WebcastResponse {
+  repeated Message messages = 1;
+}
+
+message Message {
+  string type = 1;
+  bytes binary = 2;
+}

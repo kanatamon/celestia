@@ -1,8 +1,12 @@
 export type ConnectionStateStatus =
 	| 'idle'
+	| 'attaching'
+	| 'attached'
 	| 'connecting'
 	| 'connected'
+	| 'detaching'
 	| 'disconnecting'
+	| 'detached'
 	| 'disconnected'
 	| 'error';
 
