@@ -7,6 +7,10 @@ import type {
 	UserInfo,
 } from '../src/index.js';
 
+const source = 'contract-test';
+const eventTimestamp = 1_764_288_000_000;
+const noop: Unsubscribe = () => {};
+
 class ContractProvider implements TikTokLiveProvider {
 	private state: ConnectionState = {
 		status: 'idle',
@@ -39,9 +43,9 @@ class ContractProvider implements TikTokLiveProvider {
 	onEvent(handler: (event: LiveEvent) => void): Unsubscribe {
 		handler({
 			id: 'evt_1',
-			ts: 1_764_288_000_000,
+			ts: eventTimestamp,
 			type: 'chat',
-			source: 'contract-test',
+			source,
 			rawType: 'WebcastChatMessage',
 			text: 'hello',
 			user: {
@@ -49,27 +53,27 @@ class ContractProvider implements TikTokLiveProvider {
 			},
 		});
 
-		return () => {};
+		return noop;
 	}
 
 	onConnectionState(handler: (state: ConnectionState) => void): Unsubscribe {
 		handler(this.state);
 
-		return () => {};
+		return noop;
 	}
 
 	onLog(handler: (log: ProviderLog) => void): Unsubscribe {
 		handler({
 			id: 'log_1',
-			ts: 1_764_288_000_000,
+			ts: eventTimestamp,
 			level: 'info',
 			message: 'connected',
 			details: {
-				source: 'contract-test',
+				source,
 			},
 		});
 
-		return () => {};
+		return noop;
 	}
 
 	destroy(): void {
@@ -96,7 +100,7 @@ const events: LiveEvent[] = [
 		id: 'chat_1',
 		ts: 1,
 		type: 'chat',
-		source: 'contract-test',
+		source,
 		text: 'hello',
 		user,
 		emotes: [{ emoteId: 'wave', imageUrl: 'https://example.test/wave.png', placeInComment: 0 }],
@@ -105,7 +109,7 @@ const events: LiveEvent[] = [
 		id: 'emote_1',
 		ts: 2,
 		type: 'emote_chat',
-		source: 'contract-test',
+		source,
 		user,
 		emote: { emoteId: 'heart' },
 	},
@@ -113,7 +117,7 @@ const events: LiveEvent[] = [
 		id: 'gift_1',
 		ts: 3,
 		type: 'gift',
-		source: 'contract-test',
+		source,
 		user,
 		giftId: '5655',
 		giftName: 'Rose',
@@ -129,7 +133,7 @@ const events: LiveEvent[] = [
 		id: 'like_1',
 		ts: 4,
 		type: 'like',
-		source: 'contract-test',
+		source,
 		user,
 		likeCount: 10,
 		totalLikeCount: 100,
@@ -138,7 +142,7 @@ const events: LiveEvent[] = [
 		id: 'member_1',
 		ts: 5,
 		type: 'member',
-		source: 'contract-test',
+		source,
 		user,
 		action: 'joined',
 	},
@@ -146,14 +150,14 @@ const events: LiveEvent[] = [
 		id: 'social_1',
 		ts: 6,
 		type: 'social',
-		source: 'contract-test',
+		source,
 		user,
 	},
 	{
 		id: 'subscribe_1',
 		ts: 7,
 		type: 'subscribe',
-		source: 'contract-test',
+		source,
 		user,
 		subMonth: 2,
 		subscribeType: 1,
@@ -162,7 +166,7 @@ const events: LiveEvent[] = [
 		id: 'intro_1',
 		ts: 8,
 		type: 'intro',
-		source: 'contract-test',
+		source,
 		user,
 		description: 'intro text',
 	},
@@ -170,7 +174,7 @@ const events: LiveEvent[] = [
 		id: 'viewer_count_1',
 		ts: 9,
 		type: 'viewer_count',
-		source: 'contract-test',
+		source,
 		viewerCount: 123,
 		topViewers: [{ coinCount: 10, user }],
 	},
@@ -178,14 +182,14 @@ const events: LiveEvent[] = [
 		id: 'stream_end_1',
 		ts: 10,
 		type: 'stream_end',
-		source: 'contract-test',
+		source,
 		reason: 'ended by host',
 	},
 	{
 		id: 'unknown_1',
 		ts: 11,
 		type: 'unknown',
-		source: 'contract-test',
+		source,
 		preview: 'opaque payload',
 	},
 ];

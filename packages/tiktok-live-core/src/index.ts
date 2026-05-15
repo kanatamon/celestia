@@ -1,4 +1,4 @@
-export type { ConnectionState, ProviderStatus } from './connection-state.js';
+export type { ConnectionState, ConnectionStateStatus } from './connection-state.js';
 export type {
 	BaseLiveEvent,
 	ChatLiveEvent,

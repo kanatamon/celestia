@@ -1,4 +1,4 @@
-export type ProviderStatus =
+export type ConnectionStateStatus =
 	| 'idle'
 	| 'connecting'
 	| 'connected'
@@ -7,7 +7,7 @@ export type ProviderStatus =
 	| 'error';
 
 export interface ConnectionState {
-	status: ProviderStatus;
+	status: ConnectionStateStatus;
 	username: string;
 	viewerCount?: number;
 }
