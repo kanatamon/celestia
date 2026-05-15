@@ -11,6 +11,7 @@
 		"lint": "biome lint --write ."
 	},
 	"devDependencies": {
+		"@ai-hero/sandcastle": "^0.5.10",
 		"@biomejs/biome": "2.4.15",
 		"turbo": "2.9.14",
 		"typescript": "6.0.3"
