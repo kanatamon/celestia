@@ -11,7 +11,17 @@ For each branch:
 3. After resolving conflicts, run `npm run typecheck` and `npm run test` to verify everything works
 4. If tests fail, fix the issues before proceeding to the next branch
 
-After all branches are merged, make a single commit summarizing the merge.
+After all branches are merged, make a single commit summarizing the merge. Use
+the repo-local `commit-message-storyteller` skill at
+`.agents/skills/commit-message-storyteller/SKILL.md` to write the commit message
+from the merge diff and issue list.
+
+The merge commit message must:
+
+1. Follow Conventional Commits format
+2. Explain why the merged branches belong together
+3. Summarize the issues completed and major areas changed
+4. Include blockers, verification gaps, or notes for follow-up when relevant
 
 # CLOSE ISSUES
 
