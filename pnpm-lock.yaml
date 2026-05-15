@@ -21,6 +21,8 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  packages/tiktok-live-core: {}
+
 packages:
 
   '@ai-hero/sandcastle@0.5.10':
