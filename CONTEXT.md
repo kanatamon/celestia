@@ -63,13 +63,14 @@ _Avoid_: Component library, design system
 ```
 apps/
   extension/       ← Chrome extension app: manifest.json, background service worker, Side Panel React UI
+  legacy/          ← Former tiktok-divine-live web app; UI reference only, not deployed, excluded from all tooling pipelines
 packages/
   tiktok-live-core/            ← TikTokLiveProvider interface + LiveEvent types
   tiktok-live-chrome-extension/ ← Chrome Debugger API data layer + Chrome Extension Provider
   ui/                          ← Shared React components
 ```
 
-The legacy web app (`tiktok-divine-live`) is a separate repository. It is kept running during the v1.0.0 build period and sunset at v1.0.0 launch.
+`apps/legacy` is excluded from linting, type checks, and build pipelines. It exists solely as a UI migration reference and is not deployed.
 
 ## Example dialogue
 

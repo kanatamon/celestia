@@ -1,12 +1,16 @@
 .DS_Store
-/node_modules/
 
-# React Router
-/.react-router/
-/build/
+# Monorepo
+node_modules/
 
-.env
+# Legacy app (apps/legacy) — managed by its own tooling
+apps/legacy/node_modules/
+apps/legacy/.react-router/
+apps/legacy/build/
+apps/legacy/.env
+
+# Root-level generated artifacts (should not exist, but guard anyway)
+.react-router/
 
 # MSW
-# Keep the mockServiceWorker.js file but ignore any temporary MSW files
-public/mockServiceWorker.js.map
+apps/legacy/public/mockServiceWorker.js.map

@@ -4,6 +4,8 @@ Celestia v1.0.0 ships as a Chrome extension with no server, no database, and no 
 
 When monetization is introduced (v2), it will use Google OAuth as the single Celestia account. TikTok login remains owned by TikTok's tab. Users log into Celestia once via Google — a credential they already have ambient in Chrome — and never manage a separate Celestia password.
 
+The former `tiktok-divine-live` web app lives in `apps/legacy` as a read-only UI migration reference. It is not deployed and is excluded from all monorepo tooling pipelines (linting, type checks, builds).
+
 ## Considered options
 
 - **Extension + backend from day one** — enables subscriptions and usage tracking but reintroduces the login friction this decision eliminates.
