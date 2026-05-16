@@ -41,4 +41,13 @@ Here are all the issues:
 
 {{ISSUES}}
 
+# CLEAN UP
+
+For each branch that was merged, remove its worktree and delete its branch:
+
+1. Find the worktree path with `git worktree list` — sandcastle worktrees live under `.sandcastle/worktrees/`
+2. Run `git worktree remove --force <path>` for each one
+3. If the worktree directory still exists after removal, delete it with `rm -rf <path>`
+4. Delete the source branch with `git branch -D <branch>`
+
 Once you've merged everything you can, output <promise>COMPLETE</promise>.
