@@ -3,6 +3,7 @@
 # Monorepo
 node_modules/
 .turbo/
+prototypes/
 
 # Legacy app (apps/legacy) — managed by its own tooling
 apps/legacy/node_modules/
