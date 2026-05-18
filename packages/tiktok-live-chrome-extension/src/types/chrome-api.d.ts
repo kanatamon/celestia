@@ -1,7 +1,17 @@
 declare namespace ChromeApi {
 	interface Tab {
+		active?: boolean;
 		id?: number;
 		url?: string;
+	}
+
+	interface TabChangeInfo {
+		url?: string;
+	}
+
+	interface ActiveInfo {
+		tabId: number;
+		windowId: number;
 	}
 
 	interface Debuggee {
@@ -14,11 +24,22 @@ declare namespace ChromeApi {
 		params?: Record<string, unknown>,
 	) => void;
 	type DebuggerDetachHandler = (source: Debuggee, reason: string) => void;
+	type TabActivatedHandler = (activeInfo: ActiveInfo) => void;
+	type TabUpdatedHandler = (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void;
 }
 
 declare const chrome: {
 	tabs: {
 		query(queryInfo: { active: boolean; currentWindow: boolean }): Promise<ChromeApi.Tab[]>;
+		update(tabId: number, updateProperties: { url: string }): Promise<ChromeApi.Tab>;
+		onActivated: {
+			addListener(handler: ChromeApi.TabActivatedHandler): void;
+			removeListener(handler: ChromeApi.TabActivatedHandler): void;
+		};
+		onUpdated: {
+			addListener(handler: ChromeApi.TabUpdatedHandler): void;
+			removeListener(handler: ChromeApi.TabUpdatedHandler): void;
+		};
 	};
 	debugger: {
 		attach(target: ChromeApi.Debuggee, requiredVersion: string): Promise<void>;
