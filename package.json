@@ -2,12 +2,12 @@
 	"name": "celestia",
 	"private": true,
 	"scripts": {
-		"build": "turbo build",
-		"dev": "turbo dev",
+		"build": "turbo build --cache-dir=.turbo/cache",
+		"dev": "turbo dev --cache-dir=.turbo/cache",
 		"sandcastle": "npx tsx .sandcastle/main.mts",
-		"test": "turbo test",
+		"test": "turbo test --cache-dir=.turbo/cache",
 		"typecheck": "tsc --noEmit",
-		"check": "biome check --write .",
+		"check": "turbo check --cache-dir=.turbo/cache && biome check --write .",
 		"format": "biome format --write .",
 		"lint": "biome lint --write .",
 		"prepare": "husky"

@@ -7,14 +7,18 @@
 			"@celestia/tiktok-live-core": ["./packages/tiktok-live-core/src/index.ts"],
 			"@celestia/tiktok-live-chrome-extension": [
 				"./packages/tiktok-live-chrome-extension/src/index.ts"
-			]
+			],
+			"@celestia/ui": ["./packages/ui/src/index.ts"]
 		}
 	},
 	"include": [
 		".sandcastle/**/*.mts",
 		"packages/*/src/**/*.ts",
+		"packages/*/src/**/*.tsx",
 		"packages/*/tests/**/*.ts",
+		"packages/*/tests/**/*.tsx",
 		"apps/*/src/**/*.ts",
+		"apps/*/src/**/*.tsx",
 		"apps/*/tests/**/*.ts"
 	],
 	"exclude": ["node_modules", "apps/legacy"]

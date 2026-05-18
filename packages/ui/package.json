@@ -1,0 +1,41 @@
+{
+	"name": "@celestia/ui",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./styles.css": "./dist/styles.css"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite build --watch",
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"check": "biome check --write ."
+	},
+	"dependencies": {
+		"@ant-design/icons": "^6.2.3",
+		"antd": "^6.4.3"
+	},
+	"peerDependencies": {
+		"react": ">=18",
+		"react-dom": ">=18"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^6.0.2",
+		"jsdom": "^29.1.1",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6",
+		"vite": "^8.0.13",
+		"vitest": "^4.1.6"
+	}
+}

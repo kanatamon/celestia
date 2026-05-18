@@ -6,6 +6,7 @@
 		"lib": ["ES2025", "DOM"],
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
+		"jsx": "react-jsx",
 		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
 		"declaration": true,

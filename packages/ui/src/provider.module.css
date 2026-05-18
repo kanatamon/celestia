@@ -1,0 +1,5 @@
+.provider {
+	min-height: 100%;
+	background: var(--ant-color-bg-base);
+	color: var(--ant-color-text-base);
+}
