@@ -16,7 +16,8 @@
 		"@celestia/tiktok-live-core": "workspace:*",
 		"@celestia/ui": "workspace:*",
 		"react": "^19.2.6",
-		"react-dom": "^19.2.6"
+		"react-dom": "^19.2.6",
+		"zustand": "^5.0.13"
 	},
 	"devDependencies": {
 		"@crxjs/vite-plugin": "^2.4.0",

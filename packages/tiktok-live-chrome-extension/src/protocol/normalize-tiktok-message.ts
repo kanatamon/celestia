@@ -47,6 +47,7 @@ export function normalizeTikTokMessage(message: WebcastMessage): LiveEvent {
 				rawType: message.type,
 				user,
 				giftId: decoded.giftId?.toString(),
+				groupId: decoded.groupId,
 				giftName: decoded.giftDetails?.giftName,
 				giftImageUrl: decoded.giftDetails?.giftImage?.giftPictureUrl,
 				giftDescription: decoded.giftDetails?.describe,

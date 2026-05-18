@@ -38,6 +38,7 @@ export interface GiftLiveEvent extends BaseLiveEvent {
 	type: 'gift';
 	user?: UserInfo;
 	giftId?: string;
+	groupId?: string;
 	giftName?: string;
 	giftImageUrl?: string;
 	giftDescription?: string;

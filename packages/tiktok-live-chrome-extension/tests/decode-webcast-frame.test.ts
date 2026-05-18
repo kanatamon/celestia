@@ -57,6 +57,7 @@ const cases: Array<[string, Uint8Array, LiveEvent['type']]> = [
 			uint(5, 3),
 			bytes(7, user()),
 			uint(9, 1),
+			uint(11, 12345),
 			bytes(
 				15,
 				msg([
@@ -98,5 +99,8 @@ for (const [type, binary, expectedType] of cases) {
 	const event = result.events[0];
 	if (event?.type !== expectedType) {
 		throw new Error(`Expected ${type} to normalize to ${expectedType}`);
+	}
+	if (type === 'WebcastGiftMessage' && event.type === 'gift' && event.groupId !== '12345') {
+		throw new Error('Expected gift events to expose groupId');
 	}
 }

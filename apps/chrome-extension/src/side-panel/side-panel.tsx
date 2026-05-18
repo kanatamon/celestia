@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect } from 'react';
+import { useLiveEventStore } from './live-event-store.js';
 
 export interface TabObserver {
 	getCurrentUrl(): Promise<string | undefined>;
@@ -30,7 +31,8 @@ interface ObservedTabChangeInfo {
 const defaultTabObserver = createChromeTabObserver();
 
 export function SidePanel({ tabObserver = defaultTabObserver }: SidePanelProps) {
-	const [activeLiveTab, setActiveLiveTab] = useState<LiveTab>();
+	const streamerUsername = useLiveEventStore((state) => state.streamerUsername);
+	const setStreamerUsername = useLiveEventStore((state) => state.setStreamerUsername);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -42,7 +44,7 @@ export function SidePanel({ tabObserver = defaultTabObserver }: SidePanelProps) 
 				return;
 			}
 
-			setActiveLiveTab(liveTab);
+			setStreamerUsername(liveTab.username);
 		};
 
 		tabObserver.getCurrentUrl().then((url) => {
@@ -57,7 +59,7 @@ export function SidePanel({ tabObserver = defaultTabObserver }: SidePanelProps) 
 			isMounted = false;
 			unsubscribe();
 		};
-	}, [tabObserver]);
+	}, [setStreamerUsername, tabObserver]);
 
 	const handleUsernameSubmit = async (username: string) => {
 		const liveUrl = toTikTokLiveUrl(username);
@@ -69,8 +71,8 @@ export function SidePanel({ tabObserver = defaultTabObserver }: SidePanelProps) 
 
 	return (
 		<main aria-label="Celestia Side Panel">
-			{activeLiveTab ? (
-				<LiveFeed username={activeLiveTab.username} />
+			{streamerUsername ? (
+				<LiveFeed username={streamerUsername} />
 			) : (
 				<LandingModal onSubmit={handleUsernameSubmit} />
 			)}

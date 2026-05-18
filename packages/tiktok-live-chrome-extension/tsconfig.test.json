@@ -2,7 +2,10 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"noEmit": true,
-		"rootDir": "."
+		"rootDir": "../..",
+		"paths": {
+			"@celestia/tiktok-live-core": ["../tiktok-live-core/src/index.ts"]
+		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"]
 }
