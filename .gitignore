@@ -4,6 +4,8 @@
 node_modules/
 .turbo/
 prototypes/
+dist/
+**/dist/
 
 # Legacy app (apps/legacy) — managed by its own tooling
 apps/legacy/node_modules/

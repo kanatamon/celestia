@@ -1,0 +1,32 @@
+{
+	"name": "@celestia/chrome-extension",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite --host 0.0.0.0",
+		"test": "vitest run",
+		"test:e2e": "vitest run --config vitest.e2e.config.ts",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"check": "biome check --write ."
+	},
+	"dependencies": {
+		"@celestia/tiktok-live-chrome-extension": "workspace:*",
+		"@celestia/tiktok-live-core": "workspace:*",
+		"@celestia/ui": "workspace:*",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6"
+	},
+	"devDependencies": {
+		"@crxjs/vite-plugin": "^2.4.0",
+		"@types/chrome": "^0.0.287",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^6.0.2",
+		"jsdom": "^29.1.1",
+		"vite": "^8.0.13",
+		"vitest": "^4.1.6",
+		"vitest-environment-web-ext": "^0.0.3"
+	}
+}
