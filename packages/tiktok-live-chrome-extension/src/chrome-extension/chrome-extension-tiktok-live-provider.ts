@@ -5,6 +5,7 @@ import type {
 	TikTokLiveProvider,
 	Unsubscribe,
 } from '@celestia/tiktok-live-core';
+import { classifyConnectionState } from '../connection-classifier.js';
 import { DedupWindow, decodeWebcastFrame } from '../protocol/decode-webcast-frame.js';
 import type { ChromeConnectionState } from '../types/chrome-connection-state.js';
 import {
@@ -15,17 +16,26 @@ import {
 
 const liveSocketPattern = 'webcast-ws.tiktok.com/webcast/im/ws_proxy/';
 const promiscuousModeDelayMs = 10_000;
+const defaultStaleEventThresholdMs = 20_000;
 const socketTrackingMethods = new Set([
 	'Network.webSocketCreated',
 	'Network.webSocketWillSendHandshakeRequest',
 	'Network.webSocketHandshakeResponseReceived',
 ]);
 
+interface BrowserEventTarget {
+	readonly online?: boolean;
+	addEventListener(type: 'online' | 'offline', handler: () => void): void;
+	removeEventListener(type: 'online' | 'offline', handler: () => void): void;
+}
+
 export interface ChromeExtensionTikTokLiveProviderOptions {
 	transport?: ChromeDebuggerTransport;
+	browserEvents?: BrowserEventTarget;
 	now?: () => number;
 	setTimeout?: typeof globalThis.setTimeout;
 	clearTimeout?: typeof globalThis.clearTimeout;
+	staleEventThresholdMs?: number;
 }
 
 export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
@@ -36,10 +46,16 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	private readonly sockets = new Map<string, string>();
 	private readonly dedupWindow = new DedupWindow();
 	private readonly transport: ChromeDebuggerTransport;
+	private readonly browserEvents: BrowserEventTarget | undefined;
 	private readonly now: () => number;
 	private readonly setTimer: typeof globalThis.setTimeout;
 	private readonly clearTimer: typeof globalThis.clearTimeout;
+	private readonly staleEventThresholdMs: number;
 	private promiscuousTimer: ReturnType<typeof setTimeout> | undefined;
+	private staleEventTimer: ReturnType<typeof setTimeout> | undefined;
+	private explicitDetachInProgress = false;
+	private debuggerAttached = false;
+	private streamEnded = false;
 	private destroyed = false;
 
 	private readonly handleDebuggerEvent = (
@@ -54,17 +70,44 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	private readonly handleDebuggerDetach = (source: Debuggee, reason: string): void => {
 		if (!this.isActiveDebuggee(source)) return;
 		this.clearPromiscuousTimer();
-		this.setState({ ...this.state, status: 'detached', tabId: undefined, attachedAt: undefined });
+		this.clearStaleEventTimer();
+		this.debuggerAttached = false;
+		if (this.explicitDetachInProgress) {
+			this.setState({ ...this.state, status: 'detached', tabId: undefined, attachedAt: undefined });
+		} else {
+			this.applyClassifiedState();
+		}
 		this.emitLog('warn', 'Chrome debugger detached', { reason });
+	};
+
+	private readonly handleBrowserOffline = (): void => {
+		this.clearStaleEventTimer();
+		this.applyClassifiedState(false);
+	};
+
+	private readonly handleBrowserOnline = (): void => {
+		if (this.state.tabId === undefined || this.streamEnded) return;
+		this.setState({
+			...this.state,
+			status: this.debuggerAttached ? 'attached' : 'attaching',
+			reason: undefined,
+			confirmedSocketRequestId: undefined,
+			confirmedSocketUrl: undefined,
+			lastDecodedEventAt: undefined,
+		});
 	};
 
 	constructor(options: ChromeExtensionTikTokLiveProviderOptions = {}) {
 		this.transport = options.transport ?? new ChromeApiDebuggerTransport();
+		this.browserEvents = options.browserEvents ?? defaultBrowserEventTarget();
 		this.now = options.now ?? Date.now;
 		this.setTimer = options.setTimeout ?? globalThis.setTimeout;
 		this.clearTimer = options.clearTimeout ?? globalThis.clearTimeout;
+		this.staleEventThresholdMs = options.staleEventThresholdMs ?? defaultStaleEventThresholdMs;
 		this.transport.addEventListener(this.handleDebuggerEvent);
 		this.transport.addDetachListener(this.handleDebuggerDetach);
+		this.browserEvents?.addEventListener('offline', this.handleBrowserOffline);
+		this.browserEvents?.addEventListener('online', this.handleBrowserOnline);
 		this.emitLog('debug', 'Chrome Extension Provider constructed');
 	}
 
@@ -106,6 +149,8 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		}
 
 		this.clearDiscoveryState();
+		this.debuggerAttached = false;
+		this.streamEnded = false;
 		const debuggee = { tabId };
 		this.setState({
 			...this.state,
@@ -118,12 +163,14 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		try {
 			this.emitLog('info', 'Attaching Chrome debugger', debuggee);
 			await this.transport.attach(debuggee);
+			this.debuggerAttached = true;
 			this.emitLog('info', 'Enabling Chrome debugger Network domain', debuggee);
 			await this.transport.enableNetwork(debuggee);
 			this.setState({
 				...this.state,
 				status: 'attached',
 				username,
+				reason: undefined,
 				attachedAt: this.now(),
 				socketCount: 0,
 				confirmedSocketRequestId: undefined,
@@ -148,8 +195,11 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		const debuggee = { tabId: this.state.tabId };
 		this.setState({ ...this.state, status: 'detaching' });
 		try {
+			this.explicitDetachInProgress = true;
 			await this.transport.detach(debuggee);
+			this.debuggerAttached = false;
 			this.clearPromiscuousTimer();
+			this.clearStaleEventTimer();
 			this.sockets.clear();
 			this.setState({
 				...emptyState('detached'),
@@ -160,6 +210,8 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			return this.state;
 		} catch (error) {
 			return this.fail(error);
+		} finally {
+			this.explicitDetachInProgress = false;
 		}
 	}
 
@@ -188,7 +240,10 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.destroyed = true;
 		this.transport.removeEventListener(this.handleDebuggerEvent);
 		this.transport.removeDetachListener(this.handleDebuggerDetach);
+		this.browserEvents?.removeEventListener('offline', this.handleBrowserOffline);
+		this.browserEvents?.removeEventListener('online', this.handleBrowserOnline);
 		this.clearPromiscuousTimer();
+		this.clearStaleEventTimer();
 		if (this.state.tabId !== undefined) {
 			void this.transport.detach({ tabId: this.state.tabId }).catch((error: unknown) => {
 				this.emitLog('warn', 'Failed to detach Chrome debugger during destroy', {
@@ -310,6 +365,8 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			lastDecodedEventAt: undefined,
 			promiscuousMode: false,
 		});
+		this.streamEnded = false;
+		this.clearStaleEventTimer();
 	}
 
 	private schedulePromiscuousMode(): void {
@@ -329,17 +386,59 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	}
 
 	private emitEvent(event: LiveEvent): void {
+		const lastDecodedEventAt = this.now();
+		const streamEnded = event.type === 'stream_end';
+		if (streamEnded) this.streamEnded = true;
 		this.setState({
 			...this.state,
 			eventCount: this.state.eventCount + 1,
-			lastDecodedEventAt: this.now(),
+			lastDecodedEventAt,
 		});
+		this.applyClassifiedState();
+		if (streamEnded) {
+			this.clearStaleEventTimer();
+		} else {
+			this.scheduleStaleEventTimer();
+		}
 		this.emitLog('debug', 'Emitting LiveEvent', {
 			id: event.id,
 			type: event.type,
 			totalEventCount: this.state.eventCount,
 		});
 		for (const handler of this.eventHandlers) handler(event);
+	}
+
+	private applyClassifiedState(online = this.isBrowserOnline()): void {
+		const classifiedState = classifyConnectionState({
+			online,
+			debuggerAttached: this.debuggerAttached,
+			confirmedSocket: this.state.confirmedSocketRequestId !== undefined,
+			lastEventAt: this.state.lastDecodedEventAt,
+			staleThresholdMs: this.staleEventThresholdMs,
+			streamEnded: this.streamEnded,
+			now: this.now(),
+			username: this.state.username,
+			viewerCount: this.state.viewerCount,
+		});
+		this.setState({
+			...this.state,
+			status: classifiedState.status,
+			reason: classifiedState.reason,
+		});
+	}
+
+	private scheduleStaleEventTimer(): void {
+		this.clearStaleEventTimer();
+		this.staleEventTimer = this.setTimer(() => {
+			this.staleEventTimer = undefined;
+			this.applyClassifiedState();
+		}, this.staleEventThresholdMs);
+	}
+
+	private clearStaleEventTimer(): void {
+		if (this.staleEventTimer === undefined) return;
+		this.clearTimer(this.staleEventTimer);
+		this.staleEventTimer = undefined;
 	}
 
 	private setState(state: ChromeConnectionState): void {
@@ -350,6 +449,8 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 				tabId: state.tabId,
 				socketCount: state.socketCount,
 				eventCount: state.eventCount,
+				reason: state.reason,
+				lastDecodedEventAt: state.lastDecodedEventAt,
 				decodeFailures: state.decodeFailures,
 				promiscuousMode: state.promiscuousMode,
 			});
@@ -375,9 +476,14 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private fail(error: unknown): ChromeConnectionState {
 		this.clearPromiscuousTimer();
+		this.clearStaleEventTimer();
 		this.emitLog('error', 'Chrome Extension Provider failed', { error: errorMessage(error) });
-		this.setState({ ...this.state, status: 'error' });
+		this.setState({ ...this.state, status: 'error', reason: 'interrupted' });
 		return this.state;
+	}
+
+	private isBrowserOnline(): boolean {
+		return this.browserEvents?.online ?? true;
 	}
 
 	private isActiveDebuggee(source: Debuggee): boolean {
@@ -406,6 +512,24 @@ function emptyState(status: ChromeConnectionState['status']): ChromeConnectionSt
 		decodeFailures: 0,
 		promiscuousMode: false,
 	};
+}
+
+function defaultBrowserEventTarget(): BrowserEventTarget | undefined {
+	const maybeGlobal = globalThis as Partial<BrowserEventTarget>;
+	if (
+		typeof maybeGlobal.addEventListener === 'function' &&
+		typeof maybeGlobal.removeEventListener === 'function'
+	) {
+		const maybeNavigator = globalThis as { navigator?: { onLine?: boolean } };
+		return {
+			get online() {
+				return maybeNavigator.navigator?.onLine;
+			},
+			addEventListener: maybeGlobal.addEventListener.bind(globalThis),
+			removeEventListener: maybeGlobal.removeEventListener.bind(globalThis),
+		};
+	}
+	return undefined;
 }
 
 function stringParam(params: Record<string, unknown>, key: string): string | undefined {

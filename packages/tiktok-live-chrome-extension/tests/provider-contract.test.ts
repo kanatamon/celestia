@@ -4,7 +4,16 @@ import type {
 	Debuggee,
 } from '../src/chrome-extension/chrome-debugger-transport.js';
 import { type ChromeConnectionState, ChromeExtensionTikTokLiveProvider } from '../src/index.js';
-import { bytes, event, frameBase64, msg, responseMessage, str, user } from './protobuf-fixtures.js';
+import {
+	bytes,
+	event,
+	frameBase64,
+	msg,
+	responseMessage,
+	str,
+	uint,
+	user,
+} from './protobuf-fixtures.js';
 
 class FakeTransport implements ChromeDebuggerTransport {
 	events: Array<[Debuggee, string, Record<string, unknown> | undefined]> = [];
@@ -50,16 +59,42 @@ class FakeTransport implements ChromeDebuggerTransport {
 	}
 }
 
+class FakeBrowserEvents {
+	online = true;
+	private readonly listeners = new Map<'online' | 'offline', Set<() => void>>();
+
+	addEventListener(type: 'online' | 'offline', handler: () => void): void {
+		const listeners = this.listeners.get(type) ?? new Set<() => void>();
+		listeners.add(handler);
+		this.listeners.set(type, listeners);
+	}
+
+	removeEventListener(type: 'online' | 'offline', handler: () => void): void {
+		this.listeners.get(type)?.delete(handler);
+	}
+
+	emit(type: 'online' | 'offline'): void {
+		for (const handler of this.listeners.get(type) ?? []) handler();
+	}
+}
+
 const transport = new FakeTransport();
-const timers: Array<() => void> = [];
+const browserEvents = new FakeBrowserEvents();
+let now = 1;
+const timers: Array<{ handler: () => void; delay: number; active: boolean }> = [];
 const provider = new ChromeExtensionTikTokLiveProvider({
 	transport,
-	now: () => 1,
-	setTimeout: ((handler: () => void) => {
-		timers.push(handler);
-		return 1;
-	}) as typeof setTimeout,
-	clearTimeout: (() => {}) as typeof clearTimeout,
+	browserEvents,
+	now: () => now,
+	setTimeout: ((handler: () => void, delay?: number) => {
+		const timer = { handler, delay: delay ?? 0, active: true };
+		timers.push(timer);
+		return timer;
+	}) as unknown as typeof setTimeout,
+	clearTimeout: ((timer: { active?: boolean }) => {
+		timer.active = false;
+	}) as typeof clearTimeout,
+	staleEventThresholdMs: 20,
 });
 
 const states: ChromeConnectionState[] = [];
@@ -126,11 +161,93 @@ if (
 if (provider.getConnectionState().status !== 'connected') {
 	throw new Error('Expected decoded TikTok Live events to mark the provider connected');
 }
-
-timers[0]?.();
-if (provider.getConnectionState().promiscuousMode) {
+if (timers.find((timer) => timer.delay === 10_000)?.active) {
 	throw new Error('Expected confirmed WebSocket to prevent promiscuous mode');
 }
+
+browserEvents.online = false;
+browserEvents.emit('offline');
+assertState(
+	provider.getConnectionState(),
+	{ status: 'error', reason: 'offline' },
+	'Expected offline browser event to immediately mark the provider offline',
+);
+
+browserEvents.online = true;
+browserEvents.emit('online');
+assertState(
+	provider.getConnectionState(),
+	{ status: 'attached' },
+	'Expected online browser event to return to discovery, not connected',
+);
+
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-1',
+	response: {
+		payloadData: frameBase64([
+			responseMessage(
+				'WebcastChatMessage',
+				msg([bytes(1, event(103)), bytes(2, user()), str(3, 'fresh after online')]),
+			),
+		]),
+	},
+});
+assertState(
+	provider.getConnectionState(),
+	{ status: 'connected' },
+	'Expected fresh LiveEvent after rediscovery to reconnect the provider',
+);
+
+const activeStaleTimer = lastActiveTimer(20);
+now = 22;
+activeStaleTimer.handler();
+assertState(
+	provider.getConnectionState(),
+	{ status: 'error', reason: 'stale' },
+	'Expected stale timer to classify missing LiveEvents as stale',
+);
+
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-1',
+	response: {
+		payloadData: frameBase64([
+			responseMessage(
+				'WebcastChatMessage',
+				msg([bytes(1, event(104)), bytes(2, user()), str(3, 'resets stale timer')]),
+			),
+		]),
+	},
+});
+assertState(
+	provider.getConnectionState(),
+	{ status: 'connected' },
+	'Expected new decoded LiveEvent to reset stale classification',
+);
+if (activeStaleTimer?.active) {
+	throw new Error('Expected new decoded LiveEvent to clear the previous stale timer');
+}
+
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-1',
+	response: {
+		payloadData: frameBase64([responseMessage('WebcastControlMessage', msg([uint(2, 3)]))]),
+	},
+});
+assertState(
+	provider.getConnectionState(),
+	{ status: 'disconnected' },
+	'Expected stream-end LiveEvent to classify as disconnected',
+);
+
+await provider.attach(42, 'creator');
+transport.detachHandler?.({ tabId: 42 }, 'target_closed');
+assertState(
+	provider.getConnectionState(),
+	{ status: 'error', reason: 'interrupted' },
+	'Expected unexpected debugger detach to classify as interrupted',
+);
+
+await provider.attach(42, 'creator');
 
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
 	requestId: 'socket-2',
@@ -168,8 +285,39 @@ assertLength(transport.detaches, 2, 'Expected detach to call Chrome debugger det
 
 logs satisfies ProviderLog[];
 
+const errorStateLogs = logs.filter(
+	(log) => log.message === 'Connection state changed' && log.details?.to === 'error',
+);
+if (
+	!errorStateLogs.every(
+		(log) => log.details?.reason !== undefined && 'lastDecodedEventAt' in (log.details ?? {}),
+	)
+) {
+	throw new Error(
+		'Expected error state transition logs to include reason and last event timestamp',
+	);
+}
+
+function assertState(
+	actual: ChromeConnectionState,
+	expected: Pick<ChromeConnectionState, 'status' | 'reason'>,
+	message: string,
+): void {
+	if (actual.status !== expected.status || actual.reason !== expected.reason) {
+		throw new Error(`${message}: got ${JSON.stringify(actual)}`);
+	}
+}
+
 function assertLength(items: { length: number }, expected: number, message: string): void {
 	if (items.length !== expected) {
 		throw new Error(message);
 	}
+}
+
+function lastActiveTimer(delay: number): { handler: () => void; active: boolean } {
+	const timer = timers.findLast((timer) => timer.active && timer.delay === delay);
+	if (timer === undefined) {
+		throw new Error(`Expected active timer with ${delay}ms delay`);
+	}
+	return timer;
 }

@@ -34,7 +34,7 @@ export function classifyConnectionState(signals: ConnectionClassificationSignals
 		return { ...baseState, status: 'connecting' };
 	}
 
-	if (signals.now - signals.lastEventAt > signals.staleThresholdMs) {
+	if (signals.now - signals.lastEventAt >= signals.staleThresholdMs) {
 		return { ...baseState, status: 'error', reason: 'stale' };
 	}
 

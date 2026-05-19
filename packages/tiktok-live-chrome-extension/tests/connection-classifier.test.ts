@@ -37,6 +37,15 @@ assertState(
 assertState(
 	classifyConnectionState({
 		...connectedSignals(),
+		lastEventAt: now - staleThresholdMs,
+	}),
+	{ status: 'error', reason: 'stale' },
+	'Expected LiveEvents to classify as stale when the threshold is reached',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
 		debuggerAttached: false,
 	}),
 	{ status: 'error', reason: 'interrupted' },
