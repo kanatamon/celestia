@@ -91,7 +91,50 @@ describe('Chrome extension scaffold', () => {
 			tabObserver.emit('https://www.tiktok.com/@second_creator/live');
 		});
 
-		expect(container.textContent).toContain('@second_creator');
+		expect(container.textContent).toContain('@first.creator');
+		expect(container.textContent).not.toContain('@second_creator');
+		expect(provider.attachCalls).toEqual([{ tabId: 42, username: 'first.creator' }]);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('tracks active TikTok Live candidates without changing the confirmed Provider target', async () => {
+		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@confirmed/live', 101);
+		const provider = new FakeProvider();
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
+		});
+
+		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
+		expect(container.textContent).toContain('@confirmed');
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@candidate/live', 202);
+		});
+
+		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
+		expect(provider.disconnectCount).toBe(0);
+		expect(container.textContent).toContain('@confirmed');
+		expect(container.textContent).not.toContain('@candidate');
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@confirmed/live', 101);
+		});
+
+		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
+		expect(container.textContent).toContain('@confirmed');
+
+		await act(async () => {
+			tabObserver.emit('https://example.com/not-live', 303);
+		});
+
+		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
+		expect(container.textContent).toContain('@confirmed');
 
 		await act(async () => {
 			root.unmount();
@@ -244,9 +287,10 @@ class FakeTabObserver implements TabObserver {
 		};
 	}
 
-	emit(url: string | undefined): void {
+	emit(url: string | undefined, tabId = this.tabId): void {
 		this.url = url;
-		this.#listener?.(url === undefined ? undefined : { id: this.tabId, url, active: true });
+		this.tabId = tabId;
+		this.#listener?.(url === undefined ? undefined : { id: tabId, url, active: true });
 	}
 }
 

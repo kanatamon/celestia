@@ -8,7 +8,7 @@ import type {
 	TikTokLiveProvider,
 } from '@celestia/tiktok-live-core';
 import { ActivitySwitcher, SplitFeedLayout, StatusBar } from '@celestia/ui';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useLiveEventStore } from './live-event-store.js';
 import styles from './side-panel.module.css';
 
@@ -27,10 +27,11 @@ interface SidePanelProps {
 	providerFactory?: () => AttachableTikTokLiveProvider;
 }
 
-interface LiveTab {
+export interface LiveTarget {
 	tabId: number;
 	username: string;
 	url: string;
+	detectedAt: number;
 }
 
 interface ObservedTab {
@@ -61,12 +62,13 @@ export function SidePanel({
 	tabObserver = defaultTabObserver,
 	providerFactory = defaultProviderFactory,
 }: SidePanelProps) {
-	const streamerUsername = useLiveEventStore((state) => state.streamerUsername);
 	const setStreamerUsername = useLiveEventStore((state) => state.setStreamerUsername);
 	const connectionState = useLiveEventStore((state) => state.connectionState);
 	const viewerCount = useLiveEventStore((state) => state.viewerCount);
 	const likeCount = useLiveEventStore((state) => state.likeCount);
-	const [streamerTabId, setStreamerTabId] = useState<number | null>(null);
+	const [confirmedTarget, setConfirmedTarget] = useState<LiveTarget | null>(null);
+	const confirmedTargetRef = useRef<LiveTarget | null>(null);
+	const [, setActiveCandidate] = useState<LiveTarget | null>(null);
 	const [isLandingOpen, setIsLandingOpen] = useState(false);
 
 	useEffect(() => {
@@ -81,12 +83,31 @@ export function SidePanel({
 
 			if (!liveTab) {
 				console.debug('[Celestia Side Panel] active tab is not a TikTok Live URL');
+				setActiveCandidate(null);
 				return;
 			}
 
 			console.info('[Celestia Side Panel] detected TikTok Live tab', liveTab);
-			setStreamerTabId(liveTab.tabId);
-			setStreamerUsername(liveTab.username);
+			const currentTarget = confirmedTargetRef.current;
+
+			if (!currentTarget) {
+				confirmedTargetRef.current = liveTab;
+				setConfirmedTarget(liveTab);
+				setStreamerUsername(liveTab.username);
+				setActiveCandidate(null);
+				return;
+			}
+
+			if (isSameLiveTarget(currentTarget, liveTab)) {
+				setActiveCandidate(null);
+				return;
+			}
+
+			console.info('[Celestia Side Panel] tracking active Live Target candidate', {
+				confirmedTarget: currentTarget,
+				activeCandidate: liveTab,
+			});
+			setActiveCandidate(liveTab);
 		};
 
 		tabObserver.getCurrentTab().then((tab) => {
@@ -114,10 +135,9 @@ export function SidePanel({
 
 	return (
 		<main aria-label="Celestia Side Panel">
-			{streamerUsername && streamerTabId !== null && !isLandingOpen ? (
+			{confirmedTarget && !isLandingOpen ? (
 				<LiveFeed
-					username={streamerUsername}
-					tabId={streamerTabId}
+					target={confirmedTarget}
 					providerFactory={providerFactory}
 					onOpenUsernameInput={() => setIsLandingOpen(true)}
 					connectionState={connectionState}
@@ -131,11 +151,13 @@ export function SidePanel({
 	);
 }
 
-export function parseTikTokLiveUrl(url: string | undefined): Omit<LiveTab, 'tabId'> | undefined {
+export function parseTikTokLiveUrl(
+	url: string | undefined,
+): Omit<LiveTarget, 'tabId' | 'detectedAt'> | undefined {
 	return parseTikTokLiveUrlParts(url);
 }
 
-function parseTikTokLiveTab(tab: ObservedTab | undefined): LiveTab | undefined {
+function parseTikTokLiveTab(tab: ObservedTab | undefined): LiveTarget | undefined {
 	if (tab?.id === undefined || !tab.url) {
 		return undefined;
 	}
@@ -147,11 +169,14 @@ function parseTikTokLiveTab(tab: ObservedTab | undefined): LiveTab | undefined {
 
 	return {
 		tabId: tab.id,
+		detectedAt: Date.now(),
 		...liveUrl,
 	};
 }
 
-function parseTikTokLiveUrlParts(url: string | undefined): Omit<LiveTab, 'tabId'> | undefined {
+function parseTikTokLiveUrlParts(
+	url: string | undefined,
+): Omit<LiveTarget, 'tabId' | 'detectedAt'> | undefined {
 	if (!url) {
 		return undefined;
 	}
@@ -180,6 +205,10 @@ function parseTikTokLiveUrlParts(url: string | undefined): Omit<LiveTab, 'tabId'
 	};
 }
 
+function isSameLiveTarget(first: LiveTarget, second: LiveTarget): boolean {
+	return first.tabId === second.tabId && first.url === second.url;
+}
+
 function LandingModal({ onSubmit }: { onSubmit: (username: string) => void | Promise<void> }) {
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -203,22 +232,21 @@ function LandingModal({ onSubmit }: { onSubmit: (username: string) => void | Pro
 }
 
 function LiveFeed({
-	username,
-	tabId,
+	target,
 	providerFactory,
 	onOpenUsernameInput,
 	connectionState,
 	viewerCount,
 	likeCount,
 }: {
-	username: string;
-	tabId: number;
+	target: LiveTarget;
 	providerFactory: () => AttachableTikTokLiveProvider;
 	onOpenUsernameInput: () => void;
 	connectionState: ConnectionState;
 	viewerCount: number;
 	likeCount: number;
 }) {
+	const { tabId, username } = target;
 	const addChatEvent = useLiveEventStore((state) => state.addChatEvent);
 	const addGiftEvent = useLiveEventStore((state) => state.addGiftEvent);
 	const addMemberEvent = useLiveEventStore((state) => state.addMemberEvent);
