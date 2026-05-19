@@ -96,6 +96,9 @@ function toBadgeViewModel(state: ConnectionState): BadgeViewModel | undefined {
 			if (state.reason === 'offline') {
 				return { label: 'Offline', kind: 'offline' };
 			}
+			if (state.reason === 'interrupted') {
+				return { label: 'Interrupted', kind: 'reconnecting' };
+			}
 			return { label: 'Reconnecting', kind: 'reconnecting' };
 		case 'detached':
 		case 'disconnected':

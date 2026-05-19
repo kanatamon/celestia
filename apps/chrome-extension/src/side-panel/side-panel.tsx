@@ -204,6 +204,7 @@ function LiveFeed({
 			console.error('Failed to create Celestia Provider', error);
 			setConnectionState({
 				status: 'error',
+				reason: 'interrupted',
 				username,
 			});
 			return;
@@ -241,6 +242,7 @@ function LiveFeed({
 			console.error('Failed to connect Celestia Provider', error);
 			setConnectionState({
 				status: 'error',
+				reason: 'interrupted',
 				username,
 			});
 		});
