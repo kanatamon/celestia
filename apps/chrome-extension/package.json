@@ -15,6 +15,7 @@
 		"@celestia/tiktok-live-chrome-extension": "workspace:*",
 		"@celestia/tiktok-live-core": "workspace:*",
 		"@celestia/ui": "workspace:*",
+		"antd": "^6.4.3",
 		"react": "^19.2.6",
 		"react-dom": "^19.2.6",
 		"zustand": "^5.0.13"

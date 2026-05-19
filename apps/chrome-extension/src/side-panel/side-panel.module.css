@@ -3,7 +3,7 @@
 	flex-direction: column;
 	height: 100vh;
 	min-height: 0;
-	background: var(--ant-color-bg-base);
+	background: url("./assets/live-feed-background.webp") center / cover no-repeat;
 	color: var(--ant-color-text-base);
 }
 

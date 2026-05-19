@@ -1,4 +1,5 @@
 import { CelestiaProvider } from '@celestia/ui';
+import 'antd/dist/reset.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SidePanel } from './side-panel.js';
