@@ -2,6 +2,7 @@
 
 # Monorepo
 node_modules/
+.pnpm-store/
 .turbo/
 prototypes/
 dist/

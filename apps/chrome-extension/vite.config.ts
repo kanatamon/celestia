@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url';
 import { crx } from '@crxjs/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -5,6 +6,17 @@ import manifest from './manifest.config.js';
 
 export default defineConfig({
 	plugins: [react(), crx({ manifest })],
+	resolve: {
+		alias: {
+			'@celestia/tiktok-live-chrome-extension': fileURLToPath(
+				new URL('../../packages/tiktok-live-chrome-extension/src/index.ts', import.meta.url),
+			),
+			'@celestia/tiktok-live-core': fileURLToPath(
+				new URL('../../packages/tiktok-live-core/src/index.ts', import.meta.url),
+			),
+			'@celestia/ui': fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)),
+		},
+	},
 	server: {
 		cors: {
 			origin: [/chrome-extension:\/\//],
