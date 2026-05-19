@@ -3,13 +3,18 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ChatEventCard, EventFeed } from '../src/index.js';
+import { ChatEventCard, EventFeed, IndividualChatFeed, SplitFeedLayout } from '../src/index.js';
 
 declare global {
 	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
 }
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+globalThis.ResizeObserver ??= class ResizeObserver {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+};
 
 describe('ChatEventCard', () => {
 	it('aggregates gift chips by value, excludes Heart Me, and shows the overflow count', () => {
@@ -163,6 +168,99 @@ describe('EventFeed', () => {
 	});
 });
 
+describe('IndividualChatFeed', () => {
+	it('shows pinned viewer events and chat mentions, and highlights the triggering event', () => {
+		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
+		const pinnedViewerGift = giftEvent('gift-1', 20, 'Rose', 1, 2);
+		const mention = chatEvent('chat-2', 30, 'hello @Viewer');
+		const unrelated = chatEvent('chat-3', 40, 'not relevant');
+
+		mention.user = {
+			userId: 'user-2',
+			uniqueId: 'other',
+			nickname: 'Other',
+		};
+		unrelated.user = mention.user;
+
+		const html = renderToString(
+			<IndividualChatFeed
+				chatEvents={[pinnedViewerChat, mention, unrelated]}
+				giftEvents={[pinnedViewerGift]}
+				pinnedEvent={pinnedViewerGift}
+				now={40}
+			/>,
+		);
+
+		expect(html).toContain('from pinned viewer');
+		expect(html).toContain('Rose');
+		expect(html).toContain('hello');
+		expect(html).not.toContain('not relevant');
+		expect(html).toContain('data-individual-event-id="gift-1"');
+		expect(html).toContain('pinnedIndividualEventRow');
+	});
+});
+
+describe('SplitFeedLayout', () => {
+	it('opens the individual feed when an event is pinned, collapses by min pane width, and restores it', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const firstChat = chatEvent('chat-1', 10, 'from pinned viewer');
+		const mention = chatEvent('chat-2', 20, 'hello @Viewer');
+		mention.user = {
+			userId: 'user-2',
+			uniqueId: 'other',
+			nickname: 'Other',
+		};
+
+		await act(async () => {
+			root.render(<SplitFeedLayout chatEvents={[firstChat, mention]} giftEvents={[]} now={30} />);
+		});
+
+		const layout = getSplitFeedLayout(container);
+		setElementWidth(layout, 720);
+		emitResize(layout, 720);
+
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeNull();
+
+		await act(async () => {
+			getEventRow(container, 'chat-1').dispatchEvent(
+				new MouseEvent('click', { bubbles: true, cancelable: true }),
+			);
+		});
+
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeInstanceOf(
+			HTMLElement,
+		);
+		expect(container.querySelector('[data-celestia-split-feed-collapsed]')).toBeNull();
+
+		emitResize(layout, 480);
+
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeNull();
+		expect(container.querySelector('[data-celestia-split-feed-collapsed]')).toBeInstanceOf(
+			HTMLElement,
+		);
+		expect(getEventRow(container, 'chat-1').dataset.pinned).toBe('true');
+
+		emitResize(layout, 720);
+
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeInstanceOf(
+			HTMLElement,
+		);
+
+		await act(async () => {
+			getEventRow(container, 'chat-1').dispatchEvent(
+				new MouseEvent('click', { bubbles: true, cancelable: true }),
+			);
+		});
+
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeNull();
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+});
+
 function getTextContent(container: Element): string {
 	return container.textContent ?? '';
 }
@@ -185,6 +283,27 @@ function getEventRow(container: Element, eventId: string): HTMLElement {
 	}
 
 	return row;
+}
+
+function getSplitFeedLayout(container: Element): HTMLElement {
+	const layout = container.querySelector('[data-celestia-split-feed-layout]');
+
+	if (!(layout instanceof HTMLElement)) {
+		throw new Error('Expected split feed layout to render.');
+	}
+
+	return layout;
+}
+
+function setElementWidth(element: HTMLElement, width: number): void {
+	Object.defineProperty(element, 'clientWidth', { configurable: true, value: width });
+}
+
+function emitResize(element: HTMLElement, width: number): void {
+	setElementWidth(element, width);
+	act(() => {
+		window.dispatchEvent(new Event('resize'));
+	});
 }
 
 function getButton(container: Element, text: string): HTMLButtonElement {

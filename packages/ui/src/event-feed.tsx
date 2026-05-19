@@ -1,11 +1,15 @@
 import type { ChatLiveEvent, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Splitter } from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './event-feed.module.css';
 
 const HEART_ME_GIFT_NAME = 'Heart Me';
 const MIN_VISIBLE_GIFT_CHIPS = 2;
 const ESTIMATED_GIFT_CHIP_WIDTH = 72;
 const SCROLL_BOTTOM_THRESHOLD = 24;
+const INDIVIDUAL_FEED_MIN_WIDTH = 240;
+const MAIN_FEED_MIN_WIDTH = 320;
+const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
 
 type PinnedStage = 'inline' | 'top' | 'bottom';
 
@@ -27,6 +31,23 @@ export interface EventFeedProps {
 	giftEvents: GiftLiveEvent[];
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
 	now?: number;
+	pinnedEventId?: string;
+	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
+}
+
+export interface IndividualChatFeedProps {
+	chatEvents: ChatLiveEvent[];
+	giftEvents: GiftLiveEvent[];
+	pinnedEvent: FeedLiveEvent;
+	userGiftEvents?: Map<string, GiftLiveEvent[]>;
+	now?: number;
+}
+
+export interface SplitFeedLayoutProps {
+	chatEvents: ChatLiveEvent[];
+	giftEvents: GiftLiveEvent[];
+	userGiftEvents?: Map<string, GiftLiveEvent[]>;
+	now?: number;
 }
 
 interface GiftChipViewModel {
@@ -36,7 +57,7 @@ interface GiftChipViewModel {
 	totalValue: number;
 }
 
-type FeedLiveEvent = ChatLiveEvent | GiftLiveEvent;
+export type FeedLiveEvent = ChatLiveEvent | GiftLiveEvent;
 
 export function ChatEventCard({
 	event,
@@ -159,17 +180,27 @@ export function EventFeed({
 	giftEvents,
 	userGiftEvents = new Map(),
 	now = Date.now(),
+	pinnedEventId: controlledPinnedEventId,
+	onPinnedEventChange,
 }: EventFeedProps) {
 	const feedRef = useRef<HTMLDivElement>(null);
 	const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 	const [isAtBottom, setIsAtBottom] = useState(true);
 	const [showNewMessages, setShowNewMessages] = useState(false);
-	const [pinnedEventId, setPinnedEventId] = useState<string | undefined>();
+	const [uncontrolledPinnedEventId, setUncontrolledPinnedEventId] = useState<string | undefined>();
 	const [pinnedNaturalTop, setPinnedNaturalTop] = useState<number | undefined>();
 	const [pinnedStage, setPinnedStage] = useState<PinnedStage>('inline');
+	const pinnedEventId = controlledPinnedEventId ?? uncontrolledPinnedEventId;
 	const events = useMemo(
 		() => [...chatEvents, ...giftEvents].sort((first, second) => first.ts - second.ts),
 		[chatEvents, giftEvents],
+	);
+	const updatePinnedEvent = useCallback(
+		(event: FeedLiveEvent | undefined) => {
+			setUncontrolledPinnedEventId(event?.id);
+			onPinnedEventChange?.(event);
+		},
+		[onPinnedEventChange],
 	);
 
 	useEffect(() => {
@@ -188,7 +219,7 @@ export function EventFeed({
 
 	useEffect(() => {
 		if (pinnedEventId && !events.some((event) => event.id === pinnedEventId)) {
-			setPinnedEventId(undefined);
+			updatePinnedEvent(undefined);
 			setPinnedNaturalTop(undefined);
 			setPinnedStage('inline');
 			return;
@@ -201,7 +232,7 @@ export function EventFeed({
 				pinnedNaturalTop,
 			),
 		);
-	}, [events, pinnedEventId, pinnedNaturalTop]);
+	}, [events, pinnedEventId, pinnedNaturalTop, updatePinnedEvent]);
 
 	const handleScroll = () => {
 		const nextIsAtBottom = isScrolledToBottom(feedRef.current);
@@ -228,17 +259,18 @@ export function EventFeed({
 
 	const handleEventClick = (eventId: string) => {
 		if (eventId !== pinnedEventId) {
+			const event = events.find((item) => item.id === eventId);
 			const row = rowRefs.current.get(eventId);
 			const naturalTop = row?.offsetTop;
 
-			setPinnedEventId(eventId);
+			updatePinnedEvent(event);
 			setPinnedNaturalTop(naturalTop);
 			setPinnedStage(getPinnedStage(feedRef.current, row, naturalTop));
 			return;
 		}
 
 		if (pinnedStage === 'inline') {
-			setPinnedEventId(undefined);
+			updatePinnedEvent(undefined);
 			setPinnedNaturalTop(undefined);
 			return;
 		}
@@ -288,6 +320,121 @@ export function EventFeed({
 	);
 }
 
+export function IndividualChatFeed({
+	chatEvents,
+	giftEvents,
+	pinnedEvent,
+	userGiftEvents = new Map(),
+	now = Date.now(),
+}: IndividualChatFeedProps) {
+	const events = useMemo(
+		() =>
+			[...chatEvents, ...giftEvents]
+				.filter((event) => isIndividualFeedEvent(event, pinnedEvent))
+				.sort((first, second) => first.ts - second.ts),
+		[chatEvents, giftEvents, pinnedEvent],
+	);
+
+	return (
+		<section
+			aria-label={`${toDisplayName(pinnedEvent.user)} feed`}
+			className={styles.individualFeed}
+			data-celestia-individual-chat-feed=""
+		>
+			<header className={styles.individualFeedHeader}>
+				<strong>{toDisplayName(pinnedEvent.user)}</strong>
+				<span>Viewer feed</span>
+			</header>
+			<div className={styles.feed}>
+				{events.map((event) => (
+					<div
+						className={getIndividualEventRowClassName(event.id === pinnedEvent.id)}
+						data-individual-event-id={event.id}
+						key={event.id}
+					>
+						<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
+					</div>
+				))}
+			</div>
+		</section>
+	);
+}
+
+export function SplitFeedLayout({
+	chatEvents,
+	giftEvents,
+	userGiftEvents = new Map(),
+	now = Date.now(),
+}: SplitFeedLayoutProps) {
+	const layoutRef = useRef<HTMLDivElement>(null);
+	const [pinnedEvent, setPinnedEventState] = useState<FeedLiveEvent | undefined>();
+	const [isIndividualFeedCollapsed, setIsIndividualFeedCollapsed] = useState(false);
+
+	useEffect(() => {
+		const layout = layoutRef.current;
+
+		if (!layout) {
+			return;
+		}
+
+		const updateCollapsedState = () => {
+			setIsIndividualFeedCollapsed(
+				layout.clientWidth > 0 && layout.clientWidth < SPLIT_FEED_MIN_WIDTH,
+			);
+		};
+
+		updateCollapsedState();
+		window.addEventListener('resize', updateCollapsedState);
+
+		if (typeof ResizeObserver !== 'undefined') {
+			const observer = new ResizeObserver(updateCollapsedState);
+			observer.observe(layout);
+
+			return () => {
+				observer.disconnect();
+				window.removeEventListener('resize', updateCollapsedState);
+			};
+		}
+
+		return () => {
+			window.removeEventListener('resize', updateCollapsedState);
+		};
+	}, []);
+
+	const mainFeed = (
+		<EventFeed
+			chatEvents={chatEvents}
+			giftEvents={giftEvents}
+			userGiftEvents={userGiftEvents}
+			now={now}
+			pinnedEventId={pinnedEvent?.id}
+			onPinnedEventChange={setPinnedEventState}
+		/>
+	);
+	const showIndividualFeed = pinnedEvent && !isIndividualFeedCollapsed;
+
+	return (
+		<div className={styles.splitFeedLayout} data-celestia-split-feed-layout="" ref={layoutRef}>
+			{showIndividualFeed ? (
+				<Splitter className={styles.splitter} orientation="horizontal">
+					<Splitter.Panel min={INDIVIDUAL_FEED_MIN_WIDTH} defaultSize="42%">
+						<IndividualChatFeed
+							chatEvents={chatEvents}
+							giftEvents={giftEvents}
+							userGiftEvents={userGiftEvents}
+							pinnedEvent={pinnedEvent}
+							now={now}
+						/>
+					</Splitter.Panel>
+					<Splitter.Panel min={MAIN_FEED_MIN_WIDTH}>{mainFeed}</Splitter.Panel>
+				</Splitter>
+			) : (
+				<div data-celestia-split-feed-collapsed={pinnedEvent ? '' : undefined}>{mainFeed}</div>
+			)}
+		</div>
+	);
+}
+
 function FeedEventCard({
 	event,
 	now,
@@ -305,6 +452,34 @@ function FeedEventCard({
 		case 'gift':
 			return <GiftEventCard event={event} userGiftEvents={userGiftEvents} now={now} />;
 	}
+}
+
+function isIndividualFeedEvent(event: FeedLiveEvent, pinnedEvent: FeedLiveEvent): boolean {
+	if (event.user?.userId && event.user.userId === pinnedEvent.user?.userId) {
+		return true;
+	}
+
+	if (event.type !== 'chat') {
+		return false;
+	}
+
+	const viewerNickname = pinnedEvent.user?.nickname;
+
+	if (!viewerNickname) {
+		return false;
+	}
+
+	return event.text.includes(`@${viewerNickname}`);
+}
+
+function getIndividualEventRowClassName(isPinned: boolean): string {
+	if (!isPinned) {
+		return styles.individualEventRow ?? '';
+	}
+
+	return [styles.individualEventRow, styles.pinnedIndividualEventRow]
+		.filter((className): className is string => Boolean(className))
+		.join(' ');
 }
 
 function GiftChip({ gift }: { gift: GiftChipViewModel }) {

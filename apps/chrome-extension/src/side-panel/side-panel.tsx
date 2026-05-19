@@ -2,7 +2,7 @@
 
 import { ChromeExtensionTikTokLiveProvider } from '@celestia/tiktok-live-chrome-extension';
 import type { ConnectionState, LiveEvent, TikTokLiveProvider } from '@celestia/tiktok-live-core';
-import { ActivitySwitcher, EventFeed, StatusBar } from '@celestia/ui';
+import { ActivitySwitcher, SplitFeedLayout, StatusBar } from '@celestia/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useLiveEventStore } from './live-event-store.js';
 import styles from './side-panel.module.css';
@@ -242,7 +242,11 @@ function LiveFeed({
 				<strong>@{username}</strong>
 				<span>Live feed</span>
 			</header>
-			<EventFeed chatEvents={chatEvents} giftEvents={giftEvents} userGiftEvents={userGiftEvents} />
+			<SplitFeedLayout
+				chatEvents={chatEvents}
+				giftEvents={giftEvents}
+				userGiftEvents={userGiftEvents}
+			/>
 			<ActivitySwitcher memberEvents={memberEvents} giftEvents={giftEvents} />
 		</section>
 	);

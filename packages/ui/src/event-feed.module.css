@@ -4,6 +4,64 @@
 	flex: 1 1 auto;
 }
 
+.splitFeedLayout,
+.splitter {
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	flex: 1 1 auto;
+}
+
+.splitFeedLayout > div {
+	height: 100%;
+	min-height: 0;
+}
+
+.individualFeed {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.individualFeedHeader {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 10px 12px 6px;
+	color: rgba(255, 255, 255, 0.86);
+}
+
+.individualFeedHeader strong,
+.individualFeedHeader span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.individualFeedHeader strong {
+	font-size: 14px;
+}
+
+.individualFeedHeader span {
+	color: rgba(255, 255, 255, 0.44);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.individualEventRow {
+	position: relative;
+	border-radius: 8px;
+	padding: 4px;
+}
+
+.pinnedIndividualEventRow {
+	background: linear-gradient(to right, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, transparent 100%);
+}
+
 .feed {
 	display: flex;
 	flex-direction: column;
