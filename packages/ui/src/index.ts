@@ -1,3 +1,5 @@
+export type { ActivitySwitcherProps, ActivitySwitcherView } from './activity-switcher.js';
+export { ActivitySwitcher } from './activity-switcher.js';
 export type { ChatEventCardProps, EventFeedProps, GiftEventCardProps } from './event-feed.js';
 export { ChatEventCard, EventFeed, GiftEventCard } from './event-feed.js';
 export { CelestiaProvider } from './provider.js';

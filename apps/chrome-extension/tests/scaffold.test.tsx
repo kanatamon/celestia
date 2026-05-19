@@ -135,11 +135,42 @@ describe('Chrome extension scaffold', () => {
 				source: 'test',
 				totalLikeCount: 5678,
 			});
+			provider.emitEvent({
+				id: 'member-1',
+				ts: Date.now(),
+				type: 'member',
+				source: 'test',
+				user: {
+					userId: 'viewer-1',
+					uniqueId: 'viewer.one',
+					nickname: 'Viewer One',
+				},
+			});
+			provider.emitEvent({
+				id: 'gift-1',
+				ts: Date.now(),
+				type: 'gift',
+				source: 'test',
+				giftName: 'Galaxy',
+				giftImageUrl: 'https://example.test/galaxy.png',
+				diamondCount: 1000,
+				repeatCount: 2,
+			});
 		});
 
 		expect(container.textContent).toContain('1,234');
 		expect(container.textContent).toContain('5,678');
 		expect(container.textContent).toContain('Live');
+		expect(container.textContent).toContain('Viewer One joined');
+
+		await act(async () => {
+			container
+				.querySelector('[data-celestia-activity-switcher]')
+				?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		});
+
+		expect(container.textContent).toContain('Galaxy');
+		expect(container.textContent).toContain('x2');
 
 		await act(async () => {
 			provider.emitEvent({
