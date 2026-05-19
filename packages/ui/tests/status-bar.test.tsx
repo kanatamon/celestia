@@ -43,7 +43,7 @@ describe('StatusBar', () => {
 
 	it.each([
 		['offline', 'Offline'],
-		['interrupted', 'Interrupted'],
+		['interrupted', 'Reconnecting'],
 		['stale', 'Reconnecting'],
 	] as const)('maps error with reason %s to the %s badge label', (reason, label) => {
 		const html = renderToString(

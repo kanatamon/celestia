@@ -88,16 +88,30 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			return this.fail(new Error('No active tab with an ID is available'));
 		}
 
-		if (this.state.tabId !== undefined && this.state.tabId !== tab.id) {
+		return this.attachToTab(tab.id, username, tab.url);
+	}
+
+	async attach(tabId: number, username = ''): Promise<ChromeConnectionState> {
+		return this.attachToTab(tabId, username);
+	}
+
+	private async attachToTab(
+		tabId: number,
+		username: string,
+		tabUrl?: string,
+	): Promise<ChromeConnectionState> {
+		this.assertUsable();
+		if (this.state.tabId !== undefined) {
 			await this.detach();
 		}
 
-		const debuggee = { tabId: tab.id };
+		this.clearDiscoveryState();
+		const debuggee = { tabId };
 		this.setState({
 			...this.state,
 			status: 'attaching',
-			tabId: tab.id,
-			tabUrl: tab.url,
+			tabId,
+			tabUrl,
 			username,
 		});
 
@@ -106,14 +120,15 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			await this.transport.attach(debuggee);
 			this.emitLog('info', 'Enabling Chrome debugger Network domain', debuggee);
 			await this.transport.enableNetwork(debuggee);
-			this.sockets.clear();
 			this.setState({
 				...this.state,
 				status: 'attached',
 				username,
 				attachedAt: this.now(),
 				socketCount: 0,
+				confirmedSocketRequestId: undefined,
 				confirmedSocketUrl: undefined,
+				lastDecodedEventAt: undefined,
 				promiscuousMode: false,
 			});
 			this.schedulePromiscuousMode();
@@ -197,7 +212,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		if (method !== 'Network.webSocketFrameReceived') return;
 		const requestId = stringParam(params, 'requestId');
 		const url = requestId === undefined ? undefined : this.sockets.get(requestId);
-		if (!this.shouldDecodeSocket(url)) {
+		if (!this.shouldDecodeSocket(requestId, url)) {
 			if (url !== undefined) {
 				this.emitLog('debug', 'Ignoring WebSocket frame from unconfirmed socket', {
 					requestId,
@@ -222,13 +237,15 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 				});
 				return;
 			}
-			if (url && this.state.confirmedSocketUrl === undefined) {
+			if (requestId && url && this.state.confirmedSocketRequestId === undefined) {
 				this.clearPromiscuousTimer();
-				this.emitLog('info', 'Confirmed TikTok Live WebSocket', { url });
+				this.emitLog('info', 'Confirmed TikTok Live WebSocket', { requestId, url });
 				this.setState({
 					...this.state,
 					status: 'connected',
+					confirmedSocketRequestId: requestId,
 					confirmedSocketUrl: url,
+					lastDecodedEventAt: this.now(),
 					promiscuousMode: false,
 				});
 			}
@@ -264,10 +281,35 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.setState({ ...this.state, socketCount: this.sockets.size });
 	}
 
-	private shouldDecodeSocket(url: string | undefined): boolean {
-		if (this.state.confirmedSocketUrl !== undefined) return url === this.state.confirmedSocketUrl;
+	private shouldDecodeSocket(requestId: string | undefined, url: string | undefined): boolean {
+		if (this.hasConfirmedSocket()) {
+			return this.isConfirmedSocket(requestId, url);
+		}
 		if (url?.includes(liveSocketPattern)) return true;
 		return this.state.promiscuousMode;
+	}
+
+	private hasConfirmedSocket(): boolean {
+		return this.state.confirmedSocketRequestId !== undefined;
+	}
+
+	private isConfirmedSocket(requestId: string | undefined, url: string | undefined): boolean {
+		return (
+			requestId === this.state.confirmedSocketRequestId && url === this.state.confirmedSocketUrl
+		);
+	}
+
+	private clearDiscoveryState(): void {
+		this.clearPromiscuousTimer();
+		this.sockets.clear();
+		this.setState({
+			...this.state,
+			socketCount: 0,
+			confirmedSocketRequestId: undefined,
+			confirmedSocketUrl: undefined,
+			lastDecodedEventAt: undefined,
+			promiscuousMode: false,
+		});
 	}
 
 	private schedulePromiscuousMode(): void {
@@ -287,7 +329,11 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	}
 
 	private emitEvent(event: LiveEvent): void {
-		this.setState({ ...this.state, eventCount: this.state.eventCount + 1 });
+		this.setState({
+			...this.state,
+			eventCount: this.state.eventCount + 1,
+			lastDecodedEventAt: this.now(),
+		});
 		this.emitLog('debug', 'Emitting LiveEvent', {
 			id: event.id,
 			type: event.type,

@@ -1,24 +1,34 @@
 /// <reference types="chrome" />
 
 import { ChromeExtensionTikTokLiveProvider } from '@celestia/tiktok-live-chrome-extension';
-import type { ConnectionState, LiveEvent, TikTokLiveProvider } from '@celestia/tiktok-live-core';
+import type {
+	ConnectionState,
+	LiveEvent,
+	ProviderLog,
+	TikTokLiveProvider,
+} from '@celestia/tiktok-live-core';
 import { ActivitySwitcher, SplitFeedLayout, StatusBar } from '@celestia/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useLiveEventStore } from './live-event-store.js';
 import styles from './side-panel.module.css';
 
 export interface TabObserver {
-	getCurrentUrl(): Promise<string | undefined>;
+	getCurrentTab(): Promise<ObservedTab | undefined>;
 	navigateCurrentTab(url: string): Promise<void>;
-	subscribe(listener: (url: string | undefined) => void): () => void;
+	subscribe(listener: (tab: ObservedTab | undefined) => void): () => void;
+}
+
+interface AttachableTikTokLiveProvider extends TikTokLiveProvider {
+	attach(tabId: number, username: string): Promise<ConnectionState>;
 }
 
 interface SidePanelProps {
 	tabObserver?: TabObserver;
-	providerFactory?: () => TikTokLiveProvider;
+	providerFactory?: () => AttachableTikTokLiveProvider;
 }
 
 interface LiveTab {
+	tabId: number;
 	username: string;
 	url: string;
 }
@@ -56,14 +66,18 @@ export function SidePanel({
 	const connectionState = useLiveEventStore((state) => state.connectionState);
 	const viewerCount = useLiveEventStore((state) => state.viewerCount);
 	const likeCount = useLiveEventStore((state) => state.likeCount);
+	const [streamerTabId, setStreamerTabId] = useState<number | null>(null);
 	const [isLandingOpen, setIsLandingOpen] = useState(false);
 
 	useEffect(() => {
 		let isMounted = true;
 
-		const detectLiveTab = (url: string | undefined) => {
-			console.debug('[Celestia Side Panel] observed active tab URL', { url });
-			const liveTab = parseTikTokLiveUrl(url);
+		const detectLiveTab = (tab: ObservedTab | undefined) => {
+			console.debug('[Celestia Side Panel] observed active tab', {
+				tabId: tab?.id,
+				url: tab?.url,
+			});
+			const liveTab = parseTikTokLiveTab(tab);
 
 			if (!liveTab) {
 				console.debug('[Celestia Side Panel] active tab is not a TikTok Live URL');
@@ -71,12 +85,13 @@ export function SidePanel({
 			}
 
 			console.info('[Celestia Side Panel] detected TikTok Live tab', liveTab);
+			setStreamerTabId(liveTab.tabId);
 			setStreamerUsername(liveTab.username);
 		};
 
-		tabObserver.getCurrentUrl().then((url) => {
+		tabObserver.getCurrentTab().then((tab) => {
 			if (isMounted) {
-				detectLiveTab(url);
+				detectLiveTab(tab);
 			}
 		});
 
@@ -99,9 +114,10 @@ export function SidePanel({
 
 	return (
 		<main aria-label="Celestia Side Panel">
-			{streamerUsername && !isLandingOpen ? (
+			{streamerUsername && streamerTabId !== null && !isLandingOpen ? (
 				<LiveFeed
 					username={streamerUsername}
+					tabId={streamerTabId}
 					providerFactory={providerFactory}
 					onOpenUsernameInput={() => setIsLandingOpen(true)}
 					connectionState={connectionState}
@@ -115,7 +131,27 @@ export function SidePanel({
 	);
 }
 
-export function parseTikTokLiveUrl(url: string | undefined): LiveTab | undefined {
+export function parseTikTokLiveUrl(url: string | undefined): Omit<LiveTab, 'tabId'> | undefined {
+	return parseTikTokLiveUrlParts(url);
+}
+
+function parseTikTokLiveTab(tab: ObservedTab | undefined): LiveTab | undefined {
+	if (tab?.id === undefined || !tab.url) {
+		return undefined;
+	}
+
+	const liveUrl = parseTikTokLiveUrlParts(tab.url);
+	if (!liveUrl) {
+		return undefined;
+	}
+
+	return {
+		tabId: tab.id,
+		...liveUrl,
+	};
+}
+
+function parseTikTokLiveUrlParts(url: string | undefined): Omit<LiveTab, 'tabId'> | undefined {
 	if (!url) {
 		return undefined;
 	}
@@ -168,6 +204,7 @@ function LandingModal({ onSubmit }: { onSubmit: (username: string) => void | Pro
 
 function LiveFeed({
 	username,
+	tabId,
 	providerFactory,
 	onOpenUsernameInput,
 	connectionState,
@@ -175,7 +212,8 @@ function LiveFeed({
 	likeCount,
 }: {
 	username: string;
-	providerFactory: () => TikTokLiveProvider;
+	tabId: number;
+	providerFactory: () => AttachableTikTokLiveProvider;
 	onOpenUsernameInput: () => void;
 	connectionState: ConnectionState;
 	viewerCount: number;
@@ -193,7 +231,7 @@ function LiveFeed({
 	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
 
 	useEffect(() => {
-		let provider: TikTokLiveProvider;
+		let provider: AttachableTikTokLiveProvider;
 
 		console.info('[Celestia Side Panel] starting Provider', { username });
 		setConnectionState({ status: 'connecting', username });
@@ -211,9 +249,7 @@ function LiveFeed({
 		}
 
 		const unsubscribeLogs = provider.onLog((log) => {
-			const logMethod =
-				log.level === 'error' ? console.error : log.level === 'warn' ? console.warn : console.info;
-			logMethod('[Celestia Provider]', log.message, log.details ?? {});
+			logProviderMessage(log);
 		});
 		const unsubscribeEvents = provider.onEvent((event) => {
 			console.debug('[Celestia Side Panel] received LiveEvent', {
@@ -238,7 +274,7 @@ function LiveFeed({
 			}
 		});
 
-		void provider.connect(username).catch((error: unknown) => {
+		void provider.attach(tabId, username).catch((error: unknown) => {
 			console.error('Failed to connect Celestia Provider', error);
 			setConnectionState({
 				status: 'error',
@@ -265,6 +301,7 @@ function LiveFeed({
 		updateLikeCount,
 		updateViewerCount,
 		username,
+		tabId,
 	]);
 
 	return (
@@ -318,6 +355,20 @@ function dispatchLiveEvent(
 	}
 }
 
+function logProviderMessage(log: ProviderLog): void {
+	switch (log.level) {
+		case 'error':
+			console.error('[Celestia Provider]', log.message, log.details ?? {});
+			break;
+		case 'warn':
+			console.warn('[Celestia Provider]', log.message, log.details ?? {});
+			break;
+		default:
+			console.info('[Celestia Provider]', log.message, log.details ?? {});
+			break;
+	}
+}
+
 function toTikTokLiveUrl(input: string): string | undefined {
 	const username = input.trim().replace(/^@+/, '').trim();
 
@@ -334,7 +385,7 @@ function createChromeTabObserver(): TabObserver {
 
 	if (!chromeTabs) {
 		return {
-			async getCurrentUrl() {
+			async getCurrentTab() {
 				return undefined;
 			},
 			async navigateCurrentTab() {},
@@ -345,9 +396,9 @@ function createChromeTabObserver(): TabObserver {
 	}
 
 	return {
-		async getCurrentUrl() {
+		async getCurrentTab() {
 			const [tab] = await chromeTabs.query({ active: true, currentWindow: true });
-			return tab?.url;
+			return tab;
 		},
 		async navigateCurrentTab(url) {
 			const [tab] = await chromeTabs.query({ active: true, currentWindow: true });
@@ -359,7 +410,7 @@ function createChromeTabObserver(): TabObserver {
 		subscribe(listener) {
 			const handleActivated = async () => {
 				const [tab] = await chromeTabs.query({ active: true, currentWindow: true });
-				listener(tab?.url);
+				listener(tab);
 			};
 			const handleUpdated = (
 				_tabId: number,
@@ -367,7 +418,7 @@ function createChromeTabObserver(): TabObserver {
 				tab: ObservedTab,
 			) => {
 				if (tab.active && changeInfo.url) {
-					listener(changeInfo.url);
+					listener(tab);
 				}
 			};
 

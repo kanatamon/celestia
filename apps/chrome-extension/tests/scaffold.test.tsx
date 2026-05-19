@@ -119,7 +119,7 @@ describe('Chrome extension scaffold', () => {
 			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
 		});
 
-		expect(provider.connectedUsernames).toEqual(['celestia']);
+		expect(provider.attachCalls).toEqual([{ tabId: 42, username: 'celestia' }]);
 
 		await act(async () => {
 			provider.emitState({ status: 'connected', username: 'celestia' });
@@ -212,7 +212,7 @@ describe('Chrome extension scaffold', () => {
 		});
 
 		expect(container.textContent).toContain('@celestia');
-		expect(container.textContent).toContain('Interrupted');
+		expect(container.textContent).toContain('Reconnecting');
 
 		await act(async () => {
 			root.unmount();
@@ -222,19 +222,22 @@ describe('Chrome extension scaffold', () => {
 
 class FakeTabObserver implements TabObserver {
 	readonly navigatedUrls: string[] = [];
-	#listener: ((url: string | undefined) => void) | undefined;
+	#listener: ((tab: ChromeApi.Tab | undefined) => void) | undefined;
 
-	constructor(private url: string | undefined) {}
+	constructor(
+		private url: string | undefined,
+		private tabId = 42,
+	) {}
 
-	async getCurrentUrl(): Promise<string | undefined> {
-		return this.url;
+	async getCurrentTab(): Promise<ChromeApi.Tab | undefined> {
+		return this.url === undefined ? undefined : { id: this.tabId, url: this.url, active: true };
 	}
 
 	async navigateCurrentTab(url: string): Promise<void> {
 		this.navigatedUrls.push(url);
 	}
 
-	subscribe(listener: (url: string | undefined) => void): () => void {
+	subscribe(listener: (tab: ChromeApi.Tab | undefined) => void): () => void {
 		this.#listener = listener;
 		return () => {
 			this.#listener = undefined;
@@ -243,12 +246,12 @@ class FakeTabObserver implements TabObserver {
 
 	emit(url: string | undefined): void {
 		this.url = url;
-		this.#listener?.(url);
+		this.#listener?.(url === undefined ? undefined : { id: this.tabId, url, active: true });
 	}
 }
 
 class FakeProvider implements TikTokLiveProvider {
-	connectedUsernames: string[] = [];
+	attachCalls: Array<{ tabId: number; username: string }> = [];
 	disconnectCount = 0;
 	destroyCount = 0;
 	#state: ConnectionState = { status: 'idle', username: '' };
@@ -256,7 +259,11 @@ class FakeProvider implements TikTokLiveProvider {
 	#stateHandlers = new Set<(state: ConnectionState) => void>();
 
 	async connect(username: string): Promise<ConnectionState> {
-		this.connectedUsernames.push(username);
+		return this.attach(0, username);
+	}
+
+	async attach(tabId: number, username: string): Promise<ConnectionState> {
+		this.attachCalls.push({ tabId, username });
 		this.emitState({ status: 'attached', username });
 		return this.#state;
 	}

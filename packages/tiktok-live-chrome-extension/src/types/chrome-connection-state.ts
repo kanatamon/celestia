@@ -6,7 +6,9 @@ export interface ChromeConnectionState extends Omit<ConnectionState, 'status'> {
 	tabUrl?: string;
 	attachedAt?: number;
 	socketCount: number;
+	confirmedSocketRequestId?: string;
 	confirmedSocketUrl?: string;
+	lastDecodedEventAt?: number;
 	eventCount: number;
 	decodeFailures: number;
 	promiscuousMode: boolean;

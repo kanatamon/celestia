@@ -69,9 +69,9 @@ provider.onConnectionState((state) => states.push(state as ChromeConnectionState
 provider.onEvent((event) => events.push(event));
 provider.onLog((log) => logs.push(log));
 
-await provider.attachActiveTab();
+await provider.attach(42, 'creator');
 if (provider.getConnectionState().status !== 'attached') {
-	throw new Error('Expected provider to attach to the active tab');
+	throw new Error('Expected provider to attach to the requested tab');
 }
 if (transport.events.length !== 2) {
 	throw new Error('Expected attach flow to attach the debugger and enable Network events');
@@ -117,10 +117,11 @@ transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 
 assertLength(events, 1, 'Expected preferred WebSocket frame to emit a LiveEvent');
 if (
+	provider.getConnectionState().confirmedSocketRequestId !== 'socket-1' ||
 	provider.getConnectionState().confirmedSocketUrl !==
-	'wss://webcast-ws.tiktok.com/webcast/im/ws_proxy/'
+		'wss://webcast-ws.tiktok.com/webcast/im/ws_proxy/'
 ) {
-	throw new Error('Expected provider to confirm the decoding WebSocket URL');
+	throw new Error('Expected provider to confirm the decoding WebSocket identity');
 }
 if (provider.getConnectionState().status !== 'connected') {
 	throw new Error('Expected decoded TikTok Live events to mark the provider connected');
@@ -131,10 +132,32 @@ if (provider.getConnectionState().promiscuousMode) {
 	throw new Error('Expected confirmed WebSocket to prevent promiscuous mode');
 }
 
-transport.tab = { id: 84, url: 'https://www.tiktok.com/@other/live' };
-await provider.attachActiveTab();
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
+	requestId: 'socket-2',
+	url: 'wss://webcast-ws.tiktok.com/webcast/im/ws_proxy/',
+});
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-2',
+	response: {
+		payloadData: frameBase64([
+			responseMessage(
+				'WebcastChatMessage',
+				msg([bytes(1, event(102)), bytes(2, user()), str(3, 'same URL different request')]),
+			),
+		]),
+	},
+});
+assertLength(events, 1, 'Expected same-URL WebSocket frames with a new request ID to be ignored');
+
+await provider.attach(84, 'other');
 if (transport.detaches.length !== 1 || transport.detaches[0]?.tabId !== 42) {
 	throw new Error('Expected reattaching to a different tab to detach the previous debugger');
+}
+if (provider.getConnectionState().confirmedSocketRequestId !== undefined) {
+	throw new Error('Expected attach to clear the confirmed WebSocket request ID');
+}
+if (provider.getConnectionState().eventCount !== 1) {
+	throw new Error('Expected attach to preserve LiveEvent counters');
 }
 
 await provider.detach();
