@@ -7,6 +7,8 @@ const MIN_VISIBLE_GIFT_CHIPS = 2;
 const ESTIMATED_GIFT_CHIP_WIDTH = 72;
 const SCROLL_BOTTOM_THRESHOLD = 24;
 
+type PinnedStage = 'inline' | 'top' | 'bottom';
+
 export interface ChatEventCardProps {
 	event: ChatLiveEvent;
 	userGiftEvents?: GiftLiveEvent[];
@@ -159,8 +161,12 @@ export function EventFeed({
 	now = Date.now(),
 }: EventFeedProps) {
 	const feedRef = useRef<HTMLDivElement>(null);
+	const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 	const [isAtBottom, setIsAtBottom] = useState(true);
 	const [showNewMessages, setShowNewMessages] = useState(false);
+	const [pinnedEventId, setPinnedEventId] = useState<string | undefined>();
+	const [pinnedNaturalTop, setPinnedNaturalTop] = useState<number | undefined>();
+	const [pinnedStage, setPinnedStage] = useState<PinnedStage>('inline');
 	const events = useMemo(
 		() => [...chatEvents, ...giftEvents].sort((first, second) => first.ts - second.ts),
 		[chatEvents, giftEvents],
@@ -180,6 +186,23 @@ export function EventFeed({
 		}
 	}, [events.length, isAtBottom]);
 
+	useEffect(() => {
+		if (pinnedEventId && !events.some((event) => event.id === pinnedEventId)) {
+			setPinnedEventId(undefined);
+			setPinnedNaturalTop(undefined);
+			setPinnedStage('inline');
+			return;
+		}
+
+		setPinnedStage(
+			getPinnedStage(
+				feedRef.current,
+				getPinnedEventRow(rowRefs.current, pinnedEventId),
+				pinnedNaturalTop,
+			),
+		);
+	}, [events, pinnedEventId, pinnedNaturalTop]);
+
 	const handleScroll = () => {
 		const nextIsAtBottom = isScrolledToBottom(feedRef.current);
 		setIsAtBottom(nextIsAtBottom);
@@ -187,12 +210,50 @@ export function EventFeed({
 		if (nextIsAtBottom) {
 			setShowNewMessages(false);
 		}
+
+		setPinnedStage(
+			getPinnedStage(
+				feedRef.current,
+				getPinnedEventRow(rowRefs.current, pinnedEventId),
+				pinnedNaturalTop,
+			),
+		);
 	};
 
 	const handleNewMessagesClick = () => {
 		scrollToBottom(feedRef.current);
 		setIsAtBottom(true);
 		setShowNewMessages(false);
+	};
+
+	const handleEventClick = (eventId: string) => {
+		if (eventId !== pinnedEventId) {
+			const row = rowRefs.current.get(eventId);
+			const naturalTop = row?.offsetTop;
+
+			setPinnedEventId(eventId);
+			setPinnedNaturalTop(naturalTop);
+			setPinnedStage(getPinnedStage(feedRef.current, row, naturalTop));
+			return;
+		}
+
+		if (pinnedStage === 'inline') {
+			setPinnedEventId(undefined);
+			setPinnedNaturalTop(undefined);
+			return;
+		}
+
+		scrollToRowTop(feedRef.current, pinnedNaturalTop);
+		setPinnedStage('inline');
+	};
+
+	const setRowRef = (eventId: string) => (element: HTMLButtonElement | null) => {
+		if (element) {
+			rowRefs.current.set(eventId, element);
+			return;
+		}
+
+		rowRefs.current.delete(eventId);
 	};
 
 	return (
@@ -204,9 +265,18 @@ export function EventFeed({
 				ref={feedRef}
 			>
 				{events.map((event) => (
-					<div className={styles.cardRow} key={event.id}>
+					<button
+						className={getCardRowClassName(event.id === pinnedEventId, pinnedStage)}
+						data-event-id={event.id}
+						data-pinned={event.id === pinnedEventId ? 'true' : undefined}
+						data-sticky-stage={event.id === pinnedEventId ? pinnedStage : undefined}
+						key={event.id}
+						onClick={() => handleEventClick(event.id)}
+						ref={setRowRef(event.id)}
+						type="button"
+					>
 						<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
-					</div>
+					</button>
 				))}
 			</div>
 			{showNewMessages ? (
@@ -402,6 +472,77 @@ function scrollToBottom(element: HTMLElement | null): void {
 	}
 
 	element.scrollTop = element.scrollHeight;
+}
+
+function getPinnedEventRow(
+	rowRefs: Map<string, HTMLButtonElement>,
+	pinnedEventId: string | undefined,
+): HTMLButtonElement | undefined {
+	if (!pinnedEventId) {
+		return undefined;
+	}
+
+	return rowRefs.get(pinnedEventId);
+}
+
+function getCardRowClassName(isPinned: boolean, pinnedStage: PinnedStage): string {
+	if (!isPinned) {
+		return styles.cardRow ?? '';
+	}
+
+	const classNames = [styles.cardRow, styles.pinnedCardRow].filter(
+		(className): className is string => Boolean(className),
+	);
+
+	switch (pinnedStage) {
+		case 'top':
+			if (styles.stickyTopCardRow) {
+				classNames.push(styles.stickyTopCardRow);
+			}
+			break;
+		case 'bottom':
+			if (styles.stickyBottomCardRow) {
+				classNames.push(styles.stickyBottomCardRow);
+			}
+			break;
+		case 'inline':
+			break;
+	}
+
+	return classNames.join(' ');
+}
+
+function getPinnedStage(
+	feed: HTMLElement | null,
+	row: HTMLElement | undefined,
+	rowNaturalTop: number | undefined,
+): PinnedStage {
+	if (!feed || !row || rowNaturalTop === undefined) {
+		return 'inline';
+	}
+
+	const rowTop = rowNaturalTop;
+	const rowBottom = rowTop + row.offsetHeight;
+	const viewportTop = feed.scrollTop;
+	const viewportBottom = viewportTop + feed.clientHeight;
+
+	if (rowTop < viewportTop) {
+		return 'top';
+	}
+
+	if (rowBottom > viewportBottom) {
+		return 'bottom';
+	}
+
+	return 'inline';
+}
+
+function scrollToRowTop(feed: HTMLElement | null, rowTop: number | undefined): void {
+	if (!feed || rowTop === undefined) {
+		return;
+	}
+
+	feed.scrollTop = rowTop;
 }
 
 function formatMinimalTimestamp(ts: number, now: number): string {

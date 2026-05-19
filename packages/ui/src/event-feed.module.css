@@ -16,7 +16,51 @@
 }
 
 .cardRow {
+	position: relative;
 	width: 100%;
+	padding: 0;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+}
+
+.cardRow::before {
+	position: absolute;
+	inset: -4px -12px;
+	z-index: 0;
+	border-radius: 8px;
+	content: "";
+	opacity: 0;
+	pointer-events: none;
+}
+
+.cardRow > * {
+	position: relative;
+	z-index: 1;
+}
+
+.pinnedCardRow::before {
+	background: linear-gradient(to right, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, transparent 100%);
+	opacity: 1;
+}
+
+.stickyTopCardRow,
+.stickyBottomCardRow {
+	z-index: 2;
+}
+
+.stickyTopCardRow {
+	position: sticky;
+	top: 0;
+}
+
+.stickyBottomCardRow {
+	position: sticky;
+	bottom: 0;
 }
 
 .chatCard {

@@ -79,12 +79,83 @@ describe('EventFeed', () => {
 		expect(container.textContent).toContain('New messages');
 
 		await act(async () => {
-			container
-				.querySelector('button')
-				?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+			getButton(container, 'New messages').dispatchEvent(
+				new MouseEvent('click', { bubbles: true, cancelable: true }),
+			);
 		});
 
 		expect(container.textContent).not.toContain('New messages');
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('pins one event at a time and toggles between inline, top sticky, and bottom sticky states', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const firstChat = chatEvent('chat-1', 10, 'first');
+		const gift = giftEvent('gift-1', 20, 'Rose', 1, 2);
+		const latestChat = chatEvent('chat-2', 30, 'latest');
+
+		await act(async () => {
+			root.render(<EventFeed chatEvents={[firstChat, latestChat]} giftEvents={[gift]} now={30} />);
+		});
+
+		const feed = getEventFeed(container);
+		Object.defineProperties(feed, {
+			scrollHeight: { configurable: true, value: 1000 },
+			clientHeight: { configurable: true, value: 300 },
+			scrollTop: { configurable: true, writable: true, value: 0 },
+		});
+
+		const firstRow = getEventRow(container, 'chat-1');
+		const giftRow = getEventRow(container, 'gift-1');
+		Object.defineProperties(firstRow, {
+			offsetTop: { configurable: true, value: 100 },
+			offsetHeight: { configurable: true, value: 60 },
+		});
+		Object.defineProperties(giftRow, {
+			offsetTop: { configurable: true, value: 520 },
+			offsetHeight: { configurable: true, value: 80 },
+		});
+
+		await act(async () => {
+			firstRow.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		});
+
+		expect(firstRow.dataset.pinned).toBe('true');
+		expect(firstRow.dataset.stickyStage).toBe('inline');
+
+		feed.scrollTop = 200;
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		expect(firstRow.dataset.stickyStage).toBe('top');
+
+		await act(async () => {
+			firstRow.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		});
+
+		expect(feed.scrollTop).toBe(100);
+		expect(firstRow.dataset.pinned).toBe('true');
+		expect(firstRow.dataset.stickyStage).toBe('inline');
+
+		await act(async () => {
+			firstRow.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		});
+
+		expect(firstRow.dataset.pinned).toBeUndefined();
+
+		feed.scrollTop = 0;
+		await act(async () => {
+			giftRow.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		});
+
+		expect(giftRow.dataset.pinned).toBe('true');
+		expect(giftRow.dataset.stickyStage).toBe('bottom');
+		expect(firstRow.dataset.pinned).toBeUndefined();
 
 		await act(async () => {
 			root.unmount();
@@ -104,6 +175,28 @@ function getEventFeed(container: Element): HTMLElement {
 	}
 
 	return feed;
+}
+
+function getEventRow(container: Element, eventId: string): HTMLElement {
+	const row = container.querySelector(`[data-event-id="${eventId}"]`);
+
+	if (!(row instanceof HTMLElement)) {
+		throw new Error(`Expected event row ${eventId} to render.`);
+	}
+
+	return row;
+}
+
+function getButton(container: Element, text: string): HTMLButtonElement {
+	const button = [...container.querySelectorAll('button')].find(
+		(element) => element.textContent === text,
+	);
+
+	if (!(button instanceof HTMLButtonElement)) {
+		throw new Error(`Expected ${text} button to render.`);
+	}
+
+	return button;
 }
 
 function chatEvent(id: string, ts: number, text = 'hello @celestia'): ChatLiveEvent {
