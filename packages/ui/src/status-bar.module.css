@@ -88,7 +88,7 @@
 	--bar-speed: 1s;
 }
 
-.badgeStarting {
+.badgeDiscovering {
 	--signal: #93c5fd;
 	--signal-soft: rgba(147, 197, 253, 0.32);
 	--signal-bg: rgba(37, 99, 235, 0.14);
@@ -97,7 +97,7 @@
 	--bar-speed: 0.86s;
 }
 
-.badgeStarting::before {
+.badgeDiscovering::before {
 	position: absolute;
 	inset: -2px;
 	content: "";
@@ -106,7 +106,7 @@
 	animation: signalScan 1.8s linear infinite;
 }
 
-.badgeLive {
+.badgeConnected {
 	--signal: #5eead4;
 	--signal-soft: rgba(94, 234, 212, 0.34);
 	--signal-bg: rgba(20, 184, 166, 0.13);
@@ -115,7 +115,7 @@
 	--bar-speed: 1s;
 }
 
-.badgeLive::after {
+.badgeConnected::after {
 	position: absolute;
 	inset: -8px;
 	content: "";
@@ -156,7 +156,7 @@
 	animation-delay: 0.24s;
 }
 
-.badgeInterrupted {
+.badgeOffline {
 	--signal: #fb7185;
 	--signal-soft: rgba(251, 113, 133, 0.36);
 	--signal-bg: rgba(127, 29, 29, 0.28);
@@ -165,8 +165,26 @@
 	--bar-speed: 0.62s;
 }
 
-.badgeInterrupted .bars i {
+.badgeOffline .bars i {
 	animation-name: barJitter;
+}
+
+.badgeReconnecting {
+	--signal: #fbbf24;
+	--signal-soft: rgba(251, 191, 36, 0.32);
+	--signal-bg: rgba(120, 53, 15, 0.22);
+	--signal-border: rgba(251, 191, 36, 0.44);
+	--signal-text: #fffbeb;
+	--bar-speed: 0.74s;
+}
+
+.badgeReconnecting::before {
+	position: absolute;
+	inset: -2px;
+	content: "";
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 45%, transparent 90%);
+	transform: translateX(-120%);
+	animation: signalScan 2.2s linear infinite;
 }
 
 .badgeEnded {

@@ -1,5 +1,5 @@
 import { HeartFilled, UserOutlined } from '@ant-design/icons';
-import type { ConnectionState, ConnectionStateStatus } from '@celestia/tiktok-live-core';
+import type { ConnectionState } from '@celestia/tiktok-live-core';
 import styles from './status-bar.module.css';
 
 export interface StatusBarProps {
@@ -10,7 +10,7 @@ export interface StatusBarProps {
 	onOpenUsernameInput?: () => void;
 }
 
-type BadgeKind = 'starting' | 'live' | 'interrupted' | 'ended';
+type BadgeKind = 'discovering' | 'connected' | 'offline' | 'reconnecting' | 'ended';
 
 interface BadgeViewModel {
 	label: string;
@@ -34,7 +34,7 @@ export function StatusBar({
 		);
 	}
 
-	const badge = toBadgeViewModel(connectionState.status);
+	const badge = toBadgeViewModel(connectionState);
 	const displayUsername = username || connectionState.username;
 
 	return (
@@ -61,9 +61,10 @@ function ConnectionBadge({ badge }: { badge: BadgeViewModel }) {
 	const classNames = [
 		styles.badge,
 		styles.signalBars,
-		badge.kind === 'starting' ? styles.badgeStarting : undefined,
-		badge.kind === 'live' ? styles.badgeLive : undefined,
-		badge.kind === 'interrupted' ? styles.badgeInterrupted : undefined,
+		badge.kind === 'discovering' ? styles.badgeDiscovering : undefined,
+		badge.kind === 'connected' ? styles.badgeConnected : undefined,
+		badge.kind === 'offline' ? styles.badgeOffline : undefined,
+		badge.kind === 'reconnecting' ? styles.badgeReconnecting : undefined,
 		badge.kind === 'ended' ? styles.badgeEnded : undefined,
 	]
 		.filter(Boolean)
@@ -81,18 +82,21 @@ function ConnectionBadge({ badge }: { badge: BadgeViewModel }) {
 	);
 }
 
-function toBadgeViewModel(status: ConnectionStateStatus): BadgeViewModel | undefined {
-	switch (status) {
+function toBadgeViewModel(state: ConnectionState): BadgeViewModel | undefined {
+	switch (state.status) {
 		case 'attaching':
 		case 'attached':
 		case 'connecting':
 		case 'detaching':
 		case 'disconnecting':
-			return { label: 'Starting', kind: 'starting' };
+			return { label: 'Discovering', kind: 'discovering' };
 		case 'connected':
-			return { label: 'Live', kind: 'live' };
+			return { label: 'Connected', kind: 'connected' };
 		case 'error':
-			return { label: 'Interrupted', kind: 'interrupted' };
+			if (state.reason === 'offline') {
+				return { label: 'Offline', kind: 'offline' };
+			}
+			return { label: 'Reconnecting', kind: 'reconnecting' };
 		case 'detached':
 		case 'disconnected':
 			return { label: 'Stream Ended', kind: 'ended' };

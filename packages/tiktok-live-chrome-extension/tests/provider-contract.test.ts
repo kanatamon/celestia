@@ -122,6 +122,9 @@ if (
 ) {
 	throw new Error('Expected provider to confirm the decoding WebSocket URL');
 }
+if (provider.getConnectionState().status !== 'connected') {
+	throw new Error('Expected decoded TikTok Live events to mark the provider connected');
+}
 
 timers[0]?.();
 if (provider.getConnectionState().promiscuousMode) {

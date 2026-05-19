@@ -68,15 +68,15 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.emitLog('debug', 'Chrome Extension Provider constructed');
 	}
 
-	async connect(_username: string): Promise<ConnectionState> {
-		return this.attachActiveTab();
+	async connect(username: string): Promise<ConnectionState> {
+		return this.attachActiveTab(username);
 	}
 
 	async disconnect(): Promise<ConnectionState> {
 		return this.detach();
 	}
 
-	async attachActiveTab(): Promise<ChromeConnectionState> {
+	async attachActiveTab(username = ''): Promise<ChromeConnectionState> {
 		this.assertUsable();
 		this.emitLog('info', 'Querying active tab for debugger attach');
 		const tab = await this.transport.queryActiveTab();
@@ -98,7 +98,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			status: 'attaching',
 			tabId: tab.id,
 			tabUrl: tab.url,
-			username: '',
+			username,
 		});
 
 		try {
@@ -110,6 +110,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			this.setState({
 				...this.state,
 				status: 'attached',
+				username,
 				attachedAt: this.now(),
 				socketCount: 0,
 				confirmedSocketUrl: undefined,
@@ -224,7 +225,12 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			if (url && this.state.confirmedSocketUrl === undefined) {
 				this.clearPromiscuousTimer();
 				this.emitLog('info', 'Confirmed TikTok Live WebSocket', { url });
-				this.setState({ ...this.state, confirmedSocketUrl: url, promiscuousMode: false });
+				this.setState({
+					...this.state,
+					status: 'connected',
+					confirmedSocketUrl: url,
+					promiscuousMode: false,
+				});
 			}
 			this.emitLog('debug', 'Decoded WebSocket frame', {
 				requestId,

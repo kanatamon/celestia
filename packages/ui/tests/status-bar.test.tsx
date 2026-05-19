@@ -16,23 +16,39 @@ describe('StatusBar', () => {
 		expect(html).toContain('12,345');
 		expect(html).toContain('987,654');
 		expect(html).toContain('celestia');
-		expect(html).toContain('Connection state: Live');
+		expect(html).toContain('Connection state: Connected');
 	});
 
 	it.each([
-		['attaching', 'Starting'],
-		['attached', 'Starting'],
-		['connecting', 'Starting'],
-		['detaching', 'Starting'],
-		['disconnecting', 'Starting'],
-		['connected', 'Live'],
-		['error', 'Interrupted'],
+		['attaching', 'Discovering'],
+		['attached', 'Discovering'],
+		['connecting', 'Discovering'],
+		['detaching', 'Discovering'],
+		['disconnecting', 'Discovering'],
+		['connected', 'Connected'],
+		['error', 'Reconnecting'],
 		['detached', 'Stream Ended'],
 		['disconnected', 'Stream Ended'],
 	] as const)('maps %s to the %s badge label', (status, label) => {
 		const html = renderToString(
 			<StatusBar
 				connectionState={{ status, username: 'celestia' }}
+				viewerCount={1}
+				likeCount={2}
+			/>,
+		);
+
+		expect(html).toContain(`Connection state: ${label}`);
+	});
+
+	it.each([
+		['offline', 'Offline'],
+		['interrupted', 'Reconnecting'],
+		['stale', 'Reconnecting'],
+	] as const)('maps error with reason %s to the %s badge label', (reason, label) => {
+		const html = renderToString(
+			<StatusBar
+				connectionState={{ status: 'error', reason, username: 'celestia' }}
 				viewerCount={1}
 				likeCount={2}
 			/>,

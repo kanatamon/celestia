@@ -10,8 +10,11 @@ export type ConnectionStateStatus =
 	| 'disconnected'
 	| 'error';
 
+export type ConnectionStateReason = 'offline' | 'interrupted' | 'stale';
+
 export interface ConnectionState {
 	status: ConnectionStateStatus;
 	username: string;
 	viewerCount?: number;
+	reason?: ConnectionStateReason;
 }
