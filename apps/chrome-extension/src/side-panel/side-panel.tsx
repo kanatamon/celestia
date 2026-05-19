@@ -1,6 +1,9 @@
 /// <reference types="chrome" />
 
-import { type FormEvent, useEffect } from 'react';
+import { ChromeExtensionTikTokLiveProvider } from '@celestia/tiktok-live-chrome-extension';
+import type { ConnectionState, LiveEvent, TikTokLiveProvider } from '@celestia/tiktok-live-core';
+import { StatusBar } from '@celestia/ui';
+import { type FormEvent, useEffect, useState } from 'react';
 import { useLiveEventStore } from './live-event-store.js';
 
 export interface TabObserver {
@@ -11,6 +14,7 @@ export interface TabObserver {
 
 interface SidePanelProps {
 	tabObserver?: TabObserver;
+	providerFactory?: () => TikTokLiveProvider;
 }
 
 interface LiveTab {
@@ -28,11 +32,30 @@ interface ObservedTabChangeInfo {
 	url?: string;
 }
 
-const defaultTabObserver = createChromeTabObserver();
+type LiveEventStoreState = ReturnType<typeof useLiveEventStore.getState>;
+type LiveEventDispatchActions = Pick<
+	LiveEventStoreState,
+	| 'addChatEvent'
+	| 'addGiftEvent'
+	| 'addMemberEvent'
+	| 'updateViewerCount'
+	| 'updateLikeCount'
+	| 'setConnectionState'
+>;
 
-export function SidePanel({ tabObserver = defaultTabObserver }: SidePanelProps) {
+const defaultTabObserver = createChromeTabObserver();
+const defaultProviderFactory = () => new ChromeExtensionTikTokLiveProvider();
+
+export function SidePanel({
+	tabObserver = defaultTabObserver,
+	providerFactory = defaultProviderFactory,
+}: SidePanelProps) {
 	const streamerUsername = useLiveEventStore((state) => state.streamerUsername);
 	const setStreamerUsername = useLiveEventStore((state) => state.setStreamerUsername);
+	const connectionState = useLiveEventStore((state) => state.connectionState);
+	const viewerCount = useLiveEventStore((state) => state.viewerCount);
+	const likeCount = useLiveEventStore((state) => state.likeCount);
+	const [isLandingOpen, setIsLandingOpen] = useState(false);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -65,14 +88,22 @@ export function SidePanel({ tabObserver = defaultTabObserver }: SidePanelProps) 
 		const liveUrl = toTikTokLiveUrl(username);
 
 		if (liveUrl) {
+			setIsLandingOpen(false);
 			await tabObserver.navigateCurrentTab(liveUrl);
 		}
 	};
 
 	return (
 		<main aria-label="Celestia Side Panel">
-			{streamerUsername ? (
-				<LiveFeed username={streamerUsername} />
+			{streamerUsername && !isLandingOpen ? (
+				<LiveFeed
+					username={streamerUsername}
+					providerFactory={providerFactory}
+					onOpenUsernameInput={() => setIsLandingOpen(true)}
+					connectionState={connectionState}
+					viewerCount={viewerCount}
+					likeCount={likeCount}
+				/>
 			) : (
 				<LandingModal onSubmit={handleUsernameSubmit} />
 			)}
@@ -131,15 +162,111 @@ function LandingModal({ onSubmit }: { onSubmit: (username: string) => void | Pro
 	);
 }
 
-function LiveFeed({ username }: { username: string }) {
+function LiveFeed({
+	username,
+	providerFactory,
+	onOpenUsernameInput,
+	connectionState,
+	viewerCount,
+	likeCount,
+}: {
+	username: string;
+	providerFactory: () => TikTokLiveProvider;
+	onOpenUsernameInput: () => void;
+	connectionState: ConnectionState;
+	viewerCount: number;
+	likeCount: number;
+}) {
+	const addChatEvent = useLiveEventStore((state) => state.addChatEvent);
+	const addGiftEvent = useLiveEventStore((state) => state.addGiftEvent);
+	const addMemberEvent = useLiveEventStore((state) => state.addMemberEvent);
+	const updateViewerCount = useLiveEventStore((state) => state.updateViewerCount);
+	const updateLikeCount = useLiveEventStore((state) => state.updateLikeCount);
+	const setConnectionState = useLiveEventStore((state) => state.setConnectionState);
+
+	useEffect(() => {
+		const provider = providerFactory();
+		const unsubscribeEvents = provider.onEvent((event) => {
+			dispatchLiveEvent(event, {
+				addChatEvent,
+				addGiftEvent,
+				addMemberEvent,
+				updateViewerCount,
+				updateLikeCount,
+				setConnectionState,
+				username,
+			});
+		});
+		const unsubscribeConnectionState = provider.onConnectionState((state) => {
+			setConnectionState(state.username ? state : { ...state, username });
+			if (state.viewerCount !== undefined) {
+				updateViewerCount(state.viewerCount);
+			}
+		});
+
+		void provider.connect(username);
+
+		return () => {
+			unsubscribeEvents();
+			unsubscribeConnectionState();
+			void provider.disconnect().finally(() => {
+				provider.destroy();
+			});
+		};
+	}, [
+		addChatEvent,
+		addGiftEvent,
+		addMemberEvent,
+		providerFactory,
+		setConnectionState,
+		updateLikeCount,
+		updateViewerCount,
+		username,
+	]);
+
 	return (
 		<section aria-label="Live feed">
+			<StatusBar
+				connectionState={connectionState}
+				viewerCount={viewerCount}
+				likeCount={likeCount}
+				username={username}
+				onOpenUsernameInput={onOpenUsernameInput}
+			/>
 			<header>
 				<strong>@{username}</strong>
 				<span>Live feed</span>
 			</header>
 		</section>
 	);
+}
+
+function dispatchLiveEvent(
+	event: LiveEvent,
+	actions: LiveEventDispatchActions & { username: string },
+) {
+	switch (event.type) {
+		case 'chat':
+			actions.addChatEvent(event);
+			break;
+		case 'gift':
+			actions.addGiftEvent(event);
+			break;
+		case 'member':
+			actions.addMemberEvent(event);
+			break;
+		case 'viewer_count':
+			actions.updateViewerCount(event);
+			break;
+		case 'like':
+			actions.updateLikeCount(event);
+			break;
+		case 'stream_end':
+			actions.setConnectionState({ status: 'disconnected', username: actions.username });
+			break;
+		default:
+			break;
+	}
 }
 
 function toTikTokLiveUrl(input: string): string | undefined {

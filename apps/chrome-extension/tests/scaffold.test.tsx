@@ -1,8 +1,16 @@
+import type {
+	ConnectionState,
+	LiveEvent,
+	ProviderLog,
+	TikTokLiveProvider,
+	Unsubscribe,
+} from '@celestia/tiktok-live-core';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { manifestDefinition } from '../manifest.config.js';
+import { useLiveEventStore } from '../src/side-panel/live-event-store.js';
 import { SidePanel, type TabObserver } from '../src/side-panel/side-panel.js';
 
 declare global {
@@ -59,11 +67,12 @@ describe('Chrome extension scaffold', () => {
 
 	it('detects TikTok Live tabs and keeps the feed visible after navigating away', async () => {
 		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@first.creator/live');
+		const provider = new FakeProvider();
 		const container = document.createElement('div');
 		const root = createRoot(container);
 
 		await act(async () => {
-			root.render(<SidePanel tabObserver={tabObserver} />);
+			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
 		});
 
 		expect(container.textContent).toContain('@first.creator');
@@ -85,6 +94,72 @@ describe('Chrome extension scaffold', () => {
 		await act(async () => {
 			root.unmount();
 		});
+	});
+
+	it('attaches the Provider for TikTok Live tabs, dispatches events to the store, and detaches on unmount', async () => {
+		useLiveEventStore.setState({
+			connectionState: { status: 'idle', username: '' },
+			streamerUsername: null,
+			viewerCount: 0,
+			likeCount: 0,
+			chatEvents: [],
+			giftEvents: [],
+			memberEvents: [],
+			userGiftEvents: new Map(),
+		});
+
+		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@celestia/live');
+		const provider = new FakeProvider();
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
+		});
+
+		expect(provider.connectedUsernames).toEqual(['celestia']);
+
+		await act(async () => {
+			provider.emitState({ status: 'connected', username: 'celestia' });
+			provider.emitEvent({
+				id: 'viewers-1',
+				ts: Date.now(),
+				type: 'viewer_count',
+				source: 'test',
+				viewerCount: 1234,
+			});
+			provider.emitEvent({
+				id: 'likes-1',
+				ts: Date.now(),
+				type: 'like',
+				source: 'test',
+				totalLikeCount: 5678,
+			});
+		});
+
+		expect(container.textContent).toContain('1,234');
+		expect(container.textContent).toContain('5,678');
+		expect(container.textContent).toContain('Live');
+
+		await act(async () => {
+			provider.emitEvent({
+				id: 'end-1',
+				ts: Date.now(),
+				type: 'stream_end',
+				source: 'test',
+			});
+		});
+
+		expect(container.textContent).toContain('1,234');
+		expect(container.textContent).toContain('5,678');
+		expect(container.textContent).toContain('Stream Ended');
+
+		await act(async () => {
+			root.unmount();
+		});
+
+		expect(provider.disconnectCount).toBe(1);
+		expect(provider.destroyCount).toBe(1);
 	});
 });
 
@@ -112,5 +187,66 @@ class FakeTabObserver implements TabObserver {
 	emit(url: string | undefined): void {
 		this.url = url;
 		this.#listener?.(url);
+	}
+}
+
+class FakeProvider implements TikTokLiveProvider {
+	connectedUsernames: string[] = [];
+	disconnectCount = 0;
+	destroyCount = 0;
+	#state: ConnectionState = { status: 'idle', username: '' };
+	#eventHandlers = new Set<(event: LiveEvent) => void>();
+	#stateHandlers = new Set<(state: ConnectionState) => void>();
+
+	async connect(username: string): Promise<ConnectionState> {
+		this.connectedUsernames.push(username);
+		this.emitState({ status: 'attached', username });
+		return this.#state;
+	}
+
+	async disconnect(): Promise<ConnectionState> {
+		this.disconnectCount += 1;
+		this.emitState({ status: 'detached', username: this.#state.username });
+		return this.#state;
+	}
+
+	getConnectionState(): ConnectionState {
+		return this.#state;
+	}
+
+	onEvent(handler: (event: LiveEvent) => void): Unsubscribe {
+		this.#eventHandlers.add(handler);
+		return () => {
+			this.#eventHandlers.delete(handler);
+		};
+	}
+
+	onConnectionState(handler: (state: ConnectionState) => void): Unsubscribe {
+		this.#stateHandlers.add(handler);
+		handler(this.#state);
+		return () => {
+			this.#stateHandlers.delete(handler);
+		};
+	}
+
+	onLog(_handler: (log: ProviderLog) => void): Unsubscribe {
+		return () => {};
+	}
+
+	destroy(): void {
+		this.destroyCount += 1;
+	}
+
+	emitEvent(event: LiveEvent): void {
+		for (const handler of this.#eventHandlers) {
+			handler(event);
+		}
+	}
+
+	emitState(state: ConnectionState): void {
+		this.#state = state;
+		for (const handler of this.#stateHandlers) {
+			handler(state);
+		}
 	}
 }

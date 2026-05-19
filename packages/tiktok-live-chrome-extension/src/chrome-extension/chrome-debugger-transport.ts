@@ -1,3 +1,5 @@
+/// <reference path="../types/chrome-api.d.ts" />
+
 export type Debuggee = ChromeApi.Debuggee;
 export type ChromeDebuggerEventHandler = (
 	source: Debuggee,
@@ -36,11 +38,17 @@ export class ChromeApiDebuggerTransport implements ChromeDebuggerTransport {
 	}
 
 	addEventListener(handler: ChromeDebuggerEventHandler): void {
-		chrome.debugger.onEvent.addListener(handler);
+		const addListener = chrome.debugger.onEvent.addListener as (
+			listener: ChromeDebuggerEventHandler,
+		) => void;
+		addListener(handler);
 	}
 
 	removeEventListener(handler: ChromeDebuggerEventHandler): void {
-		chrome.debugger.onEvent.removeListener(handler);
+		const removeListener = chrome.debugger.onEvent.removeListener as (
+			listener: ChromeDebuggerEventHandler,
+		) => void;
+		removeListener(handler);
 	}
 
 	addDetachListener(handler: ChromeDebuggerDetachHandler): void {
