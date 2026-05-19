@@ -65,6 +65,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.clearTimer = options.clearTimeout ?? globalThis.clearTimeout;
 		this.transport.addEventListener(this.handleDebuggerEvent);
 		this.transport.addDetachListener(this.handleDebuggerDetach);
+		this.emitLog('debug', 'Chrome Extension Provider constructed');
 	}
 
 	async connect(_username: string): Promise<ConnectionState> {
@@ -77,7 +78,12 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	async attachActiveTab(): Promise<ChromeConnectionState> {
 		this.assertUsable();
+		this.emitLog('info', 'Querying active tab for debugger attach');
 		const tab = await this.transport.queryActiveTab();
+		this.emitLog('info', 'Active tab query result', {
+			tabId: tab?.id,
+			url: tab?.url,
+		});
 		if (tab?.id === undefined) {
 			return this.fail(new Error('No active tab with an ID is available'));
 		}
@@ -96,7 +102,9 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		});
 
 		try {
+			this.emitLog('info', 'Attaching Chrome debugger', debuggee);
 			await this.transport.attach(debuggee);
+			this.emitLog('info', 'Enabling Chrome debugger Network domain', debuggee);
 			await this.transport.enableNetwork(debuggee);
 			this.sockets.clear();
 			this.setState({
@@ -188,7 +196,16 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		if (method !== 'Network.webSocketFrameReceived') return;
 		const requestId = stringParam(params, 'requestId');
 		const url = requestId === undefined ? undefined : this.sockets.get(requestId);
-		if (!this.shouldDecodeSocket(url)) return;
+		if (!this.shouldDecodeSocket(url)) {
+			if (url !== undefined) {
+				this.emitLog('debug', 'Ignoring WebSocket frame from unconfirmed socket', {
+					requestId,
+					url,
+					promiscuousMode: this.state.promiscuousMode,
+				});
+			}
+			return;
+		}
 		const response = params.response;
 		if (!isRecord(response)) return;
 		const payloadData = stringParam(response, 'payloadData');
@@ -196,12 +213,24 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 		try {
 			const result = decodeWebcastFrame(payloadData, this.dedupWindow);
-			if (result.skipped) return;
+			if (result.skipped) {
+				this.emitLog('debug', 'Skipped WebSocket frame envelope', {
+					requestId,
+					url,
+					envelopeType: result.envelopeType,
+				});
+				return;
+			}
 			if (url && this.state.confirmedSocketUrl === undefined) {
 				this.clearPromiscuousTimer();
 				this.emitLog('info', 'Confirmed TikTok Live WebSocket', { url });
 				this.setState({ ...this.state, confirmedSocketUrl: url, promiscuousMode: false });
 			}
+			this.emitLog('debug', 'Decoded WebSocket frame', {
+				requestId,
+				url,
+				eventCount: result.events.length,
+			});
 			for (const event of result.events) {
 				this.emitEvent(event);
 			}
@@ -220,6 +249,12 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		const url = stringParam(params, 'url') ?? nestedStringParam(params, 'request', 'url');
 		if (requestId === undefined || url === undefined) return;
 		this.sockets.set(requestId, url);
+		this.emitLog(url.includes(liveSocketPattern) ? 'info' : 'debug', 'Tracked WebSocket', {
+			requestId,
+			url,
+			socketCount: this.sockets.size,
+			matchesLiveSocketPattern: url.includes(liveSocketPattern),
+		});
 		this.setState({ ...this.state, socketCount: this.sockets.size });
 	}
 
@@ -247,10 +282,26 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private emitEvent(event: LiveEvent): void {
 		this.setState({ ...this.state, eventCount: this.state.eventCount + 1 });
+		this.emitLog('debug', 'Emitting LiveEvent', {
+			id: event.id,
+			type: event.type,
+			totalEventCount: this.state.eventCount,
+		});
 		for (const handler of this.eventHandlers) handler(event);
 	}
 
 	private setState(state: ChromeConnectionState): void {
+		if (state.status !== this.state.status) {
+			this.emitLog('info', 'Connection state changed', {
+				from: this.state.status,
+				to: state.status,
+				tabId: state.tabId,
+				socketCount: state.socketCount,
+				eventCount: state.eventCount,
+				decodeFailures: state.decodeFailures,
+				promiscuousMode: state.promiscuousMode,
+			});
+		}
 		this.state = state;
 		for (const handler of this.stateHandlers) handler(state);
 	}
@@ -272,8 +323,8 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private fail(error: unknown): ChromeConnectionState {
 		this.clearPromiscuousTimer();
+		this.emitLog('error', 'Chrome Extension Provider failed', { error: errorMessage(error) });
 		this.setState({ ...this.state, status: 'error' });
-		this.emitLog('error', 'Chrome Extension Provider error', { error: errorMessage(error) });
 		return this.state;
 	}
 

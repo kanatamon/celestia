@@ -19,6 +19,7 @@
 	},
 	"dependencies": {
 		"@celestia/tiktok-live-core": "workspace:*",
+		"fflate": "^0.8.3",
 		"protobufjs": "^8.0.0"
 	},
 	"devDependencies": {

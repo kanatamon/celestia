@@ -12,7 +12,7 @@ export const manifestDefinition = {
 		service_worker: 'src/background/service-worker.ts',
 		type: 'module',
 	},
-	permissions: ['sidePanel', 'tabs'],
+	permissions: ['debugger', 'sidePanel', 'storage', 'tabs'],
 	side_panel: {
 		default_path: 'src/side-panel/index.html',
 	},

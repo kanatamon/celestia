@@ -21,6 +21,11 @@ export default defineConfig({
 		cors: {
 			origin: [/chrome-extension:\/\//],
 		},
+		hmr: {
+			host: 'localhost',
+			clientPort: 5173,
+			protocol: 'ws',
+		},
 	},
 	test: {
 		environment: 'jsdom',

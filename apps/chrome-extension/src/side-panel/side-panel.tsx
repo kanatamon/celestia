@@ -62,12 +62,15 @@ export function SidePanel({
 		let isMounted = true;
 
 		const detectLiveTab = (url: string | undefined) => {
+			console.debug('[Celestia Side Panel] observed active tab URL', { url });
 			const liveTab = parseTikTokLiveUrl(url);
 
 			if (!liveTab) {
+				console.debug('[Celestia Side Panel] active tab is not a TikTok Live URL');
 				return;
 			}
 
+			console.info('[Celestia Side Panel] detected TikTok Live tab', liveTab);
 			setStreamerUsername(liveTab.username);
 		};
 
@@ -190,8 +193,32 @@ function LiveFeed({
 	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
 
 	useEffect(() => {
-		const provider = providerFactory();
+		let provider: TikTokLiveProvider;
+
+		console.info('[Celestia Side Panel] starting Provider', { username });
+		setConnectionState({ status: 'connecting', username });
+
+		try {
+			provider = providerFactory();
+		} catch (error) {
+			console.error('Failed to create Celestia Provider', error);
+			setConnectionState({
+				status: 'error',
+				username,
+			});
+			return;
+		}
+
+		const unsubscribeLogs = provider.onLog((log) => {
+			const logMethod =
+				log.level === 'error' ? console.error : log.level === 'warn' ? console.warn : console.info;
+			logMethod('[Celestia Provider]', log.message, log.details ?? {});
+		});
 		const unsubscribeEvents = provider.onEvent((event) => {
+			console.debug('[Celestia Side Panel] received LiveEvent', {
+				id: event.id,
+				type: event.type,
+			});
 			dispatchLiveEvent(event, {
 				addChatEvent,
 				addGiftEvent,
@@ -203,15 +230,24 @@ function LiveFeed({
 			});
 		});
 		const unsubscribeConnectionState = provider.onConnectionState((state) => {
+			console.info('[Celestia Side Panel] Provider connection state', state);
 			setConnectionState(state.username ? state : { ...state, username });
 			if (state.viewerCount !== undefined) {
 				updateViewerCount(state.viewerCount);
 			}
 		});
 
-		void provider.connect(username);
+		void provider.connect(username).catch((error: unknown) => {
+			console.error('Failed to connect Celestia Provider', error);
+			setConnectionState({
+				status: 'error',
+				username,
+			});
+		});
 
 		return () => {
+			console.info('[Celestia Side Panel] stopping Provider', { username });
+			unsubscribeLogs();
 			unsubscribeEvents();
 			unsubscribeConnectionState();
 			void provider.disconnect().finally(() => {

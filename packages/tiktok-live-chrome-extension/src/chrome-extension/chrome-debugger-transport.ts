@@ -38,17 +38,15 @@ export class ChromeApiDebuggerTransport implements ChromeDebuggerTransport {
 	}
 
 	addEventListener(handler: ChromeDebuggerEventHandler): void {
-		const addListener = chrome.debugger.onEvent.addListener as (
-			listener: ChromeDebuggerEventHandler,
-		) => void;
-		addListener(handler);
+		chrome.debugger.onEvent.addListener(
+			handler as Parameters<typeof chrome.debugger.onEvent.addListener>[0],
+		);
 	}
 
 	removeEventListener(handler: ChromeDebuggerEventHandler): void {
-		const removeListener = chrome.debugger.onEvent.removeListener as (
-			listener: ChromeDebuggerEventHandler,
-		) => void;
-		removeListener(handler);
+		chrome.debugger.onEvent.removeListener(
+			handler as Parameters<typeof chrome.debugger.onEvent.removeListener>[0],
+		);
 	}
 
 	addDetachListener(handler: ChromeDebuggerDetachHandler): void {

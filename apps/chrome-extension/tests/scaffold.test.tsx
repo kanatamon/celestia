@@ -22,7 +22,9 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 describe('Chrome extension scaffold', () => {
 	it('declares the Side Panel and background service worker in the MV3 manifest', () => {
 		expect(manifestDefinition.manifest_version).toBe(3);
+		expect(manifestDefinition.permissions).toContain('debugger');
 		expect(manifestDefinition.permissions).toContain('sidePanel');
+		expect(manifestDefinition.permissions).toContain('storage');
 		expect(manifestDefinition.permissions).toContain('tabs');
 		expect(manifestDefinition.side_panel.default_path).toBe('src/side-panel/index.html');
 		expect(manifestDefinition.background.service_worker).toBe('src/background/service-worker.ts');
@@ -191,6 +193,30 @@ describe('Chrome extension scaffold', () => {
 
 		expect(provider.disconnectCount).toBe(1);
 		expect(provider.destroyCount).toBe(1);
+	});
+
+	it('keeps the Side Panel mounted when the Provider cannot access Chrome APIs', async () => {
+		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@celestia/live');
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(
+				<SidePanel
+					tabObserver={tabObserver}
+					providerFactory={() => {
+						throw new Error('chrome.debugger is unavailable');
+					}}
+				/>,
+			);
+		});
+
+		expect(container.textContent).toContain('@celestia');
+		expect(container.textContent).toContain('Interrupted');
+
+		await act(async () => {
+			root.unmount();
+		});
 	});
 });
 

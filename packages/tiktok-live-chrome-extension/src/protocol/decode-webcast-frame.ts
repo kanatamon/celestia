@@ -1,5 +1,5 @@
-import { gunzipSync, inflateRawSync, inflateSync, unzipSync } from 'node:zlib';
 import type { LiveEvent } from '@celestia/tiktok-live-core';
+import { decompressSync, inflateSync } from 'fflate';
 import { hashBytes, normalizeTikTokMessage } from './normalize-tiktok-message.js';
 import {
 	decodeWebcastResponse,
@@ -69,10 +69,10 @@ function base64ToBytes(payloadData: string): Uint8Array {
 }
 
 function decompress(bytes: Uint8Array): Uint8Array {
-	const attempts = [gunzipSync, inflateSync, inflateRawSync, unzipSync];
+	const attempts = [decompressSync, inflateSync];
 	for (const attempt of attempts) {
 		try {
-			return new Uint8Array(attempt(bytes));
+			return attempt(bytes);
 		} catch {
 			// Try the next format before falling back to plain bytes.
 		}
