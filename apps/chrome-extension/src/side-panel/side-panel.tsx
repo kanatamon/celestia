@@ -2,9 +2,10 @@
 
 import { ChromeExtensionTikTokLiveProvider } from '@celestia/tiktok-live-chrome-extension';
 import type { ConnectionState, LiveEvent, TikTokLiveProvider } from '@celestia/tiktok-live-core';
-import { StatusBar } from '@celestia/ui';
+import { EventFeed, StatusBar } from '@celestia/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useLiveEventStore } from './live-event-store.js';
+import styles from './side-panel.module.css';
 
 export interface TabObserver {
 	getCurrentUrl(): Promise<string | undefined>;
@@ -183,6 +184,9 @@ function LiveFeed({
 	const updateViewerCount = useLiveEventStore((state) => state.updateViewerCount);
 	const updateLikeCount = useLiveEventStore((state) => state.updateLikeCount);
 	const setConnectionState = useLiveEventStore((state) => state.setConnectionState);
+	const chatEvents = useLiveEventStore((state) => state.chatEvents);
+	const giftEvents = useLiveEventStore((state) => state.giftEvents);
+	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
 
 	useEffect(() => {
 		const provider = providerFactory();
@@ -225,7 +229,7 @@ function LiveFeed({
 	]);
 
 	return (
-		<section aria-label="Live feed">
+		<section aria-label="Live feed" className={styles.liveFeed}>
 			<StatusBar
 				connectionState={connectionState}
 				viewerCount={viewerCount}
@@ -233,10 +237,11 @@ function LiveFeed({
 				username={username}
 				onOpenUsernameInput={onOpenUsernameInput}
 			/>
-			<header>
+			<header className={styles.liveFeedHeader}>
 				<strong>@{username}</strong>
 				<span>Live feed</span>
 			</header>
+			<EventFeed chatEvents={chatEvents} giftEvents={giftEvents} userGiftEvents={userGiftEvents} />
 		</section>
 	);
 }

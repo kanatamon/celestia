@@ -1,3 +1,5 @@
+export type { ChatEventCardProps, EventFeedProps, GiftEventCardProps } from './event-feed.js';
+export { ChatEventCard, EventFeed, GiftEventCard } from './event-feed.js';
 export { CelestiaProvider } from './provider.js';
 export type { StatusBarProps } from './status-bar.js';
 export { StatusBar } from './status-bar.js';
