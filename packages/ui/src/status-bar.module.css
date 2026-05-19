@@ -6,9 +6,8 @@
 	width: 100%;
 	min-width: 0;
 	padding: 10px 12px;
-	background: var(--celestia-color-glass-bg);
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	color: var(--ant-color-text-base);
+	color: #f8fafc;
 	font-size: 13px;
 }
 
@@ -26,7 +25,7 @@
 	gap: 5px;
 	white-space: nowrap;
 	font-variant-numeric: tabular-nums;
-	color: var(--ant-color-text-secondary);
+	color: rgba(255, 255, 255, 0.9);
 }
 
 .identityGroup {
@@ -37,8 +36,25 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--ant-color-text-base);
+	color: transparent;
+	background: linear-gradient(
+		110deg,
+		#54edff 0%,
+		#54edff 24%,
+		#f9ffff 35%,
+		#788fff 45%,
+		#bc83ff 64%,
+		#ff87c8 82%,
+		#54edff 100%
+	);
+	background-size: 240% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
 	font-weight: 600;
+	text-shadow:
+		0 0 8px rgba(84, 237, 255, 0.48),
+		0 0 18px rgba(255, 135, 200, 0.24);
+	animation: polarGlint 2.8s ease-in-out infinite;
 }
 
 .badge {
@@ -50,54 +66,137 @@
 	min-height: 24px;
 	padding: 3px 9px;
 	overflow: hidden;
-	border: 1px solid rgba(255, 255, 255, 0.12);
+	border: 1px solid var(--signal-border);
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.08);
-	color: var(--ant-color-text-base);
+	background: var(--signal-bg);
+	color: var(--signal-text);
 	font-size: 12px;
 	font-weight: 700;
 	line-height: 1;
+	box-shadow:
+		0 0 15px var(--signal-soft),
+		inset 0 0 10px rgba(255, 255, 255, 0.06);
+	animation: statusBreathe 2.2s ease-in-out infinite;
 }
 
-.badgeAnimated::before {
+.signalBars {
+	--signal: #5eead4;
+	--signal-soft: rgba(94, 234, 212, 0.34);
+	--signal-bg: rgba(20, 184, 166, 0.13);
+	--signal-border: rgba(45, 212, 191, 0.42);
+	--signal-text: #ecfeff;
+	--bar-speed: 1s;
+}
+
+.badgeStarting {
+	--signal: #93c5fd;
+	--signal-soft: rgba(147, 197, 253, 0.32);
+	--signal-bg: rgba(37, 99, 235, 0.14);
+	--signal-border: rgba(147, 197, 253, 0.42);
+	--signal-text: #eff6ff;
+	--bar-speed: 0.86s;
+}
+
+.badgeStarting::before {
 	position: absolute;
-	inset: 0;
+	inset: -2px;
 	content: "";
-	background: linear-gradient(
-		90deg,
-		transparent 0%,
-		rgba(255, 255, 255, 0.18) 45%,
-		transparent 90%
-	);
-	transform: translateX(-100%);
-	animation: shimmer 1.8s infinite;
+	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 45%, transparent 90%);
+	transform: translateX(-120%);
+	animation: signalScan 1.8s linear infinite;
 }
 
 .badgeLive {
-	border-color: rgba(34, 197, 94, 0.35);
-	background: rgba(34, 197, 94, 0.14);
+	--signal: #5eead4;
+	--signal-soft: rgba(94, 234, 212, 0.34);
+	--signal-bg: rgba(20, 184, 166, 0.13);
+	--signal-border: rgba(45, 212, 191, 0.42);
+	--signal-text: #ecfdf5;
+	--bar-speed: 1s;
+}
+
+.badgeLive::after {
+	position: absolute;
+	inset: -8px;
+	content: "";
+	background: radial-gradient(circle at 30% 50%, rgba(94, 234, 212, 0.24), transparent 52%);
+	animation: liveGlow 2.2s ease-in-out infinite;
+}
+
+.bars {
+	position: relative;
+	z-index: 1;
+	display: inline-flex;
+	align-items: flex-end;
+	gap: 2px;
+	width: 13px;
+	height: 10px;
+}
+
+.bars i {
+	display: block;
+	width: 3px;
+	border-radius: 99px;
+	background: var(--signal);
+	box-shadow: 0 0 8px var(--signal-soft);
+	animation: barRise var(--bar-speed) ease-in-out infinite;
+}
+
+.bars i:nth-child(1) {
+	height: 4px;
+}
+
+.bars i:nth-child(2) {
+	height: 7px;
+	animation-delay: 0.12s;
+}
+
+.bars i:nth-child(3) {
+	height: 10px;
+	animation-delay: 0.24s;
 }
 
 .badgeInterrupted {
-	border-color: rgba(248, 113, 113, 0.35);
-	background: rgba(127, 29, 29, 0.35);
+	--signal: #fb7185;
+	--signal-soft: rgba(251, 113, 133, 0.36);
+	--signal-bg: rgba(127, 29, 29, 0.28);
+	--signal-border: rgba(248, 113, 113, 0.5);
+	--signal-text: #fff1f2;
+	--bar-speed: 0.62s;
+}
+
+.badgeInterrupted .bars i {
+	animation-name: barJitter;
 }
 
 .badgeEnded {
-	color: var(--ant-color-text-secondary);
+	--signal: #94a3b8;
+	--signal-soft: rgba(148, 163, 184, 0.2);
+	--signal-bg: rgba(15, 23, 42, 0.36);
+	--signal-border: rgba(148, 163, 184, 0.28);
+	--signal-text: rgba(226, 232, 240, 0.72);
+	animation: none;
 }
 
-.dot {
-	width: 7px;
-	height: 7px;
-	border-radius: 50%;
-	background: #22c55e;
-	box-shadow: 0 0 0 rgba(34, 197, 94, 0.7);
-	animation: pulse 1.4s infinite;
+.badgeEnded .bars i {
+	opacity: 0.55;
+	transform: scaleY(0.58);
+	animation: none;
+}
+
+.badgeEnded .bars i:nth-child(2) {
+	opacity: 0.42;
+	transform: scaleY(0.42);
+}
+
+.badgeEnded .bars i:nth-child(3) {
+	opacity: 0.28;
+	transform: scaleY(0.28);
 }
 
 .label {
 	position: relative;
+	z-index: 1;
 }
 
 .openButton {
@@ -105,7 +204,7 @@
 	border: 1px solid rgba(255, 255, 255, 0.14);
 	border-radius: 6px;
 	background: rgba(255, 255, 255, 0.08);
-	color: var(--ant-color-text-base);
+	color: #f8fafc;
 	font: inherit;
 	font-weight: 700;
 	padding: 6px 10px;
@@ -116,17 +215,76 @@
 	background: rgba(255, 255, 255, 0.12);
 }
 
-@keyframes shimmer {
-	to {
-		transform: translateX(100%);
+@keyframes polarGlint {
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+
+	52% {
+		background-position: 100% 50%;
 	}
 }
 
-@keyframes pulse {
-	70% {
-		box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);
+@keyframes signalScan {
+	to {
+		transform: translateX(120%);
 	}
+}
+
+@keyframes liveGlow {
+	0%,
 	100% {
-		box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+		opacity: 0.42;
+	}
+
+	50% {
+		opacity: 0.88;
+	}
+}
+
+@keyframes barRise {
+	0%,
+	100% {
+		opacity: 0.65;
+		transform: scaleY(0.72);
+	}
+
+	50% {
+		opacity: 1;
+		transform: scaleY(1);
+	}
+}
+
+@keyframes barJitter {
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scaleY(0.62) translateX(0);
+	}
+
+	35% {
+		opacity: 1;
+		transform: scaleY(1) translateX(-0.5px);
+	}
+
+	68% {
+		opacity: 0.86;
+		transform: scaleY(0.82) translateX(0.5px);
+	}
+}
+
+@keyframes statusBreathe {
+	0%,
+	100% {
+		box-shadow:
+			0 0 12px var(--signal-soft),
+			inset 0 0 10px rgba(255, 255, 255, 0.05);
+	}
+
+	50% {
+		box-shadow:
+			0 0 22px var(--signal-soft),
+			inset 0 0 13px rgba(255, 255, 255, 0.08);
 	}
 }

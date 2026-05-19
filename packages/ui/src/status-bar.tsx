@@ -15,8 +15,6 @@ type BadgeKind = 'starting' | 'live' | 'interrupted' | 'ended';
 interface BadgeViewModel {
 	label: string;
 	kind: BadgeKind;
-	animated: boolean;
-	pulse: boolean;
 }
 
 export function StatusBar({
@@ -62,7 +60,8 @@ export function StatusBar({
 function ConnectionBadge({ badge }: { badge: BadgeViewModel }) {
 	const classNames = [
 		styles.badge,
-		badge.animated ? styles.badgeAnimated : undefined,
+		styles.signalBars,
+		badge.kind === 'starting' ? styles.badgeStarting : undefined,
 		badge.kind === 'live' ? styles.badgeLive : undefined,
 		badge.kind === 'interrupted' ? styles.badgeInterrupted : undefined,
 		badge.kind === 'ended' ? styles.badgeEnded : undefined,
@@ -72,7 +71,11 @@ function ConnectionBadge({ badge }: { badge: BadgeViewModel }) {
 
 	return (
 		<span className={classNames} role="status" aria-label={`Connection state: ${badge.label}`}>
-			{badge.pulse ? <span className={styles.dot} aria-hidden="true" /> : null}
+			<span className={styles.bars} aria-hidden="true">
+				<i />
+				<i />
+				<i />
+			</span>
 			<span className={styles.label}>{badge.label}</span>
 		</span>
 	);
@@ -85,14 +88,14 @@ function toBadgeViewModel(status: ConnectionStateStatus): BadgeViewModel | undef
 		case 'connecting':
 		case 'detaching':
 		case 'disconnecting':
-			return { label: 'Starting', kind: 'starting', animated: true, pulse: false };
+			return { label: 'Starting', kind: 'starting' };
 		case 'connected':
-			return { label: 'Live', kind: 'live', animated: true, pulse: true };
+			return { label: 'Live', kind: 'live' };
 		case 'error':
-			return { label: 'Interrupted', kind: 'interrupted', animated: false, pulse: false };
+			return { label: 'Interrupted', kind: 'interrupted' };
 		case 'detached':
 		case 'disconnected':
-			return { label: 'Stream Ended', kind: 'ended', animated: false, pulse: false };
+			return { label: 'Stream Ended', kind: 'ended' };
 		case 'idle':
 			return undefined;
 	}
