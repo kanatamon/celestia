@@ -87,14 +87,13 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private readonly handleBrowserOnline = (): void => {
 		if (this.state.tabId === undefined || this.streamEnded) return;
-		this.setState({
-			...this.state,
-			status: this.debuggerAttached ? 'attached' : 'attaching',
-			reason: undefined,
-			confirmedSocketRequestId: undefined,
-			confirmedSocketUrl: undefined,
-			lastDecodedEventAt: undefined,
+		const { tabId, username, tabUrl } = this.state;
+		this.emitLog('info', 'Browser online; reattaching confirmed TikTok Live target', {
+			tabId,
+			username,
+			tabUrl,
 		});
+		void this.attachToTab(tabId, username, tabUrl);
 	};
 
 	constructor(options: ChromeExtensionTikTokLiveProviderOptions = {}) {

@@ -19,6 +19,7 @@ class FakeTransport implements ChromeDebuggerTransport {
 	events: Array<[Debuggee, string, Record<string, unknown> | undefined]> = [];
 	detaches: Debuggee[] = [];
 	tab: ChromeApi.Tab = { id: 42, url: 'https://www.tiktok.com/@creator/live' };
+	attachError: Error | undefined;
 	eventHandler:
 		| ((source: Debuggee, method: string, params?: Record<string, unknown>) => void)
 		| undefined;
@@ -29,6 +30,7 @@ class FakeTransport implements ChromeDebuggerTransport {
 	}
 
 	async attach(debuggee: Debuggee): Promise<void> {
+		if (this.attachError !== undefined) throw this.attachError;
 		this.events.push([debuggee, 'attach', undefined]);
 	}
 
@@ -175,6 +177,9 @@ assertState(
 
 browserEvents.online = true;
 browserEvents.emit('online');
+await flushMicrotasks();
+assertLength(transport.detaches, 1, 'Expected browser online event to detach before reattaching');
+assertLength(attachEvents(42), 2, 'Expected browser online event to reattach the confirmed tab');
 assertState(
 	provider.getConnectionState(),
 	{ status: 'attached' },
@@ -183,6 +188,23 @@ assertState(
 
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 	requestId: 'socket-1',
+	response: {
+		payloadData: frameBase64([
+			responseMessage(
+				'WebcastChatMessage',
+				msg([bytes(1, event(103)), bytes(2, user()), str(3, 'fresh after online')]),
+			),
+		]),
+	},
+});
+assertLength(events, 1, 'Expected stale pre-recovery socket frames to be ignored after reattach');
+
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
+	requestId: 'socket-recovered',
+	url: 'wss://webcast-ws.tiktok.com/webcast/im/ws_proxy/',
+});
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-recovered',
 	response: {
 		payloadData: frameBase64([
 			responseMessage(
@@ -208,7 +230,7 @@ assertState(
 );
 
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
-	requestId: 'socket-1',
+	requestId: 'socket-recovered',
 	response: {
 		payloadData: frameBase64([
 			responseMessage(
@@ -228,7 +250,7 @@ if (activeStaleTimer?.active) {
 }
 
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
-	requestId: 'socket-1',
+	requestId: 'socket-recovered',
 	response: {
 		payloadData: frameBase64([responseMessage('WebcastControlMessage', msg([uint(2, 3)]))]),
 	},
@@ -267,7 +289,7 @@ transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 assertLength(events, 1, 'Expected same-URL WebSocket frames with a new request ID to be ignored');
 
 await provider.attach(84, 'other');
-if (transport.detaches.length !== 1 || transport.detaches[0]?.tabId !== 42) {
+if (transport.detaches.length !== 2 || transport.detaches[1]?.tabId !== 42) {
 	throw new Error('Expected reattaching to a different tab to detach the previous debugger');
 }
 if (provider.getConnectionState().confirmedSocketRequestId !== undefined) {
@@ -281,7 +303,20 @@ await provider.detach();
 if (provider.getConnectionState().status !== 'detached') {
 	throw new Error('Expected detach to update provider state');
 }
-assertLength(transport.detaches, 2, 'Expected detach to call Chrome debugger detach');
+assertLength(transport.detaches, 3, 'Expected detach to call Chrome debugger detach');
+
+await provider.attach(42, 'creator');
+browserEvents.online = false;
+browserEvents.emit('offline');
+transport.attachError = new Error('No tab with given id');
+browserEvents.online = true;
+browserEvents.emit('online');
+await flushMicrotasks();
+assertState(
+	provider.getConnectionState(),
+	{ status: 'error', reason: 'interrupted' },
+	'Expected failed reattach after online to emit an interrupted error',
+);
 
 logs satisfies ProviderLog[];
 
@@ -310,7 +345,7 @@ function assertState(
 
 function assertLength(items: { length: number }, expected: number, message: string): void {
 	if (items.length !== expected) {
-		throw new Error(message);
+		throw new Error(`${message}: got ${items.length}`);
 	}
 }
 
@@ -320,4 +355,17 @@ function lastActiveTimer(delay: number): { handler: () => void; active: boolean 
 		throw new Error(`Expected active timer with ${delay}ms delay`);
 	}
 	return timer;
+}
+
+function attachEvents(
+	tabId: number,
+): Array<[Debuggee, string, Record<string, unknown> | undefined]> {
+	return transport.events.filter(
+		([debuggee, method]) => debuggee.tabId === tabId && method === 'attach',
+	);
+}
+
+async function flushMicrotasks(): Promise<void> {
+	await Promise.resolve();
+	await Promise.resolve();
 }
