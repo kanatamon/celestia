@@ -11,3 +11,17 @@ Shared repo instructions live in `docs/agents/shared.md`.
 
 - Do not modify `apps/legacy`.
 - Do not add `apps/legacy` back to tooling.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `kanatamon/celestia`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the default five-label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo with root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
