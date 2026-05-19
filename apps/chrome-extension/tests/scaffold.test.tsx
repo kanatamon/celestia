@@ -8,7 +8,7 @@ import type {
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { manifestDefinition } from '../manifest.config.js';
 import { useLiveEventStore } from '../src/side-panel/live-event-store.js';
 import { SidePanel, type TabObserver } from '../src/side-panel/side-panel.js';
@@ -20,6 +20,10 @@ declare global {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('Chrome extension scaffold', () => {
+	beforeEach(() => {
+		resetLiveEventStore();
+	});
+
 	it('declares the Side Panel and background service worker in the MV3 manifest', () => {
 		expect(manifestDefinition.manifest_version).toBe(3);
 		expect(manifestDefinition.permissions).toContain('debugger');
@@ -67,7 +71,7 @@ describe('Chrome extension scaffold', () => {
 		});
 	});
 
-	it('detects TikTok Live tabs and keeps the feed visible after navigating away', async () => {
+	it('asks before inspecting an initial TikTok Live tab and keeps the feed visible after navigating away', async () => {
 		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@first.creator/live');
 		const provider = new FakeProvider();
 		const container = document.createElement('div');
@@ -77,8 +81,13 @@ describe('Chrome extension scaffold', () => {
 			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
 		});
 
+		expect(container.textContent).toContain("Inspect @first.creator's Live Session?");
+		expect(provider.attachCalls).toEqual([]);
+
+		await clickButton(container, 'Confirm');
+
 		expect(container.textContent).toContain('@first.creator');
-		expect(container.textContent).not.toContain('TikTok username');
+		expect(provider.attachCalls).toEqual([{ tabId: 42, username: 'first.creator' }]);
 
 		await act(async () => {
 			tabObserver.emit('https://example.com/not-live');
@@ -92,7 +101,9 @@ describe('Chrome extension scaffold', () => {
 		});
 
 		expect(container.textContent).toContain('@first.creator');
-		expect(container.textContent).not.toContain('@second_creator');
+		expect(container.textContent).toContain(
+			'Celestia is watching @first.creator. Switch to @second_creator?',
+		);
 		expect(provider.attachCalls).toEqual([{ tabId: 42, username: 'first.creator' }]);
 
 		await act(async () => {
@@ -100,7 +111,7 @@ describe('Chrome extension scaffold', () => {
 		});
 	});
 
-	it('tracks active TikTok Live candidates without changing the confirmed Provider target', async () => {
+	it('updates, closes, and suppresses inspection prompts without changing the confirmed Provider target', async () => {
 		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@confirmed/live', 101);
 		const provider = new FakeProvider();
 		const container = document.createElement('div');
@@ -109,6 +120,8 @@ describe('Chrome extension scaffold', () => {
 		await act(async () => {
 			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
 		});
+
+		await clickButton(container, 'Confirm');
 
 		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
 		expect(container.textContent).toContain('@confirmed');
@@ -120,7 +133,16 @@ describe('Chrome extension scaffold', () => {
 		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
 		expect(provider.disconnectCount).toBe(0);
 		expect(container.textContent).toContain('@confirmed');
-		expect(container.textContent).not.toContain('@candidate');
+		expect(container.textContent).toContain(
+			'Celestia is watching @confirmed. Switch to @candidate?',
+		);
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@updated/live', 203);
+		});
+
+		expect(container.textContent).toContain('Celestia is watching @confirmed. Switch to @updated?');
+		expect(container.textContent).not.toContain('Switch to @candidate?');
 
 		await act(async () => {
 			tabObserver.emit('https://www.tiktok.com/@confirmed/live', 101);
@@ -128,6 +150,31 @@ describe('Chrome extension scaffold', () => {
 
 		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
 		expect(container.textContent).toContain('@confirmed');
+		expect(container.textContent).not.toContain('Switch to @updated?');
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@candidate/live', 202);
+		});
+
+		expect(container.textContent).toContain('Switch to @candidate?');
+
+		await clickButton(container, 'Deny');
+
+		expect(provider.attachCalls).toEqual([{ tabId: 101, username: 'confirmed' }]);
+		expect(provider.disconnectCount).toBe(0);
+		expect(container.textContent).not.toContain('Switch to @candidate?');
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@candidate/live', 202);
+		});
+
+		expect(container.textContent).not.toContain('Switch to @candidate?');
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@candidate/live?changed=1', 202);
+		});
+
+		expect(container.textContent).toContain('Switch to @candidate?');
 
 		await act(async () => {
 			tabObserver.emit('https://example.com/not-live', 303);
@@ -141,18 +188,55 @@ describe('Chrome extension scaffold', () => {
 		});
 	});
 
-	it('attaches the Provider for TikTok Live tabs, dispatches events to the store, and detaches on unmount', async () => {
-		useLiveEventStore.setState({
-			connectionState: { status: 'idle', username: '' },
-			streamerUsername: null,
-			viewerCount: 0,
-			likeCount: 0,
-			chatEvents: [],
-			giftEvents: [],
-			memberEvents: [],
-			userGiftEvents: new Map(),
+	it('confirms a target switch by detaching the old Provider session and resetting the feed', async () => {
+		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@confirmed/live', 101);
+		const provider = new FakeProvider();
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
 		});
 
+		await clickButton(container, 'Confirm');
+
+		await act(async () => {
+			provider.emitEvent({
+				id: 'chat-1',
+				ts: Date.now(),
+				type: 'chat',
+				source: 'test',
+				text: 'before switch',
+				user: {
+					userId: 'viewer-1',
+					uniqueId: 'viewer.one',
+					nickname: 'Viewer One',
+				},
+			});
+		});
+
+		expect(container.textContent).toContain('before switch');
+
+		await act(async () => {
+			tabObserver.emit('https://www.tiktok.com/@candidate/live', 202);
+		});
+
+		await clickButton(container, 'Confirm');
+
+		expect(provider.attachCalls).toEqual([
+			{ tabId: 101, username: 'confirmed' },
+			{ tabId: 202, username: 'candidate' },
+		]);
+		expect(provider.disconnectCount).toBe(1);
+		expect(container.textContent).toContain('@candidate');
+		expect(container.textContent).not.toContain('before switch');
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('attaches the Provider for TikTok Live tabs, dispatches events to the store, and detaches on unmount', async () => {
 		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@celestia/live');
 		const provider = new FakeProvider();
 		const container = document.createElement('div');
@@ -161,6 +245,8 @@ describe('Chrome extension scaffold', () => {
 		await act(async () => {
 			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
 		});
+
+		await clickButton(container, 'Confirm');
 
 		expect(provider.attachCalls).toEqual([{ tabId: 42, username: 'celestia' }]);
 
@@ -254,6 +340,8 @@ describe('Chrome extension scaffold', () => {
 			);
 		});
 
+		await clickButton(container, 'Confirm');
+
 		expect(container.textContent).toContain('@celestia');
 		expect(container.textContent).toContain('Reconnecting');
 
@@ -262,6 +350,32 @@ describe('Chrome extension scaffold', () => {
 		});
 	});
 });
+
+async function clickButton(container: HTMLElement, label: string): Promise<void> {
+	const button = Array.from(container.querySelectorAll('button')).find(
+		(element) => element.textContent === label,
+	);
+
+	expect(button).toBeInstanceOf(HTMLButtonElement);
+
+	await act(async () => {
+		button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		await Promise.resolve();
+	});
+}
+
+function resetLiveEventStore(): void {
+	useLiveEventStore.setState({
+		connectionState: { status: 'idle', username: '' },
+		streamerUsername: null,
+		viewerCount: 0,
+		likeCount: 0,
+		chatEvents: [],
+		giftEvents: [],
+		memberEvents: [],
+		userGiftEvents: new Map(),
+	});
+}
 
 class FakeTabObserver implements TabObserver {
 	readonly navigatedUrls: string[] = [];

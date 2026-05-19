@@ -27,6 +27,13 @@ interface SidePanelProps {
 	providerFactory?: () => AttachableTikTokLiveProvider;
 }
 
+interface InspectionConfirmationModalProps {
+	candidate: LiveTarget;
+	confirmedTarget: LiveTarget | null;
+	onConfirm: () => void;
+	onDeny: () => void;
+}
+
 export interface LiveTarget {
 	tabId: number;
 	username: string;
@@ -66,9 +73,11 @@ export function SidePanel({
 	const connectionState = useLiveEventStore((state) => state.connectionState);
 	const viewerCount = useLiveEventStore((state) => state.viewerCount);
 	const likeCount = useLiveEventStore((state) => state.likeCount);
+	const resetSession = useLiveEventStore((state) => state.resetSession);
 	const [confirmedTarget, setConfirmedTarget] = useState<LiveTarget | null>(null);
 	const confirmedTargetRef = useRef<LiveTarget | null>(null);
-	const [, setActiveCandidate] = useState<LiveTarget | null>(null);
+	const [activeCandidate, setActiveCandidate] = useState<LiveTarget | null>(null);
+	const [deniedCandidateKey, setDeniedCandidateKey] = useState<string | null>(null);
 	const [isLandingOpen, setIsLandingOpen] = useState(false);
 
 	useEffect(() => {
@@ -91,10 +100,7 @@ export function SidePanel({
 			const currentTarget = confirmedTargetRef.current;
 
 			if (!currentTarget) {
-				confirmedTargetRef.current = liveTab;
-				setConfirmedTarget(liveTab);
-				setStreamerUsername(liveTab.username);
-				setActiveCandidate(null);
+				setActiveCandidate(liveTab);
 				return;
 			}
 
@@ -122,7 +128,32 @@ export function SidePanel({
 			isMounted = false;
 			unsubscribe();
 		};
-	}, [setStreamerUsername, tabObserver]);
+	}, [tabObserver]);
+
+	const promptCandidate = getPromptCandidate(activeCandidate, deniedCandidateKey);
+
+	const handleConfirmCandidate = () => {
+		if (!promptCandidate) {
+			return;
+		}
+
+		confirmedTargetRef.current = promptCandidate;
+		setConfirmedTarget(promptCandidate);
+		setStreamerUsername(promptCandidate.username);
+		resetSession();
+		setDeniedCandidateKey(null);
+		setActiveCandidate(null);
+		setIsLandingOpen(false);
+	};
+
+	const handleDenyCandidate = () => {
+		if (!promptCandidate) {
+			return;
+		}
+
+		setDeniedCandidateKey(getLiveTargetKey(promptCandidate));
+		setActiveCandidate(null);
+	};
 
 	const handleUsernameSubmit = async (username: string) => {
 		const liveUrl = toTikTokLiveUrl(username);
@@ -137,6 +168,7 @@ export function SidePanel({
 		<main aria-label="Celestia Side Panel">
 			{confirmedTarget && !isLandingOpen ? (
 				<LiveFeed
+					key={getLiveTargetKey(confirmedTarget)}
 					target={confirmedTarget}
 					providerFactory={providerFactory}
 					onOpenUsernameInput={() => setIsLandingOpen(true)}
@@ -147,6 +179,14 @@ export function SidePanel({
 			) : (
 				<LandingModal onSubmit={handleUsernameSubmit} />
 			)}
+			{promptCandidate ? (
+				<InspectionConfirmationModal
+					candidate={promptCandidate}
+					confirmedTarget={confirmedTarget}
+					onConfirm={handleConfirmCandidate}
+					onDeny={handleDenyCandidate}
+				/>
+			) : null}
 		</main>
 	);
 }
@@ -209,6 +249,21 @@ function isSameLiveTarget(first: LiveTarget, second: LiveTarget): boolean {
 	return first.tabId === second.tabId && first.url === second.url;
 }
 
+function getLiveTargetKey(target: LiveTarget): string {
+	return `${target.tabId}:${target.url}`;
+}
+
+function getPromptCandidate(
+	activeCandidate: LiveTarget | null,
+	deniedCandidateKey: string | null,
+): LiveTarget | null {
+	if (!activeCandidate || getLiveTargetKey(activeCandidate) === deniedCandidateKey) {
+		return null;
+	}
+
+	return activeCandidate;
+}
+
 function LandingModal({ onSubmit }: { onSubmit: (username: string) => void | Promise<void> }) {
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -229,6 +284,47 @@ function LandingModal({ onSubmit }: { onSubmit: (username: string) => void | Pro
 			</form>
 		</section>
 	);
+}
+
+function InspectionConfirmationModal({
+	candidate,
+	confirmedTarget,
+	onConfirm,
+	onDeny,
+}: InspectionConfirmationModalProps) {
+	const message = getInspectionPromptMessage(candidate, confirmedTarget);
+
+	return (
+		<section
+			aria-label="Confirm Live Session inspection"
+			className={styles.inspectionPromptBackdrop}
+			role="dialog"
+			aria-modal="true"
+		>
+			<div className={styles.inspectionPrompt}>
+				<p>{message}</p>
+				<div className={styles.inspectionPromptActions}>
+					<button type="button" onClick={onDeny}>
+						Deny
+					</button>
+					<button type="button" onClick={onConfirm}>
+						Confirm
+					</button>
+				</div>
+			</div>
+		</section>
+	);
+}
+
+function getInspectionPromptMessage(
+	candidate: LiveTarget,
+	confirmedTarget: LiveTarget | null,
+): string {
+	if (!confirmedTarget) {
+		return `Inspect @${candidate.username}'s Live Session?`;
+	}
+
+	return `Celestia is watching @${confirmedTarget.username}. Switch to @${candidate.username}?`;
 }
 
 function LiveFeed({
