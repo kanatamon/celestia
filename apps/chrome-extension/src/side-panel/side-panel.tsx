@@ -64,13 +64,18 @@ type LiveEventDispatchActions = Pick<
 >;
 
 const defaultTabObserver = createChromeTabObserver();
-const defaultProviderFactory = () =>
-	new ChromeExtensionTikTokLiveProvider({
+const defaultProviderFactory = () => {
+	const traceEnabled = isTraceModeEnabled();
+	return new ChromeExtensionTikTokLiveProvider({
+		diagnostics: {
+			enabled: isDiagnosticsModeEnabled(traceEnabled),
+		},
 		trace: {
-			enabled: isTraceModeEnabled(),
+			enabled: traceEnabled,
 			extensionVersion: getExtensionVersion(),
 		},
 	});
+};
 
 export function SidePanel({
 	tabObserver = defaultTabObserver,
@@ -491,6 +496,9 @@ function dispatchLiveEvent(
 
 function logProviderMessage(log: ProviderLog): void {
 	switch (log.level) {
+		case 'debug':
+			console.debug('[Celestia Provider]', log.message, log.details ?? {});
+			break;
 		case 'error':
 			console.error('[Celestia Provider]', log.message, log.details ?? {});
 			break;
@@ -529,6 +537,15 @@ function isTraceModeEnabled(): boolean {
 	const params = new URLSearchParams(window.location.search);
 	return (
 		params.get('celestiaTrace') === '1' || window.localStorage.getItem('celestia.trace') === '1'
+	);
+}
+
+function isDiagnosticsModeEnabled(traceEnabled = isTraceModeEnabled()): boolean {
+	const params = new URLSearchParams(window.location.search);
+	return (
+		traceEnabled ||
+		params.get('celestiaDiagnostics') === '1' ||
+		window.localStorage.getItem('celestia.diagnostics') === '1'
 	);
 }
 

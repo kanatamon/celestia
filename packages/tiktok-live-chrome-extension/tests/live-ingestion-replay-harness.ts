@@ -34,6 +34,9 @@ export async function replayLiveIngestionTrace(input: ReplayTraceInput): Promise
 		now: () => now,
 		setTimeout: timers.setTimeout,
 		clearTimeout: timers.clearTimeout,
+		diagnostics: {
+			enabled: true,
+		},
 	});
 	const events: LiveEvent[] = [];
 	const states: ChromeConnectionState[] = [];

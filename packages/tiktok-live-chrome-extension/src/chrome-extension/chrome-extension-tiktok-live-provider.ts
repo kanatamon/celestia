@@ -22,7 +22,7 @@ import { LiveIngestionTraceCapture, liveIngestionTraceBuild } from './live-inges
 const liveSocketPattern = 'webcast-ws.tiktok.com/webcast/im/ws_proxy/';
 const promiscuousModeDelayMs = 10_000;
 const defaultStaleEventThresholdMs = 20_000;
-const diagnosticLogPrefix = '[DEBUG-illegal-v2]';
+const diagnosticLogPrefix = '[Celestia Live Ingestion Diagnostics]';
 const socketTrackingMethods = new Set([
 	'Network.webSocketCreated',
 	'Network.webSocketWillSendHandshakeRequest',
@@ -46,6 +46,9 @@ export interface ChromeExtensionTikTokLiveProviderOptions {
 		enabled: boolean;
 		extensionVersion?: string;
 	};
+	diagnostics?: {
+		enabled: boolean;
+	};
 }
 
 export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
@@ -67,6 +70,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	private debuggerAttached = false;
 	private streamEnded = false;
 	private destroyed = false;
+	private readonly diagnosticsEnabled: boolean;
 	private readonly traceCapture: LiveIngestionTraceCapture | undefined;
 
 	private readonly handleDebuggerEvent = (
@@ -121,6 +125,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.setTimer = options.setTimeout ?? globalThis.setTimeout.bind(globalThis);
 		this.clearTimer = options.clearTimeout ?? globalThis.clearTimeout.bind(globalThis);
 		this.staleEventThresholdMs = options.staleEventThresholdMs ?? defaultStaleEventThresholdMs;
+		this.diagnosticsEnabled = options.diagnostics?.enabled ?? options.trace?.enabled ?? false;
 		this.traceCapture = options.trace?.enabled
 			? new LiveIngestionTraceCapture({
 					extensionVersion: options.trace.extensionVersion ?? '0.0.0',
@@ -133,9 +138,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.browserEvents?.addEventListener('offline', this.handleBrowserOffline);
 		this.browserEvents?.addEventListener('online', this.handleBrowserOnline);
 		this.emitLog('debug', 'Chrome Extension Provider constructed');
-		this.emitLog('debug', `${diagnosticLogPrefix} provider.marker`, {
-			version: 'illegal-v2',
-		});
+		this.emitDiagnosticMarker();
 	}
 
 	async connect(username: string): Promise<ConnectionState> {
@@ -262,9 +265,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	onLog(handler: (log: ProviderLog) => void): Unsubscribe {
 		this.logHandlers.add(handler);
-		this.emitLog('debug', `${diagnosticLogPrefix} provider.marker`, {
-			version: 'illegal-v2',
-		});
+		this.emitDiagnosticMarker();
 		return () => this.logHandlers.delete(handler);
 	}
 
@@ -428,6 +429,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			try {
 				this.emitEvent(event);
 			} catch (error) {
+				this.traceCapture?.captureLiveEventEmitFailed(event, errorMessage(error));
 				this.emitLog('debug', 'Failed to emit decoded LiveEvent', {
 					requestId,
 					url,
@@ -612,6 +614,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		message: string,
 		details?: Record<string, unknown>,
 	): void {
+		if (level === 'debug' && !this.diagnosticsEnabled) return;
 		const log: ProviderLog = {
 			id: `log_${this.now()}_${Math.random().toString(36).slice(2)}`,
 			ts: this.now(),
@@ -620,6 +623,13 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			details,
 		};
 		for (const handler of this.logHandlers) handler(log);
+	}
+
+	private emitDiagnosticMarker(): void {
+		this.emitLog('debug', `${diagnosticLogPrefix} provider.marker`, {
+			build: liveIngestionTraceBuild,
+			traceEnabled: this.traceCapture !== undefined,
+		});
 	}
 
 	private fail(error: unknown): ChromeConnectionState {

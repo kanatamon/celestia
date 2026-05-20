@@ -3,6 +3,10 @@
 Use the replay harness when a `celestia-trace-v1` export needs local validation without a
 real TikTok Live Session.
 
+If a new live-only artifact is required, use the human-in-the-loop capture workflow in
+`docs/agents/live-ingestion-hitl-checklist.md` first. One useful manual live run should be
+converted into local replay evidence before requesting another run.
+
 The harness lives in:
 
 - `packages/tiktok-live-chrome-extension/tests/live-ingestion-replay-harness.ts`

@@ -463,6 +463,7 @@ async function assertDefaultBrowserTimersAreBound(): Promise<void> {
 	const nativeTimers: Array<{ handler: () => void; delay: number; active: boolean }> = [];
 	const timerSensitiveTransport = new FakeTransport();
 	const timerSensitiveProviderEvents: LiveEvent[] = [];
+	const timerSensitiveProviderLogs: ProviderLog[] = [];
 
 	globalThis.setTimeout = function (
 		this: typeof globalThis,
@@ -498,6 +499,7 @@ async function assertDefaultBrowserTimersAreBound(): Promise<void> {
 			staleEventThresholdMs: 20,
 		});
 		timerSensitiveProvider.onEvent((event) => timerSensitiveProviderEvents.push(event));
+		timerSensitiveProvider.onLog((log) => timerSensitiveProviderLogs.push(log));
 
 		await timerSensitiveProvider.attach(42, 'creator');
 		timerSensitiveTransport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
@@ -526,6 +528,13 @@ async function assertDefaultBrowserTimersAreBound(): Promise<void> {
 		}
 		if (!nativeTimers.some((timer) => timer.delay === 20 && timer.active)) {
 			throw new Error('Expected decoded LiveEvent to schedule a stale-event timer');
+		}
+		if (
+			timerSensitiveProviderLogs.some((log) =>
+				log.message.includes('[Celestia Live Ingestion Diagnostics]'),
+			)
+		) {
+			throw new Error('Expected normal mode to keep gated diagnostics out of Provider logs');
 		}
 		timerSensitiveProvider.destroy();
 	} finally {

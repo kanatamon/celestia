@@ -71,7 +71,7 @@ function traceDocument(events: LiveIngestionTraceDocument['events']): LiveIngest
 	return {
 		schema: 'celestia-trace-v1',
 		capturedAt: '2026-05-20T12:00:00.000Z',
-		extension: { version: '1.0.0', build: 'illegal-v2' },
+		extension: { version: '1.0.0', build: 'live-ingestion-diagnostics-v1' },
 		sessionId: 'trace-replay-test',
 		usernameHash: 'sha256:22222222',
 		events,

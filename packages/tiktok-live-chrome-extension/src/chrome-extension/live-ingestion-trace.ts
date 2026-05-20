@@ -4,7 +4,7 @@ import type { DecodeWebcastFrameDiagnostic } from '../protocol/decode-webcast-fr
 import type { WebcastMessage } from '../protocol/tiktok-live.generated.js';
 
 export const liveIngestionTraceSchema = 'celestia-trace-v1';
-export const liveIngestionTraceBuild = 'illegal-v2';
+export const liveIngestionTraceBuild = 'live-ingestion-diagnostics-v1';
 
 type TraceRoute = 'known_live' | 'confirmed' | 'unmapped_candidate' | 'promiscuous' | 'ignored';
 type DecodeOutcome = 'success' | 'error' | 'skipped';
@@ -102,6 +102,13 @@ export type LiveIngestionTraceEvent =
 			viewerCount: number | null;
 			giftId: string | null;
 			source: string;
+	  }
+	| {
+			kind: 'live_event_emit_failed';
+			elapsedMs: number;
+			eventIdHash: string;
+			eventType: LiveEvent['type'];
+			error: string;
 	  }
 	| { kind: 'native_invocation_error'; elapsedMs: number; api: string; error: string }
 	| { kind: 'promiscuous_mode_entered'; elapsedMs: number };
@@ -265,11 +272,7 @@ export class LiveIngestionTraceCapture {
 			source: event.source,
 		};
 		this.events.push(traceEvent);
-		this.pending.push(
-			sha256Short(event.id).then((hash) => {
-				traceEvent.eventIdHash = hash;
-			}),
-		);
+		this.captureEventIdHash(event.id, traceEvent);
 		const userId = 'user' in event ? event.user?.userId : undefined;
 		if (userId !== undefined) {
 			this.pending.push(
@@ -278,6 +281,18 @@ export class LiveIngestionTraceCapture {
 				}),
 			);
 		}
+	}
+
+	captureLiveEventEmitFailed(event: LiveEvent, error: string): void {
+		const traceEvent: Extract<LiveIngestionTraceEvent, { kind: 'live_event_emit_failed' }> = {
+			kind: 'live_event_emit_failed',
+			elapsedMs: this.elapsedMs(),
+			eventIdHash: '',
+			eventType: event.type,
+			error,
+		};
+		this.events.push(traceEvent);
+		this.captureEventIdHash(event.id, traceEvent);
 	}
 
 	captureNativeInvocationError(api: string, error: string): void {
@@ -302,6 +317,14 @@ export class LiveIngestionTraceCapture {
 			events: this.events,
 		};
 		return JSON.stringify(document, null, 2);
+	}
+
+	private captureEventIdHash(eventId: string, traceEvent: { eventIdHash: string }): void {
+		this.pending.push(
+			sha256Short(eventId).then((hash) => {
+				traceEvent.eventIdHash = hash;
+			}),
+		);
 	}
 
 	private elapsedMs(): number {

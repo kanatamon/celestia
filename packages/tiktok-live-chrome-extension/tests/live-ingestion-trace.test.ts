@@ -60,6 +60,9 @@ const provider = new ChromeExtensionTikTokLiveProvider({
 	},
 });
 provider.onEvent((event) => events.push(event));
+provider.onEvent(() => {
+	throw new Error('listener failed after decode');
+});
 
 await provider.attachActiveTab('creator');
 now += 10;
@@ -107,7 +110,10 @@ if ((await disabledProvider.exportTraceJson()) !== undefined) {
 
 const trace = JSON.parse((await provider.exportTraceJson()) ?? '') as LiveIngestionTraceDocument;
 if (trace.schema !== 'celestia-trace-v1') throw new Error('Expected trace schema marker');
-if (trace.extension.version !== '1.0.0' || trace.extension.build !== 'illegal-v2') {
+if (
+	trace.extension.version !== '1.0.0' ||
+	trace.extension.build !== 'live-ingestion-diagnostics-v1'
+) {
 	throw new Error(`Expected extension markers, got ${JSON.stringify(trace.extension)}`);
 }
 if (!trace.usernameHash?.startsWith('sha256:')) {
@@ -165,6 +171,22 @@ if (
 }
 if (!trace.events.some((event) => event.kind === 'state_transition' && event.to === 'connected')) {
 	throw new Error('Expected connected state transition');
+}
+const emitFailure = trace.events.find((event) => event.kind === 'live_event_emit_failed');
+if (
+	emitFailure?.kind !== 'live_event_emit_failed' ||
+	emitFailure.eventType !== 'chat' ||
+	!emitFailure.eventIdHash.startsWith('sha256:') ||
+	emitFailure.error !== 'listener failed after decode'
+) {
+	throw new Error(
+		`Expected post-decode LiveEvent emission failure summary, got ${JSON.stringify(emitFailure)}`,
+	);
+}
+if (provider.getConnectionState().decodeFailures !== 0) {
+	throw new Error(
+		'Expected post-decode LiveEvent emission failures not to count as decode failures',
+	);
 }
 
 const serialized = JSON.stringify(trace);
