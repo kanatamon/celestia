@@ -4,6 +4,12 @@ export {
 	createChromeExtensionTikTokLiveProvider,
 } from './chrome-extension/chrome-extension-tiktok-live-provider.js';
 export {
+	type LiveIngestionTraceDocument,
+	type LiveIngestionTraceEvent,
+	liveIngestionTraceBuild,
+	liveIngestionTraceSchema,
+} from './chrome-extension/live-ingestion-trace.js';
+export {
 	type ConnectionClassificationSignals,
 	classifyConnectionState,
 } from './connection-classifier.js';

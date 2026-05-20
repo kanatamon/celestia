@@ -17,6 +17,7 @@ import {
 	type ChromeDebuggerTransport,
 	type Debuggee,
 } from './chrome-debugger-transport.js';
+import { LiveIngestionTraceCapture, liveIngestionTraceBuild } from './live-ingestion-trace.js';
 
 const liveSocketPattern = 'webcast-ws.tiktok.com/webcast/im/ws_proxy/';
 const promiscuousModeDelayMs = 10_000;
@@ -41,6 +42,10 @@ export interface ChromeExtensionTikTokLiveProviderOptions {
 	setTimeout?: typeof globalThis.setTimeout;
 	clearTimeout?: typeof globalThis.clearTimeout;
 	staleEventThresholdMs?: number;
+	trace?: {
+		enabled: boolean;
+		extensionVersion?: string;
+	};
 }
 
 export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
@@ -62,6 +67,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	private debuggerAttached = false;
 	private streamEnded = false;
 	private destroyed = false;
+	private readonly traceCapture: LiveIngestionTraceCapture | undefined;
 
 	private readonly handleDebuggerEvent = (
 		source: Debuggee,
@@ -74,6 +80,13 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private readonly handleDebuggerDetach = (source: Debuggee, reason: string): void => {
 		if (!this.isActiveDebuggee(source)) return;
+		if (source.tabId !== undefined) {
+			this.traceCapture?.captureDebuggerDetached(
+				source.tabId,
+				reason,
+				this.explicitDetachInProgress,
+			);
+		}
 		this.clearPromiscuousTimer();
 		this.clearStaleEventTimer();
 		this.debuggerAttached = false;
@@ -108,6 +121,13 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.setTimer = options.setTimeout ?? globalThis.setTimeout.bind(globalThis);
 		this.clearTimer = options.clearTimeout ?? globalThis.clearTimeout.bind(globalThis);
 		this.staleEventThresholdMs = options.staleEventThresholdMs ?? defaultStaleEventThresholdMs;
+		this.traceCapture = options.trace?.enabled
+			? new LiveIngestionTraceCapture({
+					extensionVersion: options.trace.extensionVersion ?? '0.0.0',
+					build: liveIngestionTraceBuild,
+					now: this.now,
+				})
+			: undefined;
 		this.transport.addEventListener(this.handleDebuggerEvent);
 		this.transport.addDetachListener(this.handleDebuggerDetach);
 		this.browserEvents?.addEventListener('offline', this.handleBrowserOffline);
@@ -141,8 +161,8 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		return this.attachToTab(tab.id, username, tab.url);
 	}
 
-	async attach(tabId: number, username = ''): Promise<ChromeConnectionState> {
-		return this.attachToTab(tabId, username);
+	async attach(tabId: number, username = '', tabUrl?: string): Promise<ChromeConnectionState> {
+		return this.attachToTab(tabId, username, tabUrl);
 	}
 
 	private async attachToTab(
@@ -171,8 +191,11 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			this.emitLog('info', 'Attaching Chrome debugger', debuggee);
 			await this.transport.attach(debuggee);
 			this.debuggerAttached = true;
+			this.traceCapture?.setUsername(username);
+			this.traceCapture?.captureDebuggerAttached(tabId, tabUrl);
 			this.emitLog('info', 'Enabling Chrome debugger Network domain', debuggee);
 			await this.transport.enableNetwork(debuggee);
+			this.traceCapture?.captureNetworkEnabled();
 			this.setState({
 				...this.state,
 				status: 'attached',
@@ -245,6 +268,10 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		return () => this.logHandlers.delete(handler);
 	}
 
+	async exportTraceJson(): Promise<string | undefined> {
+		return this.traceCapture?.exportJson();
+	}
+
 	destroy(): void {
 		if (this.destroyed) return;
 		this.destroyed = true;
@@ -270,7 +297,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private handleNetworkEvent(method: string, params: Record<string, unknown>): void {
 		if (socketTrackingMethods.has(method)) {
-			this.trackSocket(params);
+			this.trackSocket(method, params);
 			return;
 		}
 
@@ -291,7 +318,26 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			promiscuousMode: this.state.promiscuousMode,
 			status: this.state.status,
 		});
+		const route = routeForTrace({
+			shouldDecodeKnownSocket,
+			shouldDecodeUnmappedCandidate,
+			confirmed: this.isConfirmedSocket(requestId, url),
+			promiscuous: this.state.promiscuousMode,
+			url,
+		});
 		if (!shouldDecodeKnownSocket && !shouldDecodeUnmappedCandidate) {
+			const ignoredPayloadData = isRecord(params.response)
+				? stringParam(params.response, 'payloadData')
+				: undefined;
+			if (ignoredPayloadData !== undefined) {
+				this.traceCapture?.captureFrameReceived({
+					requestId,
+					payloadData: ignoredPayloadData,
+					route: 'ignored',
+					outcome: 'skipped',
+					diagnostics: [],
+				});
+			}
 			this.emitLog('debug', 'Ignoring WebSocket frame from unconfirmed socket', {
 				requestId,
 				url,
@@ -309,6 +355,16 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		try {
 			result = decodeWebcastFrame(payloadData, this.dedupWindow, {
 				onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+			});
+			this.traceCapture?.captureFrameReceived({
+				requestId,
+				payloadData,
+				route,
+				outcome: result.skipped ? 'skipped' : 'success',
+				envelopeType: result.envelopeType,
+				messages: result.messages,
+				events: result.events,
+				diagnostics,
 			});
 			this.emitLog('debug', `${diagnosticLogPrefix} frame.decode-result`, {
 				requestId,
@@ -333,6 +389,14 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 				eventCount: result.events.length,
 			});
 		} catch (error) {
+			this.traceCapture?.captureFrameReceived({
+				requestId,
+				payloadData,
+				route,
+				outcome: 'error',
+				diagnostics,
+				errorMessage: errorMessage(error),
+			});
 			this.emitLog('debug', `${diagnosticLogPrefix} frame.decode-error`, {
 				requestId,
 				url,
@@ -376,11 +440,21 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		}
 	}
 
-	private trackSocket(params: Record<string, unknown>): void {
+	private trackSocket(method: string, params: Record<string, unknown>): void {
 		const requestId = stringParam(params, 'requestId');
 		const url = stringParam(params, 'url') ?? nestedStringParam(params, 'request', 'url');
-		if (requestId === undefined || url === undefined) return;
+		if (requestId === undefined) return;
+		if (method === 'Network.webSocketWillSendHandshakeRequest') {
+			this.traceCapture?.captureSocketHandshakeRequest(requestId);
+		}
+		if (method === 'Network.webSocketHandshakeResponseReceived') {
+			this.traceCapture?.captureSocketHandshakeResponse(requestId, handshakeStatusCode(params));
+		}
+		if (url === undefined) return;
 		this.sockets.set(requestId, url);
+		if (method === 'Network.webSocketCreated') {
+			this.traceCapture?.captureSocketCreated(requestId, url, liveSocketPattern);
+		}
 		this.emitLog(url.includes(liveSocketPattern) ? 'info' : 'debug', 'Tracked WebSocket', {
 			requestId,
 			url,
@@ -444,6 +518,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.clearPromiscuousTimer();
 		this.promiscuousTimer = this.setTimer(() => {
 			if (this.state.status === 'attached' && this.state.confirmedSocketUrl === undefined) {
+				this.traceCapture?.capturePromiscuousModeEntered();
 				this.setState({ ...this.state, promiscuousMode: true });
 				this.emitLog('info', 'Entering promiscuous WebSocket decode mode');
 			}
@@ -476,6 +551,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			type: event.type,
 			totalEventCount: this.state.eventCount,
 		});
+		this.traceCapture?.captureLiveEvent(event);
 		for (const handler of this.eventHandlers) handler(event);
 	}
 
@@ -514,6 +590,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	private setState(state: ChromeConnectionState): void {
 		if (state.status !== this.state.status) {
+			this.traceCapture?.captureStateTransition(this.state.status, state);
 			this.emitLog('info', 'Connection state changed', {
 				from: this.state.status,
 				to: state.status,
@@ -615,6 +692,33 @@ function nestedStringParam(
 ): string | undefined {
 	const container = params[containerKey];
 	return isRecord(container) ? stringParam(container, key) : undefined;
+}
+
+function handshakeStatusCode(params: Record<string, unknown>): number | null {
+	const response = params.response;
+	if (!isRecord(response)) return null;
+	const status = response.status;
+	return typeof status === 'number' ? status : null;
+}
+
+function routeForTrace({
+	shouldDecodeKnownSocket,
+	shouldDecodeUnmappedCandidate,
+	confirmed,
+	promiscuous,
+	url,
+}: {
+	shouldDecodeKnownSocket: boolean;
+	shouldDecodeUnmappedCandidate: boolean;
+	confirmed: boolean;
+	promiscuous: boolean;
+	url: string | undefined;
+}): 'known_live' | 'confirmed' | 'unmapped_candidate' | 'promiscuous' | 'ignored' {
+	if (shouldDecodeUnmappedCandidate) return 'unmapped_candidate';
+	if (confirmed) return 'confirmed';
+	if (url?.includes(liveSocketPattern)) return 'known_live';
+	if (shouldDecodeKnownSocket && promiscuous) return 'promiscuous';
+	return 'ignored';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

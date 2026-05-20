@@ -10,6 +10,7 @@ import {
 export interface DecodeWebcastFrameResult {
 	events: LiveEvent[];
 	envelopeType?: string;
+	messages: WebcastMessage[];
 	skipped: boolean;
 }
 
@@ -71,7 +72,7 @@ export function decodeWebcastFrame(
 		binaryPreview: envelope.binary ? bytesPreview(envelope.binary) : undefined,
 	});
 	if (envelope.type !== 'msg') {
-		return { events: [], envelopeType: envelope.type, skipped: true };
+		return { events: [], envelopeType: envelope.type, messages: [], skipped: true };
 	}
 	if (!envelope.binary) {
 		throw new Error('Webcast msg envelope did not include binary payload');
@@ -113,7 +114,7 @@ export function decodeWebcastFrame(
 		});
 		events.push(event);
 	}
-	return { events, envelopeType: envelope.type, skipped: false };
+	return { events, envelopeType: envelope.type, messages: response.messages, skipped: false };
 }
 
 function base64ToBytes(payloadData: string, options: DecodeWebcastFrameOptions): Uint8Array {

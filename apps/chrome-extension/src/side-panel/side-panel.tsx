@@ -19,7 +19,8 @@ export interface TabObserver {
 }
 
 interface AttachableTikTokLiveProvider extends TikTokLiveProvider {
-	attach(tabId: number, username: string): Promise<ConnectionState>;
+	attach(tabId: number, username: string, tabUrl?: string): Promise<ConnectionState>;
+	exportTraceJson?(): Promise<string | undefined>;
 }
 
 interface SidePanelProps {
@@ -63,7 +64,13 @@ type LiveEventDispatchActions = Pick<
 >;
 
 const defaultTabObserver = createChromeTabObserver();
-const defaultProviderFactory = () => new ChromeExtensionTikTokLiveProvider();
+const defaultProviderFactory = () =>
+	new ChromeExtensionTikTokLiveProvider({
+		trace: {
+			enabled: isTraceModeEnabled(),
+			extensionVersion: getExtensionVersion(),
+		},
+	});
 
 export function SidePanel({
 	tabObserver = defaultTabObserver,
@@ -342,7 +349,7 @@ function LiveFeed({
 	viewerCount: number;
 	likeCount: number;
 }) {
-	const { tabId, username } = target;
+	const { tabId, username, url } = target;
 	const addChatEvent = useLiveEventStore((state) => state.addChatEvent);
 	const addGiftEvent = useLiveEventStore((state) => state.addGiftEvent);
 	const addMemberEvent = useLiveEventStore((state) => state.addMemberEvent);
@@ -372,6 +379,7 @@ function LiveFeed({
 			return;
 		}
 
+		const clearTraceExporter = registerTraceExporter(provider);
 		const unsubscribeLogs = provider.onLog((log) => {
 			logProviderMessage(log);
 		});
@@ -398,7 +406,7 @@ function LiveFeed({
 			}
 		});
 
-		void provider.attach(tabId, username).catch((error: unknown) => {
+		void provider.attach(tabId, username, url).catch((error: unknown) => {
 			console.error('Failed to connect Celestia Provider', error);
 			setConnectionState({
 				status: 'error',
@@ -412,6 +420,7 @@ function LiveFeed({
 			unsubscribeLogs();
 			unsubscribeEvents();
 			unsubscribeConnectionState();
+			clearTraceExporter();
 			void provider.disconnect().finally(() => {
 				provider.destroy();
 			});
@@ -426,6 +435,7 @@ function LiveFeed({
 		updateViewerCount,
 		username,
 		tabId,
+		url,
 	]);
 
 	return (
@@ -491,6 +501,43 @@ function logProviderMessage(log: ProviderLog): void {
 			console.info('[Celestia Provider]', log.message, log.details ?? {});
 			break;
 	}
+}
+
+function registerTraceExporter(provider: AttachableTikTokLiveProvider): () => void {
+	if (!isTraceModeEnabled() || provider.exportTraceJson === undefined) {
+		return () => {};
+	}
+	const globalWindow = window as Window & {
+		__CELESTIA_EXPORT_LIVE_TRACE__?: () => Promise<string | undefined>;
+	};
+	globalWindow.__CELESTIA_EXPORT_LIVE_TRACE__ = async () => {
+		const traceJson = await provider.exportTraceJson?.();
+		if (traceJson) console.info('[Celestia Trace]', traceJson);
+		return traceJson;
+	};
+	console.info(
+		'[Celestia Trace] Trace capture enabled. Run await window.__CELESTIA_EXPORT_LIVE_TRACE__() to export JSON.',
+	);
+	return () => {
+		if (globalWindow.__CELESTIA_EXPORT_LIVE_TRACE__ !== undefined) {
+			delete globalWindow.__CELESTIA_EXPORT_LIVE_TRACE__;
+		}
+	};
+}
+
+function isTraceModeEnabled(): boolean {
+	const params = new URLSearchParams(window.location.search);
+	return (
+		params.get('celestiaTrace') === '1' || window.localStorage.getItem('celestia.trace') === '1'
+	);
+}
+
+function getExtensionVersion(): string {
+	if (typeof chrome === 'undefined') return '0.0.0';
+	const maybeChromeRuntime = chrome as typeof chrome & {
+		runtime?: { getManifest?: () => { version?: string } };
+	};
+	return maybeChromeRuntime.runtime?.getManifest?.().version ?? '0.0.0';
 }
 
 function toTikTokLiveUrl(input: string): string | undefined {
