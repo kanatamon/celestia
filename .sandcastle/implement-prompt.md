@@ -8,6 +8,19 @@ Only work on the issue specified.
 
 Work on branch {{BRANCH}}. Make commits and run tests.
 
+If the issue has a parent PRD, read its Core Ingestion Risk section before
+implementation. If the PRD predates that section, infer the ingestion risk from
+the PRD and this issue.
+
+Preserve the v1.0.0 constraints:
+
+- Extension-only: no backend.
+- No user accounts.
+- No persistence across Live Sessions.
+- Keep `tiktok-live-core` platform agnostic.
+- Keep Chrome Debugger API, WebSocket discovery, protobuf decode, and
+  Chrome-specific Provider behavior inside `tiktok-live-chrome-extension`.
+
 # CONTEXT
 
 Here are the last 10 commits:
