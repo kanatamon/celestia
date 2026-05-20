@@ -8,10 +8,14 @@ import type {
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { manifestDefinition } from '../manifest.config.js';
 import { useLiveEventStore } from '../src/side-panel/live-event-store.js';
-import { SidePanel, type TabObserver } from '../src/side-panel/side-panel.js';
+import {
+	type CelestiaDevToolsNamespace,
+	SidePanel,
+	type TabObserver,
+} from '../src/side-panel/side-panel.js';
 
 declare global {
 	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -19,9 +23,23 @@ declare global {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+type DevToolsTestWindow = Window & {
+	__CELESTIA__?: CelestiaDevToolsNamespace;
+	__CELESTIA_EXPORT_LIVE_TRACE__?: unknown;
+};
+
 describe('Chrome extension scaffold', () => {
 	beforeEach(() => {
 		resetLiveEventStore();
+		window.localStorage.clear();
+		delete (window as DevToolsTestWindow).__CELESTIA__;
+		delete (window as DevToolsTestWindow).__CELESTIA_EXPORT_LIVE_TRACE__;
+		vi.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
 	});
 
 	it('declares the Side Panel and background service worker in the MV3 manifest', () => {
@@ -38,6 +56,127 @@ describe('Chrome extension scaffold', () => {
 		const html = renderToString(<SidePanel />);
 
 		expect(html).toContain('aria-label="Celestia Side Panel"');
+	});
+
+	it('registers the DevTools console namespace and prints the boot banner with trace OFF', async () => {
+		const group = vi.spyOn(console, 'group').mockImplementation(() => {});
+		const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={new FakeTabObserver(undefined)} />);
+		});
+
+		const celestia = getCelestiaNamespace();
+
+		expect(celestia).toEqual({
+			enableTrace: expect.any(Function),
+			disableTrace: expect.any(Function),
+			cancel: expect.any(Function),
+			status: expect.any(Function),
+			exportTrace: expect.any(Function),
+		});
+		expect((window as DevToolsTestWindow).__CELESTIA_EXPORT_LIVE_TRACE__).toBeUndefined();
+		expect(group).toHaveBeenCalledWith(
+			'%c🔭 Celestia Debug Tools',
+			expect.stringContaining('font-weight'),
+		);
+		expect(info).toHaveBeenCalledWith('   Trace mode:  ● OFF');
+		expect(info).not.toHaveBeenCalledWith('   Export:   window.__CELESTIA__.exportTrace()');
+
+		await act(async () => {
+			celestia.status();
+		});
+
+		expect(group).toHaveBeenCalledTimes(2);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('prints the boot banner with trace ON and exports through window.__CELESTIA__', async () => {
+		window.localStorage.setItem('celestia.trace', '1');
+		const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@celestia/live');
+		const provider = new FakeProvider();
+		provider.traceJson = '{"schema":"celestia-trace-v1"}';
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={tabObserver} providerFactory={() => provider} />);
+		});
+
+		expect(info).toHaveBeenCalledWith('   Trace mode:  ● ON ✓');
+		expect(info).toHaveBeenCalledWith('   Export:   window.__CELESTIA__.exportTrace()');
+
+		await clickButton(container, 'Confirm');
+
+		await expect(getCelestiaNamespace().exportTrace()).resolves.toBe(
+			'{"schema":"celestia-trace-v1"}',
+		);
+		expect(info).toHaveBeenCalledWith('[Celestia Trace]', '{"schema":"celestia-trace-v1"}');
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('warns from exportTrace when trace is unavailable or empty', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={new FakeTabObserver(undefined)} />);
+		});
+
+		await expect(getCelestiaNamespace().exportTrace()).resolves.toBeUndefined();
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('Trace mode is OFF'));
+
+		window.localStorage.setItem('celestia.trace', '1');
+
+		await expect(getCelestiaNamespace().exportTrace()).resolves.toBeUndefined();
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('Connect to a Live Session first'));
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('enables, disables, and cancels trace reloads from the DevTools namespace', async () => {
+		vi.useFakeTimers();
+		const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(<SidePanel tabObserver={new FakeTabObserver(undefined)} />);
+		});
+
+		getCelestiaNamespace().enableTrace();
+		getCelestiaNamespace().cancel();
+
+		await vi.advanceTimersByTimeAsync(3000);
+
+		expect(window.localStorage.getItem('celestia.trace')).toBeNull();
+		expect(info).toHaveBeenCalledWith('[Celestia Debug Tools] Pending trace reload canceled.');
+
+		getCelestiaNamespace().enableTrace();
+		await vi.advanceTimersByTimeAsync(3000);
+
+		expect(window.localStorage.getItem('celestia.trace')).toBe('1');
+
+		getCelestiaNamespace().disableTrace();
+		await vi.advanceTimersByTimeAsync(3000);
+
+		expect(window.localStorage.getItem('celestia.trace')).toBeNull();
+
+		await act(async () => {
+			root.unmount();
+		});
 	});
 
 	it('navigates to a TikTok Live URL from the landing modal', async () => {
@@ -412,6 +551,7 @@ class FakeProvider implements TikTokLiveProvider {
 	attachCalls: Array<{ tabId: number; username: string }> = [];
 	disconnectCount = 0;
 	destroyCount = 0;
+	traceJson: string | undefined;
 	#state: ConnectionState = { status: 'idle', username: '' };
 	#eventHandlers = new Set<(event: LiveEvent) => void>();
 	#stateHandlers = new Set<(state: ConnectionState) => void>();
@@ -430,6 +570,10 @@ class FakeProvider implements TikTokLiveProvider {
 		this.disconnectCount += 1;
 		this.emitState({ status: 'detached', username: this.#state.username });
 		return this.#state;
+	}
+
+	async exportTraceJson(): Promise<string | undefined> {
+		return this.traceJson;
 	}
 
 	getConnectionState(): ConnectionState {
@@ -471,4 +615,11 @@ class FakeProvider implements TikTokLiveProvider {
 			handler(state);
 		}
 	}
+}
+
+function getCelestiaNamespace(): CelestiaDevToolsNamespace {
+	const celestia = (window as DevToolsTestWindow).__CELESTIA__;
+
+	expect(celestia).toBeDefined();
+	return celestia as NonNullable<typeof celestia>;
 }

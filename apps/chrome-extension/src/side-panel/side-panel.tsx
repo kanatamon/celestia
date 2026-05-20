@@ -77,6 +77,30 @@ const defaultProviderFactory = () => {
 	});
 };
 
+export type CelestiaDevToolsNamespace = {
+	enableTrace(): void;
+	disableTrace(): void;
+	cancel(): void;
+	status(): void;
+	exportTrace(): Promise<string | undefined>;
+};
+
+type CelestiaDevToolsWindow = Window & {
+	__CELESTIA__?: CelestiaDevToolsNamespace;
+	__CELESTIA_EXPORT_LIVE_TRACE__?: unknown;
+};
+
+let activeTraceProvider: AttachableTikTokLiveProvider | undefined;
+let pendingTraceReload: number | undefined;
+let pendingTraceCountdown: number | undefined;
+
+type TraceReloadAction = 'enable' | 'disable';
+
+const TRACE_STORAGE_KEY = 'celestia.trace';
+const TRACE_RELOAD_DELAY_MS = 3000;
+const TRACE_RELOAD_COUNTDOWN_SECONDS = TRACE_RELOAD_DELAY_MS / 1000;
+const LEGACY_TRACE_EXPORT_NAME = '__CELESTIA_EXPORT_LIVE_TRACE__';
+
 export function SidePanel({
 	tabObserver = defaultTabObserver,
 	providerFactory = defaultProviderFactory,
@@ -91,6 +115,8 @@ export function SidePanel({
 	const [activeCandidate, setActiveCandidate] = useState<LiveTarget | null>(null);
 	const [deniedCandidateKey, setDeniedCandidateKey] = useState<string | null>(null);
 	const [isLandingOpen, setIsLandingOpen] = useState(false);
+
+	useEffect(() => registerDevToolsConsole(), []);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -384,7 +410,7 @@ function LiveFeed({
 			return;
 		}
 
-		const clearTraceExporter = registerTraceExporter(provider);
+		activeTraceProvider = provider;
 		const unsubscribeLogs = provider.onLog((log) => {
 			logProviderMessage(log);
 		});
@@ -425,7 +451,9 @@ function LiveFeed({
 			unsubscribeLogs();
 			unsubscribeEvents();
 			unsubscribeConnectionState();
-			clearTraceExporter();
+			if (activeTraceProvider === provider) {
+				activeTraceProvider = undefined;
+			}
 			void provider.disconnect().finally(() => {
 				provider.destroy();
 			});
@@ -511,33 +539,126 @@ function logProviderMessage(log: ProviderLog): void {
 	}
 }
 
-function registerTraceExporter(provider: AttachableTikTokLiveProvider): () => void {
-	if (!isTraceModeEnabled() || provider.exportTraceJson === undefined) {
-		return () => {};
+export function registerDevToolsConsole(provider?: AttachableTikTokLiveProvider): () => void {
+	if (provider) {
+		activeTraceProvider = provider;
 	}
-	const globalWindow = window as Window & {
-		__CELESTIA_EXPORT_LIVE_TRACE__?: () => Promise<string | undefined>;
+
+	const globalWindow = window as CelestiaDevToolsWindow;
+	delete globalWindow[LEGACY_TRACE_EXPORT_NAME];
+
+	globalWindow.__CELESTIA__ = {
+		enableTrace() {
+			scheduleTraceReload('enable');
+		},
+		disableTrace() {
+			scheduleTraceReload('disable');
+		},
+		cancel() {
+			cancelPendingTraceReload();
+		},
+		status() {
+			printDevToolsBanner();
+		},
+		async exportTrace() {
+			if (!isTraceModeEnabled()) {
+				console.warn(
+					'[Celestia Debug Tools] Trace mode is OFF. Run window.__CELESTIA__.enableTrace() and reconnect to a Live Session first.',
+				);
+				return undefined;
+			}
+
+			const traceJson = await activeTraceProvider?.exportTraceJson?.();
+
+			if (!traceJson) {
+				console.warn(
+					'[Celestia Debug Tools] Trace mode is ON, but no trace events are available. Connect to a Live Session first.',
+				);
+				return undefined;
+			}
+
+			console.info('[Celestia Trace]', traceJson);
+			return traceJson;
+		},
 	};
-	globalWindow.__CELESTIA_EXPORT_LIVE_TRACE__ = async () => {
-		const traceJson = await provider.exportTraceJson?.();
-		if (traceJson) console.info('[Celestia Trace]', traceJson);
-		return traceJson;
-	};
-	console.info(
-		'[Celestia Trace] Trace capture enabled. Run await window.__CELESTIA_EXPORT_LIVE_TRACE__() to export JSON.',
-	);
+
+	printDevToolsBanner();
+
 	return () => {
-		if (globalWindow.__CELESTIA_EXPORT_LIVE_TRACE__ !== undefined) {
-			delete globalWindow.__CELESTIA_EXPORT_LIVE_TRACE__;
+		clearPendingTraceReload();
+		if (provider && activeTraceProvider === provider) {
+			activeTraceProvider = undefined;
 		}
 	};
+}
+
+function printDevToolsBanner(): void {
+	const traceEnabled = isTraceModeEnabled();
+
+	console.group('%c🔭 Celestia Debug Tools', 'font-weight: 700; color: #7c3aed;');
+	console.info(`   Trace mode:  ● ${traceEnabled ? 'ON ✓' : 'OFF'}`);
+	console.info('   ──────────────────────────────────────────');
+	console.info('   Enable:   window.__CELESTIA__.enableTrace()');
+	console.info('   Disable:  window.__CELESTIA__.disableTrace()');
+	if (traceEnabled) {
+		console.info('   Export:   window.__CELESTIA__.exportTrace()');
+	}
+	console.info('   Status:   window.__CELESTIA__.status()');
+	console.groupEnd();
+}
+
+function scheduleTraceReload(action: TraceReloadAction): void {
+	clearPendingTraceReload();
+	let secondsRemaining = TRACE_RELOAD_COUNTDOWN_SECONDS;
+	console.info(
+		`[Celestia Debug Tools] ${action === 'enable' ? 'Enabling' : 'Disabling'} trace mode in ${secondsRemaining}s. Run window.__CELESTIA__.cancel() to abort.`,
+	);
+	pendingTraceCountdown = window.setInterval(() => {
+		secondsRemaining -= 1;
+		if (secondsRemaining > 0) {
+			console.info(`[Celestia Debug Tools] Reloading in ${secondsRemaining}s...`);
+		}
+	}, 1000);
+	pendingTraceReload = window.setTimeout(() => {
+		clearPendingTraceReload();
+		setTraceModeEnabled(action === 'enable');
+		window.location.reload();
+	}, TRACE_RELOAD_DELAY_MS);
+}
+
+function cancelPendingTraceReload(): void {
+	const hadPendingReload = pendingTraceReload !== undefined;
+	clearPendingTraceReload();
+	if (hadPendingReload) {
+		console.info('[Celestia Debug Tools] Pending trace reload canceled.');
+	}
+}
+
+function clearPendingTraceReload(): void {
+	if (pendingTraceCountdown !== undefined) {
+		window.clearInterval(pendingTraceCountdown);
+		pendingTraceCountdown = undefined;
+	}
+	if (pendingTraceReload !== undefined) {
+		window.clearTimeout(pendingTraceReload);
+		pendingTraceReload = undefined;
+	}
 }
 
 function isTraceModeEnabled(): boolean {
 	const params = new URLSearchParams(window.location.search);
 	return (
-		params.get('celestiaTrace') === '1' || window.localStorage.getItem('celestia.trace') === '1'
+		params.get('celestiaTrace') === '1' || window.localStorage.getItem(TRACE_STORAGE_KEY) === '1'
 	);
+}
+
+function setTraceModeEnabled(enabled: boolean): void {
+	if (enabled) {
+		window.localStorage.setItem(TRACE_STORAGE_KEY, '1');
+		return;
+	}
+
+	window.localStorage.removeItem(TRACE_STORAGE_KEY);
 }
 
 function isDiagnosticsModeEnabled(traceEnabled = isTraceModeEnabled()): boolean {

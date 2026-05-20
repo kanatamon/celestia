@@ -26,7 +26,7 @@ The marker details should include `build: "live-ingestion-diagnostics-v1"` and
 6. Export the replay trace from the Side Panel console:
 
 ```js
-await window.__CELESTIA_EXPORT_LIVE_TRACE__();
+await window.__CELESTIA__.exportTrace();
 ```
 
 7. Attach or paste the exported JSON artifact with the issue context. Do not include screenshots
