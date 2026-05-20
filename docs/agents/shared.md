@@ -32,6 +32,13 @@ packages/
 - **Formatter + linter:** Biome. Run `pnpm check` to format and lint in one pass.
 - **TypeScript:** Extends `tsconfig.base.json` at root. Each package has its own `tsconfig.json`.
 
+## Live ingestion changes
+
+Changes that affect the Chrome Extension Provider, WebSocket discovery, protobuf
+decoding, LiveEvent normalization, deduplication, Provider contract behavior, or
+ConnectionState classification must pass the live ingestion contract test gate in
+`docs/agents/live-ingestion-contract-gate.md`.
+
 ## Key rules
 
 - `apps/legacy` is excluded from pnpm workspaces, Biome, and Turbo pipelines. Never modify it or add it back to tooling.
