@@ -32,6 +32,39 @@ if (chatEvent?.type !== 'chat') {
 chatEvent satisfies LiveEvent;
 chatEvent.text satisfies string;
 
+const originalAtob = globalThis.atob;
+const globalWithBuffer = globalThis as typeof globalThis & { Buffer?: typeof Buffer };
+const originalBuffer = globalWithBuffer.Buffer;
+const browserFrame = frameBase64([chat]);
+Object.defineProperty(globalThis, 'atob', {
+	configurable: true,
+	value(this: unknown, payload: string) {
+		if (this !== globalThis) {
+			throw new Error('Illegal invocation');
+		}
+		return originalAtob.call(globalThis, payload);
+	},
+});
+Object.defineProperty(globalThis, 'Buffer', {
+	configurable: true,
+	value: undefined,
+});
+try {
+	const browserDecoded = decodeWebcastFrame(browserFrame);
+	if (browserDecoded.events[0]?.type !== 'chat') {
+		throw new Error('Expected browser base64 path to decode chat event');
+	}
+} finally {
+	Object.defineProperty(globalThis, 'atob', {
+		configurable: true,
+		value: originalAtob,
+	});
+	Object.defineProperty(globalThis, 'Buffer', {
+		configurable: true,
+		value: originalBuffer,
+	});
+}
+
 const duplicateFrame = frameBase64([chat, chat]);
 const duplicateResult = decodeWebcastFrame(duplicateFrame);
 if (duplicateResult.events.length !== 1) {

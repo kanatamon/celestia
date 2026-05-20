@@ -143,6 +143,22 @@ transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 	requestId: 'socket-1',
 	response: {
+		payloadData: frameBase64([]),
+	},
+});
+assertLength(events, 0, 'Expected empty decoded WebSocket frames to emit no LiveEvents');
+assertState(
+	provider.getConnectionState(),
+	{ status: 'attached' },
+	'Expected empty decoded WebSocket frames to keep the provider in discovery',
+);
+if (provider.getConnectionState().confirmedSocketRequestId !== undefined) {
+	throw new Error('Expected empty decoded WebSocket frames not to confirm the WebSocket');
+}
+
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-1',
+	response: {
 		payloadData: frameBase64([
 			responseMessage(
 				'WebcastChatMessage',
@@ -197,7 +213,17 @@ transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 		]),
 	},
 });
-assertLength(events, 1, 'Expected stale pre-recovery socket frames to be ignored after reattach');
+assertLength(
+	events,
+	2,
+	'Expected payload-proven unmapped WebSocket frame to recover after reattach',
+);
+if (
+	provider.getConnectionState().confirmedSocketRequestId !== 'socket-1' ||
+	provider.getConnectionState().confirmedSocketUrl !== undefined
+) {
+	throw new Error('Expected payload-proven unmapped frame to confirm the request ID');
+}
 
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
 	requestId: 'socket-recovered',
@@ -209,7 +235,7 @@ transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 		payloadData: frameBase64([
 			responseMessage(
 				'WebcastChatMessage',
-				msg([bytes(1, event(103)), bytes(2, user()), str(3, 'fresh after online')]),
+				msg([bytes(1, event(105)), bytes(2, user()), str(3, 'fresh after online')]),
 			),
 		]),
 	},
@@ -222,6 +248,7 @@ assertState(
 
 const activeStaleTimer = lastActiveTimer(20);
 now = 22;
+activeStaleTimer.active = false;
 activeStaleTimer.handler();
 assertState(
 	provider.getConnectionState(),
@@ -271,6 +298,48 @@ assertState(
 
 await provider.attach(42, 'creator');
 
+const decodeFailuresBeforeUnmappedNoise = provider.getConnectionState().decodeFailures;
+const eventsBeforeUnmappedNoise = events.length;
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-unmapped-noise',
+	response: {
+		payloadData: Buffer.from([0]).toString('base64'),
+	},
+});
+assertLength(
+	events,
+	eventsBeforeUnmappedNoise,
+	'Expected non-Live unmapped WebSocket frames to be ignored',
+);
+if (provider.getConnectionState().decodeFailures !== decodeFailuresBeforeUnmappedNoise) {
+	throw new Error('Expected non-Live unmapped candidates not to count as decode failures');
+}
+
+const eventsBeforeUnmappedDiscovery = events.length;
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-unmapped',
+	response: {
+		payloadData: frameBase64([
+			responseMessage(
+				'WebcastMemberMessage',
+				msg([bytes(1, event(106)), bytes(2, user()), uint(10, 52)]),
+			),
+		]),
+	},
+});
+assertLength(
+	events,
+	eventsBeforeUnmappedDiscovery + 1,
+	'Expected unmapped WebSocket frames with decoded LiveEvents to emit',
+);
+if (
+	provider.getConnectionState().confirmedSocketRequestId !== 'socket-unmapped' ||
+	provider.getConnectionState().confirmedSocketUrl !== undefined
+) {
+	throw new Error('Expected unmapped decoded LiveEvents to confirm the request ID');
+}
+
+const eventsBeforeSocketRotation = events.length;
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
 	requestId: 'socket-2',
 	url: 'wss://webcast-ws.tiktok.com/webcast/im/ws_proxy/',
@@ -286,16 +355,27 @@ transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 		]),
 	},
 });
-assertLength(events, 1, 'Expected same-URL WebSocket frames with a new request ID to be ignored');
+assertLength(
+	events,
+	eventsBeforeSocketRotation + 1,
+	'Expected same-URL WebSocket frames with a new request ID to be decoded',
+);
+if (provider.getConnectionState().confirmedSocketRequestId !== 'socket-2') {
+	throw new Error('Expected same-URL WebSocket frames to replace the confirmed request ID');
+}
 
+const detachCountBeforeTabSwitch = transport.detaches.length;
 await provider.attach(84, 'other');
-if (transport.detaches.length !== 2 || transport.detaches[1]?.tabId !== 42) {
+if (
+	transport.detaches.length !== detachCountBeforeTabSwitch + 1 ||
+	transport.detaches.at(-1)?.tabId !== 42
+) {
 	throw new Error('Expected reattaching to a different tab to detach the previous debugger');
 }
 if (provider.getConnectionState().confirmedSocketRequestId !== undefined) {
 	throw new Error('Expected attach to clear the confirmed WebSocket request ID');
 }
-if (provider.getConnectionState().eventCount !== 1) {
+if (provider.getConnectionState().eventCount !== events.length) {
 	throw new Error('Expected attach to preserve LiveEvent counters');
 }
 
@@ -303,7 +383,11 @@ await provider.detach();
 if (provider.getConnectionState().status !== 'detached') {
 	throw new Error('Expected detach to update provider state');
 }
-assertLength(transport.detaches, 3, 'Expected detach to call Chrome debugger detach');
+assertLength(
+	transport.detaches,
+	detachCountBeforeTabSwitch + 2,
+	'Expected detach to call Chrome debugger detach',
+);
 
 await provider.attach(42, 'creator');
 browserEvents.online = false;
@@ -317,6 +401,8 @@ assertState(
 	{ status: 'error', reason: 'interrupted' },
 	'Expected failed reattach after online to emit an interrupted error',
 );
+
+await assertDefaultBrowserTimersAreBound();
 
 logs satisfies ProviderLog[];
 
@@ -366,6 +452,84 @@ function attachEvents(
 }
 
 async function flushMicrotasks(): Promise<void> {
-	await Promise.resolve();
-	await Promise.resolve();
+	for (let index = 0; index < 10; index += 1) {
+		await Promise.resolve();
+	}
+}
+
+async function assertDefaultBrowserTimersAreBound(): Promise<void> {
+	const originalSetTimeout = globalThis.setTimeout;
+	const originalClearTimeout = globalThis.clearTimeout;
+	const nativeTimers: Array<{ handler: () => void; delay: number; active: boolean }> = [];
+	const timerSensitiveTransport = new FakeTransport();
+	const timerSensitiveProviderEvents: LiveEvent[] = [];
+
+	globalThis.setTimeout = function (
+		this: typeof globalThis,
+		handler: TimerHandler,
+		delay?: number,
+		...args: unknown[]
+	) {
+		if (this !== globalThis) throw new TypeError('Illegal invocation');
+		const timer = {
+			handler: () => {
+				if (typeof handler === 'function') handler(...args);
+			},
+			delay: delay ?? 0,
+			active: true,
+		};
+		nativeTimers.push(timer);
+		return timer as unknown as ReturnType<typeof setTimeout>;
+	} as unknown as typeof setTimeout;
+	globalThis.clearTimeout = function (
+		this: typeof globalThis,
+		timer?: ReturnType<typeof setTimeout>,
+	): void {
+		if (this !== globalThis) throw new TypeError('Illegal invocation');
+		const fakeTimer = timer as unknown as { active?: boolean } | undefined;
+		if (fakeTimer !== undefined) fakeTimer.active = false;
+	} as unknown as typeof clearTimeout;
+
+	try {
+		const timerSensitiveProvider = new ChromeExtensionTikTokLiveProvider({
+			transport: timerSensitiveTransport,
+			browserEvents: new FakeBrowserEvents(),
+			now: () => now,
+			staleEventThresholdMs: 20,
+		});
+		timerSensitiveProvider.onEvent((event) => timerSensitiveProviderEvents.push(event));
+
+		await timerSensitiveProvider.attach(42, 'creator');
+		timerSensitiveTransport.eventHandler?.({ tabId: 42 }, 'Network.webSocketCreated', {
+			requestId: 'timer-sensitive-socket',
+			url: 'wss://webcast-ws.tiktok.com/webcast/im/ws_proxy/',
+		});
+		timerSensitiveTransport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+			requestId: 'timer-sensitive-socket',
+			response: {
+				payloadData: frameBase64([
+					responseMessage(
+						'WebcastChatMessage',
+						msg([bytes(1, event(107)), bytes(2, user()), str(3, 'timer binding')]),
+					),
+				]),
+			},
+		});
+
+		assertLength(
+			timerSensitiveProviderEvents,
+			1,
+			'Expected decoded LiveEvents to schedule timers without illegal invocation',
+		);
+		if (timerSensitiveProvider.getConnectionState().decodeFailures !== 0) {
+			throw new Error('Expected timer invocation errors not to be reported as decode failures');
+		}
+		if (!nativeTimers.some((timer) => timer.delay === 20 && timer.active)) {
+			throw new Error('Expected decoded LiveEvent to schedule a stale-event timer');
+		}
+		timerSensitiveProvider.destroy();
+	} finally {
+		globalThis.setTimeout = originalSetTimeout;
+		globalThis.clearTimeout = originalClearTimeout;
+	}
 }

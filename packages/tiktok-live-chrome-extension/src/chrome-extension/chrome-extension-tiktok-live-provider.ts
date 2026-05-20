@@ -6,7 +6,11 @@ import type {
 	Unsubscribe,
 } from '@celestia/tiktok-live-core';
 import { classifyConnectionState } from '../connection-classifier.js';
-import { DedupWindow, decodeWebcastFrame } from '../protocol/decode-webcast-frame.js';
+import {
+	type DecodeWebcastFrameDiagnostic,
+	DedupWindow,
+	decodeWebcastFrame,
+} from '../protocol/decode-webcast-frame.js';
 import type { ChromeConnectionState } from '../types/chrome-connection-state.js';
 import {
 	ChromeApiDebuggerTransport,
@@ -17,6 +21,7 @@ import {
 const liveSocketPattern = 'webcast-ws.tiktok.com/webcast/im/ws_proxy/';
 const promiscuousModeDelayMs = 10_000;
 const defaultStaleEventThresholdMs = 20_000;
+const diagnosticLogPrefix = '[DEBUG-illegal-v2]';
 const socketTrackingMethods = new Set([
 	'Network.webSocketCreated',
 	'Network.webSocketWillSendHandshakeRequest',
@@ -100,14 +105,17 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.transport = options.transport ?? new ChromeApiDebuggerTransport();
 		this.browserEvents = options.browserEvents ?? defaultBrowserEventTarget();
 		this.now = options.now ?? Date.now;
-		this.setTimer = options.setTimeout ?? globalThis.setTimeout;
-		this.clearTimer = options.clearTimeout ?? globalThis.clearTimeout;
+		this.setTimer = options.setTimeout ?? globalThis.setTimeout.bind(globalThis);
+		this.clearTimer = options.clearTimeout ?? globalThis.clearTimeout.bind(globalThis);
 		this.staleEventThresholdMs = options.staleEventThresholdMs ?? defaultStaleEventThresholdMs;
 		this.transport.addEventListener(this.handleDebuggerEvent);
 		this.transport.addDetachListener(this.handleDebuggerDetach);
 		this.browserEvents?.addEventListener('offline', this.handleBrowserOffline);
 		this.browserEvents?.addEventListener('online', this.handleBrowserOnline);
 		this.emitLog('debug', 'Chrome Extension Provider constructed');
+		this.emitLog('debug', `${diagnosticLogPrefix} provider.marker`, {
+			version: 'illegal-v2',
+		});
 	}
 
 	async connect(username: string): Promise<ConnectionState> {
@@ -231,6 +239,9 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 
 	onLog(handler: (log: ProviderLog) => void): Unsubscribe {
 		this.logHandlers.add(handler);
+		this.emitLog('debug', `${diagnosticLogPrefix} provider.marker`, {
+			version: 'illegal-v2',
+		});
 		return () => this.logHandlers.delete(handler);
 	}
 
@@ -266,14 +277,26 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		if (method !== 'Network.webSocketFrameReceived') return;
 		const requestId = stringParam(params, 'requestId');
 		const url = requestId === undefined ? undefined : this.sockets.get(requestId);
-		if (!this.shouldDecodeSocket(requestId, url)) {
-			if (url !== undefined) {
-				this.emitLog('debug', 'Ignoring WebSocket frame from unconfirmed socket', {
-					requestId,
-					url,
-					promiscuousMode: this.state.promiscuousMode,
-				});
-			}
+		const shouldDecodeKnownSocket = this.shouldDecodeSocket(requestId, url);
+		const shouldDecodeUnmappedCandidate =
+			!shouldDecodeKnownSocket && this.shouldDecodeUnmappedCandidate(requestId, url);
+		this.emitLog('debug', `${diagnosticLogPrefix} frame.route`, {
+			requestId,
+			url,
+			hasTrackedUrl: url !== undefined,
+			shouldDecodeKnownSocket,
+			shouldDecodeUnmappedCandidate,
+			confirmedSocketRequestId: this.state.confirmedSocketRequestId,
+			confirmedSocketUrl: this.state.confirmedSocketUrl,
+			promiscuousMode: this.state.promiscuousMode,
+			status: this.state.status,
+		});
+		if (!shouldDecodeKnownSocket && !shouldDecodeUnmappedCandidate) {
+			this.emitLog('debug', 'Ignoring WebSocket frame from unconfirmed socket', {
+				requestId,
+				url,
+				promiscuousMode: this.state.promiscuousMode,
+			});
 			return;
 		}
 		const response = params.response;
@@ -281,8 +304,21 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		const payloadData = stringParam(response, 'payloadData');
 		if (payloadData === undefined) return;
 
+		const diagnostics: DecodeWebcastFrameDiagnostic[] = [];
+		let result: ReturnType<typeof decodeWebcastFrame>;
 		try {
-			const result = decodeWebcastFrame(payloadData, this.dedupWindow);
+			result = decodeWebcastFrame(payloadData, this.dedupWindow, {
+				onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+			});
+			this.emitLog('debug', `${diagnosticLogPrefix} frame.decode-result`, {
+				requestId,
+				url,
+				skipped: result.skipped,
+				envelopeType: result.envelopeType,
+				eventCount: result.events.length,
+				eventTypes: result.events.map((event) => event.type),
+				diagnostics,
+			});
 			if (result.skipped) {
 				this.emitLog('debug', 'Skipped WebSocket frame envelope', {
 					requestId,
@@ -291,33 +327,52 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 				});
 				return;
 			}
-			if (requestId && url && this.state.confirmedSocketRequestId === undefined) {
-				this.clearPromiscuousTimer();
-				this.emitLog('info', 'Confirmed TikTok Live WebSocket', { requestId, url });
-				this.setState({
-					...this.state,
-					status: 'connected',
-					confirmedSocketRequestId: requestId,
-					confirmedSocketUrl: url,
-					lastDecodedEventAt: this.now(),
-					promiscuousMode: false,
-				});
-			}
 			this.emitLog('debug', 'Decoded WebSocket frame', {
 				requestId,
 				url,
 				eventCount: result.events.length,
 			});
-			for (const event of result.events) {
-				this.emitEvent(event);
-			}
 		} catch (error) {
+			this.emitLog('debug', `${diagnosticLogPrefix} frame.decode-error`, {
+				requestId,
+				url,
+				shouldDecodeKnownSocket,
+				shouldDecodeUnmappedCandidate,
+				error: errorMessage(error),
+				stack: errorStack(error),
+				diagnostics,
+			});
+			if (shouldDecodeUnmappedCandidate) {
+				this.emitLog('debug', 'Ignored unmapped WebSocket frame candidate', {
+					requestId,
+					error: errorMessage(error),
+				});
+				return;
+			}
 			this.setState({ ...this.state, decodeFailures: this.state.decodeFailures + 1 });
 			this.emitLog('debug', 'Failed to decode WebSocket frame', {
 				requestId,
 				url,
 				error: errorMessage(error),
 			});
+			return;
+		}
+
+		if (result.events.length === 0) return;
+		this.confirmDecodedSocket(requestId, url);
+		for (const event of result.events) {
+			try {
+				this.emitEvent(event);
+			} catch (error) {
+				this.emitLog('debug', 'Failed to emit decoded LiveEvent', {
+					requestId,
+					url,
+					eventId: event.id,
+					eventType: event.type,
+					error: errorMessage(error),
+					stack: errorStack(error),
+				});
+			}
 		}
 	}
 
@@ -336,21 +391,38 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	}
 
 	private shouldDecodeSocket(requestId: string | undefined, url: string | undefined): boolean {
-		if (this.hasConfirmedSocket()) {
-			return this.isConfirmedSocket(requestId, url);
-		}
+		if (this.isConfirmedSocket(requestId, url)) return true;
 		if (url?.includes(liveSocketPattern)) return true;
 		return this.state.promiscuousMode;
 	}
 
-	private hasConfirmedSocket(): boolean {
-		return this.state.confirmedSocketRequestId !== undefined;
+	private shouldDecodeUnmappedCandidate(
+		requestId: string | undefined,
+		url: string | undefined,
+	): boolean {
+		return requestId !== undefined && url === undefined;
 	}
 
 	private isConfirmedSocket(requestId: string | undefined, url: string | undefined): boolean {
 		return (
-			requestId === this.state.confirmedSocketRequestId && url === this.state.confirmedSocketUrl
+			this.state.confirmedSocketRequestId !== undefined &&
+			requestId === this.state.confirmedSocketRequestId &&
+			(this.state.confirmedSocketUrl === undefined || url === this.state.confirmedSocketUrl)
 		);
+	}
+
+	private confirmDecodedSocket(requestId: string | undefined, url: string | undefined): void {
+		if (requestId === undefined) return;
+		if (this.isConfirmedSocket(requestId, url)) return;
+		this.clearPromiscuousTimer();
+		this.emitLog('info', 'Confirmed TikTok Live WebSocket', { requestId, url });
+		this.setState({
+			...this.state,
+			confirmedSocketRequestId: requestId,
+			confirmedSocketUrl: url,
+			promiscuousMode: false,
+			reason: undefined,
+		});
 	}
 
 	private clearDiscoveryState(): void {
@@ -551,4 +623,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
+}
+
+function errorStack(error: unknown): string | undefined {
+	return error instanceof Error ? error.stack : undefined;
 }
