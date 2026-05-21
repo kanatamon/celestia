@@ -3,7 +3,13 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ChatEventCard, EventFeed, IndividualChatFeed, SplitFeedLayout } from '../src/index.js';
+import {
+	ChatEventCard,
+	EventFeed,
+	GiftEventCard,
+	IndividualChatFeed,
+	SplitFeedLayout,
+} from '../src/index.js';
 
 declare global {
 	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -38,6 +44,31 @@ describe('ChatEventCard', () => {
 		expect(html).toContain('Galaxy');
 		expect(html).not.toContain('Rose<!-- -->');
 		expect(html).toContain('+1 more');
+	});
+});
+
+describe('GiftEventCard', () => {
+	it('renders as a sender-first row with the gift item and timestamp inline', () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		act(() => {
+			root.render(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2)} now={30_000} />);
+		});
+
+		const avatar = getImageByAlt(container, '');
+		const giftImage = getImageByAlt(container, 'Rose');
+		const timestamp = getTimestamp(container);
+
+		expect(avatar.compareDocumentPosition(giftImage)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(giftImage.parentElement).toBe(timestamp.parentElement);
+		expect(container.textContent).toContain('1 diamond');
+		expect(container.textContent).toContain('x2');
+		expect(container.textContent).toContain('29s');
+
+		act(() => {
+			root.unmount();
+		});
 	});
 });
 
@@ -361,6 +392,26 @@ function getSplitFeedLayout(container: Element): HTMLElement {
 	}
 
 	return layout;
+}
+
+function getImageByAlt(container: Element, alt: string): HTMLImageElement {
+	const image = container.querySelector(`img[alt="${alt}"]`);
+
+	if (!(image instanceof HTMLImageElement)) {
+		throw new Error(`Expected image with alt text "${alt}" to render.`);
+	}
+
+	return image;
+}
+
+function getTimestamp(container: Element): HTMLTimeElement {
+	const timestamp = container.querySelector('time');
+
+	if (!(timestamp instanceof HTMLTimeElement)) {
+		throw new Error('Expected timestamp to render.');
+	}
+
+	return timestamp;
 }
 
 function setElementWidth(element: HTMLElement, width: number): void {

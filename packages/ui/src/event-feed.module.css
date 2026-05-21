@@ -318,45 +318,56 @@
 
 .giftEvent {
 	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	gap: 4px;
+	align-items: flex-end;
 	width: 100%;
+	--celestia-avatar-size: 28px;
+	--celestia-avatar-font-size: 10px;
+	gap: 8px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	background: linear-gradient(
+		to right,
+		rgba(255, 215, 0, 0.18) 0%,
+		rgba(255, 215, 0, 0.06) 45%,
+		transparent 100%
+	);
+	color: var(--ant-color-text-base);
 }
 
-.giftCard {
-	display: grid;
-	grid-template-columns: 36px minmax(0, 1fr) 40px auto;
-	gap: 10px;
-	align-items: center;
-	width: 100%;
-	padding: 10px 10px 18px;
-	border: 1px solid rgba(255, 215, 0, 0.3);
-	border-radius: 8px;
-	background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 223, 0, 0.15));
-	box-shadow:
-		0 0 18px rgba(255, 215, 0, 0.18),
-		inset 0 1px 0 rgba(255, 255, 255, 0.08);
-	backdrop-filter: blur(12px);
+.giftEvent .avatarWrap {
+	margin-bottom: 1px;
+}
+
+.giftSenderName {
+	min-width: 0;
+	overflow: hidden;
 	color: var(--ant-color-text-base);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.15;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .giftViewer {
 	display: flex;
 	flex-direction: column;
+	flex: 1 1 auto;
 	min-width: 0;
-	gap: 2px;
+	gap: 1px;
 }
 
 .diamondLabel {
-	color: rgba(255, 255, 255, 0.55);
-	font-size: 12px;
-	font-weight: 700;
+	color: rgba(255, 215, 0, 0.55);
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 1.15;
 }
 
 .giftImageLarge {
-	width: 40px;
-	height: 40px;
+	width: 28px;
+	height: 28px;
+	flex: 0 0 auto;
 	object-fit: contain;
 }
 
@@ -369,10 +380,12 @@
 .giftRepeat {
 	display: inline-flex;
 	align-items: baseline;
-	justify-content: flex-end;
+	flex: 0 0 auto;
 	color: #ffd700;
+	font-size: 13px;
 	font-style: italic;
 	font-weight: 900;
+	line-height: 1;
 	text-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
 	white-space: nowrap;
 }
@@ -390,17 +403,12 @@
 }
 
 .repeatPrefix {
-	font-size: 14px;
+	font-size: 13px;
 }
 
 .repeatCount {
 	margin-left: 2px;
-	font-size: 20px;
-}
-
-.giftTimestamp {
-	align-self: flex-end;
-	padding-right: 10px;
+	font-size: 13px;
 }
 
 .newMessagesButton {

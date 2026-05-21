@@ -159,22 +159,20 @@ export function GiftEventCard({
 
 	return (
 		<article className={styles.giftEvent}>
-			<div className={styles.giftCard}>
-				<Avatar user={event.user} badgeGift={heartMeGift} />
-				<div className={styles.giftViewer}>
-					<span className={styles.nickname}>{toDisplayName(event.user)}</span>
-					<span className={styles.diamondLabel}>
-						{diamondCount.toLocaleString()} {diamondCount === 1 ? 'diamond' : 'diamonds'}
-					</span>
-				</div>
-				<GiftImage giftImageUrl={event.giftImageUrl} giftName={event.giftName} size="large" />
-				<span className={styles.screenReaderOnly}>{event.giftName ?? 'Gift'}</span>
-				<div className={styles.giftRepeat}>
-					<span className={styles.repeatPrefix}>x</span>
-					<span className={styles.repeatCount}>{repeatCount.toLocaleString()}</span>
-				</div>
+			<Avatar user={event.user} badgeGift={heartMeGift} />
+			<div className={styles.giftViewer}>
+				<span className={styles.giftSenderName}>{toDisplayName(event.user)}</span>
+				<span className={styles.diamondLabel}>
+					{diamondCount.toLocaleString()} {diamondCount === 1 ? 'diamond' : 'diamonds'}
+				</span>
 			</div>
-			<EventTimestamp ts={event.ts} now={now} className={styles.giftTimestamp} />
+			<GiftImage giftImageUrl={event.giftImageUrl} giftName={event.giftName} size="large" />
+			<span className={styles.screenReaderOnly}>{event.giftName ?? 'Gift'}</span>
+			<span className={styles.giftRepeat}>
+				<span className={styles.repeatPrefix}>x</span>
+				<span className={styles.repeatCount}>{repeatCount.toLocaleString()}</span>
+			</span>
+			<EventTimestamp ts={event.ts} now={now} />
 		</article>
 	);
 }
