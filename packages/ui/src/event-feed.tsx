@@ -10,6 +10,9 @@ const SCROLL_BOTTOM_THRESHOLD = 24;
 const INDIVIDUAL_FEED_MIN_WIDTH = 240;
 const MAIN_FEED_MIN_WIDTH = 320;
 const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
+const SECOND_MS = 1_000;
+const MINUTE_MS = 60_000;
+const HOUR_MS = 3_600_000;
 
 type PinnedStage = 'inline' | 'top' | 'bottom';
 
@@ -41,6 +44,7 @@ export interface IndividualChatFeedProps {
 	pinnedEvent: FeedLiveEvent;
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
 	now?: number;
+	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
 }
 
 export interface SplitFeedLayoutProps {
@@ -326,6 +330,7 @@ export function IndividualChatFeed({
 	pinnedEvent,
 	userGiftEvents = new Map(),
 	now = Date.now(),
+	onPinnedEventChange,
 }: IndividualChatFeedProps) {
 	const events = useMemo(
 		() =>
@@ -341,11 +346,19 @@ export function IndividualChatFeed({
 			className={styles.individualFeed}
 			data-celestia-individual-chat-feed=""
 		>
-			<header className={styles.individualFeedHeader}>
-				<strong>{toDisplayName(pinnedEvent.user)}</strong>
-				<span>Viewer feed</span>
-			</header>
-			<div className={styles.feed}>
+			<div className={styles.individualViewerPill} data-celestia-individual-viewer-pill="">
+				<Avatar user={pinnedEvent.user} />
+				<span className={styles.individualViewerName}>{toDisplayName(pinnedEvent.user)}</span>
+				<button
+					aria-label="Dismiss pinned viewer"
+					className={styles.individualViewerDismiss}
+					onClick={() => onPinnedEventChange?.(undefined)}
+					type="button"
+				>
+					×
+				</button>
+			</div>
+			<div className={`${styles.feed} ${styles.individualFeedScroll}`}>
 				{events.map((event) => (
 					<div
 						className={getIndividualEventRowClassName(event.id === pinnedEvent.id)}
@@ -364,11 +377,17 @@ export function SplitFeedLayout({
 	chatEvents,
 	giftEvents,
 	userGiftEvents = new Map(),
-	now = Date.now(),
+	now,
 }: SplitFeedLayoutProps) {
 	const layoutRef = useRef<HTMLDivElement>(null);
 	const [pinnedEvent, setPinnedEventState] = useState<FeedLiveEvent | undefined>();
 	const [isIndividualFeedCollapsed, setIsIndividualFeedCollapsed] = useState(false);
+	const latestEventTimestamp = useMemo(
+		() => getLatestEventTimestamp(chatEvents, giftEvents),
+		[chatEvents, giftEvents],
+	);
+	const liveNow = useLiveTimestampNow(latestEventTimestamp);
+	const displayNow = now ?? liveNow;
 
 	useEffect(() => {
 		const layout = layoutRef.current;
@@ -406,7 +425,7 @@ export function SplitFeedLayout({
 			chatEvents={chatEvents}
 			giftEvents={giftEvents}
 			userGiftEvents={userGiftEvents}
-			now={now}
+			now={displayNow}
 			pinnedEventId={pinnedEvent?.id}
 			onPinnedEventChange={setPinnedEventState}
 		/>
@@ -423,7 +442,8 @@ export function SplitFeedLayout({
 							giftEvents={giftEvents}
 							userGiftEvents={userGiftEvents}
 							pinnedEvent={pinnedEvent}
-							now={now}
+							now={displayNow}
+							onPinnedEventChange={setPinnedEventState}
 						/>
 					</Splitter.Panel>
 					<Splitter.Panel min={MAIN_FEED_MIN_WIDTH}>{mainFeed}</Splitter.Panel>
@@ -452,6 +472,64 @@ function FeedEventCard({
 		case 'gift':
 			return <GiftEventCard event={event} userGiftEvents={userGiftEvents} now={now} />;
 	}
+}
+
+function useLiveTimestampNow(latestEventTimestamp: number): number {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+		const scheduleNextTick = () => {
+			const currentNow = Date.now();
+			setNow(currentNow);
+			timeoutId = setTimeout(
+				scheduleNextTick,
+				getNextTimestampDelay(currentNow, latestEventTimestamp),
+			);
+		};
+
+		timeoutId = setTimeout(
+			scheduleNextTick,
+			getNextTimestampDelay(Date.now(), latestEventTimestamp),
+		);
+
+		return () => {
+			if (timeoutId !== undefined) {
+				clearTimeout(timeoutId);
+			}
+		};
+	}, [latestEventTimestamp]);
+
+	return now;
+}
+
+function getNextTimestampDelay(now: number, latestEventTimestamp: number): number {
+	const age = Math.max(now - latestEventTimestamp, 0);
+
+	if (age < MINUTE_MS) {
+		return SECOND_MS - (now % SECOND_MS);
+	}
+
+	if (age < HOUR_MS) {
+		return MINUTE_MS - (now % MINUTE_MS);
+	}
+
+	return HOUR_MS - (now % HOUR_MS);
+}
+
+function getLatestEventTimestamp(chatEvents: ChatLiveEvent[], giftEvents: GiftLiveEvent[]): number {
+	let latestEventTimestamp = 0;
+
+	for (const event of chatEvents) {
+		latestEventTimestamp = Math.max(latestEventTimestamp, event.ts);
+	}
+
+	for (const event of giftEvents) {
+		latestEventTimestamp = Math.max(latestEventTimestamp, event.ts);
+	}
+
+	return latestEventTimestamp;
 }
 
 function isIndividualFeedEvent(event: FeedLiveEvent, pinnedEvent: FeedLiveEvent): boolean {

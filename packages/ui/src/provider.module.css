@@ -1,4 +1,6 @@
 .provider {
+	--ant-color-text-base: rgba(255, 255, 255, 0.9);
+
 	min-height: 100%;
 	background: var(--ant-color-bg-base);
 	color: var(--ant-color-text-base);

@@ -2,7 +2,7 @@ import type { ChatLiveEvent, GiftLiveEvent } from '@celestia/tiktok-live-core';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChatEventCard, EventFeed, IndividualChatFeed, SplitFeedLayout } from '../src/index.js';
 
 declare global {
@@ -198,9 +198,53 @@ describe('IndividualChatFeed', () => {
 		expect(html).toContain('data-individual-event-id="gift-1"');
 		expect(html).toContain('pinnedIndividualEventRow');
 	});
+
+	it('renders the pinned viewer as a floating dismissible pill without redundant headers', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
+		let dismissedEvent: ChatLiveEvent | GiftLiveEvent | undefined = pinnedViewerChat;
+
+		await act(async () => {
+			root.render(
+				<IndividualChatFeed
+					chatEvents={[pinnedViewerChat]}
+					giftEvents={[]}
+					pinnedEvent={pinnedViewerChat}
+					onPinnedEventChange={(event) => {
+						dismissedEvent = event;
+					}}
+					now={40}
+				/>,
+			);
+		});
+
+		expect(container.querySelector('[data-celestia-individual-feed-header]')).toBeNull();
+		expect(container.textContent).not.toContain('Viewer feed');
+		const pill = container.querySelector('[data-celestia-individual-viewer-pill]');
+		expect(pill).toBeInstanceOf(HTMLElement);
+		expect(pill?.textContent).toContain('Viewer');
+
+		const dismissButton = container.querySelector('[aria-label="Dismiss pinned viewer"]');
+		expect(dismissButton).toBeInstanceOf(HTMLButtonElement);
+
+		await act(async () => {
+			dismissButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		});
+
+		expect(dismissedEvent).toBeUndefined();
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
 });
 
 describe('SplitFeedLayout', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it('opens the individual feed when an event is pinned, collapses by min pane width, and restores it', async () => {
 		const container = document.createElement('div');
 		const root = createRoot(container);
@@ -254,6 +298,30 @@ describe('SplitFeedLayout', () => {
 		});
 
 		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeNull();
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('updates timestamp labels over time without a static now prop', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(30_000);
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const firstChat = chatEvent('chat-1', 0, 'aging message');
+
+		await act(async () => {
+			root.render(<SplitFeedLayout chatEvents={[firstChat]} giftEvents={[]} />);
+		});
+
+		expect(container.textContent).toContain('30s');
+
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(31_000);
+		});
+
+		expect(container.textContent).toContain('1m');
 
 		await act(async () => {
 			root.unmount();

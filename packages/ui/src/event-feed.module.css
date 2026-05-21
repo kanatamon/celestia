@@ -18,6 +18,7 @@
 }
 
 .individualFeed {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	height: 100%;
@@ -25,31 +26,62 @@
 	border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.individualFeedHeader {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 10px;
-	padding: 10px 12px 6px;
-	color: rgba(255, 255, 255, 0.86);
+.individualViewerPill {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	z-index: 3;
+	--celestia-avatar-size: 24px;
+	--celestia-avatar-font-size: 9px;
+
+	display: inline-flex;
+	align-items: center;
+	max-width: calc(100% - 16px);
+	gap: 8px;
+	padding: 5px 6px 5px 5px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 999px;
+	background: rgba(18, 18, 22, 0.72);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+	backdrop-filter: blur(14px);
+	color: rgba(255, 255, 255, 0.9);
 }
 
-.individualFeedHeader strong,
-.individualFeedHeader span {
+.individualViewerName {
 	min-width: 0;
 	overflow: hidden;
+	font-size: 12px;
+	font-weight: 800;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.individualFeedHeader strong {
-	font-size: 14px;
+.individualViewerDismiss {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	flex: 0 0 auto;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.72);
+	cursor: pointer;
+	font: inherit;
+	font-size: 15px;
+	font-weight: 800;
+	line-height: 1;
 }
 
-.individualFeedHeader span {
-	color: rgba(255, 255, 255, 0.44);
-	font-size: 12px;
-	font-weight: 700;
+.individualViewerDismiss:hover {
+	background: rgba(255, 255, 255, 0.18);
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.individualFeedScroll {
+	padding-top: 48px;
 }
 
 .individualEventRow {
@@ -133,15 +165,15 @@
 .avatarWrap {
 	position: relative;
 	display: inline-flex;
-	width: 36px;
-	height: 36px;
+	width: var(--celestia-avatar-size, 36px);
+	height: var(--celestia-avatar-size, 36px);
 	flex: 0 0 auto;
 }
 
 .avatar,
 .avatarFallback {
-	width: 36px;
-	height: 36px;
+	width: var(--celestia-avatar-size, 36px);
+	height: var(--celestia-avatar-size, 36px);
 	border-radius: 50%;
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	object-fit: cover;
@@ -153,7 +185,7 @@
 	justify-content: center;
 	background: rgba(255, 255, 255, 0.14);
 	color: rgba(255, 255, 255, 0.8);
-	font-size: 12px;
+	font-size: var(--celestia-avatar-font-size, 12px);
 	font-weight: 800;
 }
 

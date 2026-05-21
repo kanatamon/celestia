@@ -14,6 +14,7 @@ describe('CelestiaProvider', () => {
 			key: 'celestia',
 		});
 		expect(celestiaThemeConfig.algorithm).toBeDefined();
+		expect(celestiaThemeConfig.token?.colorTextBase).toBe('#ffffff');
 		expect(celestiaSemanticTokens.colorGiftGold).toBe('rgba(255, 223, 0, 0.95)');
 		expect(celestiaSemanticTokens.colorJoinBlue).toBe('rgba(59, 130, 246, 0.95)');
 		expect(celestiaSemanticTokens.colorGlassBg).toBe('rgba(0, 0, 0, 0.5)');

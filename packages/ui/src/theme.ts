@@ -41,7 +41,7 @@ export const celestiaThemeConfig: ThemeConfig = {
 		colorPrimary: '#8b5cf6',
 		colorInfo: '#3b82f6',
 		colorBgBase: '#050507',
-		colorTextBase: '#f8fafc',
+		colorTextBase: '#ffffff',
 		borderRadius: 8,
 	},
 };
