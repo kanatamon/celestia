@@ -48,7 +48,7 @@ describe('ChatEventCard', () => {
 });
 
 describe('GiftEventCard', () => {
-	it('renders as a sender-first row with the gift item and timestamp inline', () => {
+	it('renders as a compact one-line gift sentence with the timestamp pinned last', () => {
 		const container = document.createElement('div');
 		const root = createRoot(container);
 
@@ -61,9 +61,10 @@ describe('GiftEventCard', () => {
 		const timestamp = getTimestamp(container);
 
 		expect(avatar.compareDocumentPosition(giftImage)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect(giftImage.parentElement).toBe(timestamp.parentElement);
-		expect(container.textContent).toContain('1 diamond');
-		expect(container.textContent).toContain('x2');
+		expect(timestamp.parentElement?.lastElementChild).toBe(timestamp);
+		expect(container.textContent).toContain('Viewer sent a Rose');
+		expect(container.textContent).not.toContain('diamond');
+		expect(container.textContent).toContain('\u00d72');
 		expect(container.textContent).toContain('29s');
 
 		act(() => {

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './event-feed.module.css';
 
 const HEART_ME_GIFT_NAME = 'Heart Me';
+const DEFAULT_GIFT_NAME = 'Gift';
+const GIFT_REPEAT_MARK = '\u00d7';
 const MIN_VISIBLE_GIFT_CHIPS = 2;
 const ESTIMATED_GIFT_CHIP_WIDTH = 72;
 const SCROLL_BOTTOM_THRESHOLD = 24;
@@ -154,25 +156,25 @@ export function GiftEventCard({
 	now = Date.now(),
 }: GiftEventCardProps) {
 	const heartMeGift = userGiftEvents.find((gift) => gift.giftName === HEART_ME_GIFT_NAME);
-	const diamondCount = toNonNegativeDiamondCount(event.diamondCount);
 	const repeatCount = toPositiveRepeatCount(event.repeatCount);
+	const giftName = event.giftName ?? DEFAULT_GIFT_NAME;
 
 	return (
 		<article className={styles.giftEvent}>
 			<Avatar user={event.user} badgeGift={heartMeGift} />
-			<div className={styles.giftViewer}>
+			<span className={styles.giftSentence}>
 				<span className={styles.giftSenderName}>{toDisplayName(event.user)}</span>
-				<span className={styles.diamondLabel}>
-					{diamondCount.toLocaleString()} {diamondCount === 1 ? 'diamond' : 'diamonds'}
-				</span>
-			</div>
-			<GiftImage giftImageUrl={event.giftImageUrl} giftName={event.giftName} size="large" />
-			<span className={styles.screenReaderOnly}>{event.giftName ?? 'Gift'}</span>
+				<span className={styles.giftConnector}> sent a </span>
+				<span className={styles.giftName}>{giftName}</span>
+			</span>
+			<span className={styles.giftItem}>
+				<GiftImage giftImageUrl={event.giftImageUrl} giftName={giftName} size="large" />
+			</span>
 			<span className={styles.giftRepeat}>
-				<span className={styles.repeatPrefix}>x</span>
+				<span className={styles.repeatPrefix}>{GIFT_REPEAT_MARK}</span>
 				<span className={styles.repeatCount}>{repeatCount.toLocaleString()}</span>
 			</span>
-			<EventTimestamp ts={event.ts} now={now} />
+			<EventTimestamp className={styles.giftTimestamp} ts={event.ts} now={now} />
 		</article>
 	);
 }
@@ -603,7 +605,7 @@ function GiftImage({
 		return <span className={`${className} ${styles.giftImageFallback}`} aria-hidden="true" />;
 	}
 
-	return <img className={className} src={giftImageUrl} alt={giftName ?? 'Gift'} />;
+	return <img className={className} src={giftImageUrl} alt={giftName ?? DEFAULT_GIFT_NAME} />;
 }
 
 function EventTimestamp({ ts, now, className }: { ts: number; now: number; className?: string }) {
