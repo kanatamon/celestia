@@ -44,6 +44,8 @@ describe('ChatEventCard', () => {
 		expect(html).toContain('Galaxy');
 		expect(html).not.toContain('Rose<!-- -->');
 		expect(html).toContain('+1 more');
+		expect(html).not.toContain('role="tooltip"');
+		expect(html).not.toContain('diamonds');
 	});
 });
 
@@ -63,9 +65,34 @@ describe('GiftEventCard', () => {
 		expect(avatar.compareDocumentPosition(giftImage)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		expect(timestamp.parentElement?.lastElementChild).toBe(timestamp);
 		expect(container.textContent).toContain('Viewer sent a Rose');
-		expect(container.textContent).not.toContain('diamond');
 		expect(container.textContent).toContain('\u00d72');
 		expect(container.textContent).toContain('29s');
+
+		act(() => {
+			root.unmount();
+		});
+	});
+
+	it('renders the formatted diamond value tooltip only for positive gift image values', () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		act(() => {
+			root.render(
+				<GiftEventCard event={giftEvent('gift-1', 20, 'Galaxy', 1_200, 3)} now={30_000} />,
+			);
+		});
+
+		const giftImage = getImageByAlt(container, 'Galaxy');
+
+		expect(giftImage.nextElementSibling?.getAttribute('role')).toBe('tooltip');
+		expect(giftImage.nextElementSibling?.textContent).toBe('3,600 diamonds (1,200 each)');
+
+		act(() => {
+			root.render(<GiftEventCard event={giftEvent('gift-2', 20, 'Rose', 0, 3)} now={30_000} />);
+		});
+
+		expect(getImageByAlt(container, 'Rose').nextElementSibling).toBeNull();
 
 		act(() => {
 			root.unmount();

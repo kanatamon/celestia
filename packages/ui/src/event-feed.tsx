@@ -63,6 +63,13 @@ interface GiftChipViewModel {
 	totalValue: number;
 }
 
+interface GiftImageProps {
+	giftImageUrl?: string;
+	giftName?: string;
+	size: 'small' | 'large';
+	tooltipContent?: string;
+}
+
 export type FeedLiveEvent = ChatLiveEvent | GiftLiveEvent;
 
 export function ChatEventCard({
@@ -158,6 +165,7 @@ export function GiftEventCard({
 	const heartMeGift = userGiftEvents.find((gift) => gift.giftName === HEART_ME_GIFT_NAME);
 	const repeatCount = toPositiveRepeatCount(event.repeatCount);
 	const giftName = event.giftName ?? DEFAULT_GIFT_NAME;
+	const giftDiamondTooltip = formatGiftDiamondTooltip(event.diamondCount, repeatCount);
 
 	return (
 		<article className={styles.giftEvent}>
@@ -168,7 +176,12 @@ export function GiftEventCard({
 				<span className={styles.giftName}>{giftName}</span>
 			</span>
 			<span className={styles.giftItem}>
-				<GiftImage giftImageUrl={event.giftImageUrl} giftName={giftName} size="large" />
+				<GiftImage
+					giftImageUrl={event.giftImageUrl}
+					giftName={giftName}
+					size="large"
+					tooltipContent={giftDiamondTooltip}
+				/>
 			</span>
 			<span className={styles.giftRepeat}>
 				<span className={styles.repeatPrefix}>{GIFT_REPEAT_MARK}</span>
@@ -590,22 +603,26 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 	);
 }
 
-function GiftImage({
-	giftImageUrl,
-	giftName,
-	size,
-}: {
-	giftImageUrl?: string;
-	giftName?: string;
-	size: 'small' | 'large';
-}) {
+function GiftImage({ giftImageUrl, giftName, size, tooltipContent }: GiftImageProps) {
 	const className = size === 'small' ? styles.giftImageSmall : styles.giftImageLarge;
+	const image = !giftImageUrl ? (
+		<span className={`${className} ${styles.giftImageFallback}`} aria-hidden="true" />
+	) : (
+		<img className={className} src={giftImageUrl} alt={giftName ?? DEFAULT_GIFT_NAME} />
+	);
 
-	if (!giftImageUrl) {
-		return <span className={`${className} ${styles.giftImageFallback}`} aria-hidden="true" />;
+	if (!tooltipContent) {
+		return image;
 	}
 
-	return <img className={className} src={giftImageUrl} alt={giftName ?? DEFAULT_GIFT_NAME} />;
+	return (
+		<span className={styles.giftImageTooltipAnchor}>
+			{image}
+			<span className={styles.giftImageTooltip} role="tooltip">
+				{tooltipContent}
+			</span>
+		</span>
+	);
 }
 
 function EventTimestamp({ ts, now, className }: { ts: number; now: number; className?: string }) {
@@ -645,6 +662,21 @@ function toPositiveRepeatCount(repeatCount: number | undefined): number {
 
 function toNonNegativeDiamondCount(diamondCount: number | undefined): number {
 	return Math.max(diamondCount ?? 0, 0);
+}
+
+function formatGiftDiamondTooltip(
+	diamondCount: number | undefined,
+	repeatCount: number,
+): string | undefined {
+	const diamondsPerGift = toNonNegativeDiamondCount(diamondCount);
+
+	if (diamondsPerGift === 0) {
+		return undefined;
+	}
+
+	const totalDiamonds = diamondsPerGift * repeatCount;
+
+	return `${totalDiamonds.toLocaleString()} diamonds (${diamondsPerGift.toLocaleString()} each)`;
 }
 
 function renderMessageText(text: string) {
