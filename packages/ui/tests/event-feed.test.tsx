@@ -238,6 +238,18 @@ describe('EventFeed', () => {
 });
 
 describe('IndividualChatFeed', () => {
+	it('shows the empty state when no viewer is pinned', () => {
+		const html = renderToString(
+			<IndividualChatFeed chatEvents={[chatEvent('chat-1', 10)]} giftEvents={[]} now={40} />,
+		);
+
+		expect(html).toContain('Click a message to open a viewer&#x27;s feed');
+		expect(html).toContain('Their messages will appear here');
+		expect(html).toContain('data-celestia-individual-chat-feed=""');
+		expect(html).not.toContain('data-celestia-individual-viewer-pill');
+		expect(html).not.toContain('data-individual-event-id="chat-1"');
+	});
+
 	it('shows pinned viewer events and chat mentions, and highlights the triggering event', () => {
 		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
 		const pinnedViewerGift = giftEvent('gift-1', 20, 'Rose', 1, 2);
@@ -314,7 +326,7 @@ describe('SplitFeedLayout', () => {
 		vi.useRealTimers();
 	});
 
-	it('opens the individual feed when an event is pinned, collapses by min pane width, and restores it', async () => {
+	it('keeps the individual feed visible with an empty state until a viewer is pinned', async () => {
 		const container = document.createElement('div');
 		const root = createRoot(container);
 		const firstChat = chatEvent('chat-1', 10, 'from pinned viewer');
@@ -333,7 +345,12 @@ describe('SplitFeedLayout', () => {
 		setElementWidth(layout, 720);
 		emitResize(layout, 720);
 
-		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeNull();
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeInstanceOf(
+			HTMLElement,
+		);
+		expect(container.textContent).toContain("Click a message to open a viewer's feed");
+		expect(container.textContent).toContain('Their messages will appear here');
+		expect(container.querySelector('[data-celestia-individual-viewer-pill]')).toBeNull();
 
 		await act(async () => {
 			getEventRow(container, 'chat-1').dispatchEvent(
@@ -345,6 +362,10 @@ describe('SplitFeedLayout', () => {
 			HTMLElement,
 		);
 		expect(container.querySelector('[data-celestia-split-feed-collapsed]')).toBeNull();
+		expect(container.textContent).not.toContain("Click a message to open a viewer's feed");
+		expect(container.querySelector('[data-celestia-individual-viewer-pill]')).toBeInstanceOf(
+			HTMLElement,
+		);
 
 		emitResize(layout, 480);
 
@@ -361,12 +382,15 @@ describe('SplitFeedLayout', () => {
 		);
 
 		await act(async () => {
-			getEventRow(container, 'chat-1').dispatchEvent(
+			getButtonByAriaLabel(container, 'Dismiss pinned viewer').dispatchEvent(
 				new MouseEvent('click', { bubbles: true, cancelable: true }),
 			);
 		});
 
-		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeNull();
+		expect(container.querySelector('[data-celestia-individual-chat-feed]')).toBeInstanceOf(
+			HTMLElement,
+		);
+		expect(container.textContent).toContain("Click a message to open a viewer's feed");
 
 		await act(async () => {
 			root.unmount();
@@ -470,6 +494,16 @@ function getButton(container: Element, text: string): HTMLButtonElement {
 
 	if (!(button instanceof HTMLButtonElement)) {
 		throw new Error(`Expected ${text} button to render.`);
+	}
+
+	return button;
+}
+
+function getButtonByAriaLabel(container: Element, label: string): HTMLButtonElement {
+	const button = container.querySelector(`[aria-label="${label}"]`);
+
+	if (!(button instanceof HTMLButtonElement)) {
+		throw new Error(`Expected ${label} button to render.`);
 	}
 
 	return button;

@@ -1,6 +1,6 @@
 import type { ChatLiveEvent, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
 import { Splitter, Tooltip } from 'antd';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './event-feed.module.css';
 
 const HEART_ME_GIFT_NAME = 'Heart Me';
@@ -46,7 +46,7 @@ export interface EventFeedProps {
 export interface IndividualChatFeedProps {
 	chatEvents: ChatLiveEvent[];
 	giftEvents: GiftLiveEvent[];
-	pinnedEvent: FeedLiveEvent;
+	pinnedEvent?: FeedLiveEvent;
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
 	now?: number;
 	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
@@ -363,13 +363,27 @@ export function IndividualChatFeed({
 	now = Date.now(),
 	onPinnedEventChange,
 }: IndividualChatFeedProps) {
-	const events = useMemo(
-		() =>
-			[...chatEvents, ...giftEvents]
-				.filter((event) => isIndividualFeedEvent(event, pinnedEvent))
-				.sort((first, second) => first.ts - second.ts),
-		[chatEvents, giftEvents, pinnedEvent],
-	);
+	if (!pinnedEvent) {
+		return (
+			<section
+				aria-label="Viewer feed"
+				className={styles.individualFeed}
+				data-celestia-individual-chat-feed=""
+			>
+				<div className={styles.individualEmptyState}>
+					<div className={styles.individualEmptyIcon} aria-hidden="true">
+						💬
+					</div>
+					<p className={styles.individualEmptyPrimary}>Click a message to open a viewer's feed</p>
+					<p className={styles.individualEmptySecondary}>Their messages will appear here</p>
+				</div>
+			</section>
+		);
+	}
+
+	const events = [...chatEvents, ...giftEvents]
+		.filter((event) => isIndividualFeedEvent(event, pinnedEvent))
+		.sort((first, second) => first.ts - second.ts);
 
 	return (
 		<section
@@ -461,27 +475,43 @@ export function SplitFeedLayout({
 			onPinnedEventChange={setPinnedEventState}
 		/>
 	);
-	const showIndividualFeed = pinnedEvent && !isIndividualFeedCollapsed;
+	const isIndividualFeedVisible = !isIndividualFeedCollapsed;
+	const canUseSplitter = typeof ResizeObserver !== 'undefined';
+	const individualFeed = (
+		<IndividualChatFeed
+			chatEvents={chatEvents}
+			giftEvents={giftEvents}
+			userGiftEvents={userGiftEvents}
+			pinnedEvent={pinnedEvent}
+			now={displayNow}
+			onPinnedEventChange={setPinnedEventState}
+		/>
+	);
+	let splitFeedContent: ReactNode;
+
+	if (!isIndividualFeedVisible) {
+		splitFeedContent = <div data-celestia-split-feed-collapsed="">{mainFeed}</div>;
+	} else if (canUseSplitter) {
+		splitFeedContent = (
+			<Splitter className={styles.splitter} orientation="horizontal">
+				<Splitter.Panel min={INDIVIDUAL_FEED_MIN_WIDTH} defaultSize="42%">
+					{individualFeed}
+				</Splitter.Panel>
+				<Splitter.Panel min={MAIN_FEED_MIN_WIDTH}>{mainFeed}</Splitter.Panel>
+			</Splitter>
+		);
+	} else {
+		splitFeedContent = (
+			<div className={styles.splitterFallback}>
+				<div className={styles.individualFallbackPanel}>{individualFeed}</div>
+				<div className={styles.mainFallbackPanel}>{mainFeed}</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className={styles.splitFeedLayout} data-celestia-split-feed-layout="" ref={layoutRef}>
-			{showIndividualFeed ? (
-				<Splitter className={styles.splitter} orientation="horizontal">
-					<Splitter.Panel min={INDIVIDUAL_FEED_MIN_WIDTH} defaultSize="42%">
-						<IndividualChatFeed
-							chatEvents={chatEvents}
-							giftEvents={giftEvents}
-							userGiftEvents={userGiftEvents}
-							pinnedEvent={pinnedEvent}
-							now={displayNow}
-							onPinnedEventChange={setPinnedEventState}
-						/>
-					</Splitter.Panel>
-					<Splitter.Panel min={MAIN_FEED_MIN_WIDTH}>{mainFeed}</Splitter.Panel>
-				</Splitter>
-			) : (
-				<div data-celestia-split-feed-collapsed={pinnedEvent ? '' : undefined}>{mainFeed}</div>
-			)}
+			{splitFeedContent}
 		</div>
 	);
 }
