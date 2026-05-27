@@ -278,13 +278,14 @@
 }
 
 .messageBubble {
+	--bubble-bg: rgba(0, 0, 0, 0.5);
+
 	position: relative;
 	width: fit-content;
 	max-width: 100%;
 	padding: 9px 11px;
-	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 8px;
-	background: rgba(0, 0, 0, 0.5);
+	background: var(--bubble-bg);
 	backdrop-filter: blur(10px);
 	color: rgba(255, 255, 255, 0.9);
 	font-size: 14px;
@@ -292,14 +293,14 @@
 	overflow-wrap: anywhere;
 }
 
-.bubblePointer {
+.bubbleTail {
 	position: absolute;
-	top: 11px;
+	top: 0;
 	left: -6px;
-	width: 8px;
-	height: 10px;
-	background: rgba(0, 0, 0, 0.5);
-	clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.bubbleTail path {
+	fill: var(--bubble-bg);
 }
 
 .mention {

@@ -15,6 +15,9 @@ const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
 const SECOND_MS = 1_000;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
+const CHAT_BUBBLE_TAIL_VIEW_BOX = '0 0 500 500';
+const CHAT_BUBBLE_TAIL_PATH =
+	'M 7.345 20.273 C 262.053 61.815 213.415 428.641 213.031 501.451 L 499.161 502.063 C 501.472 232.37 386.075 -28.462 7.345 20.273 Z';
 
 type PinnedStage = 'inline' | 'top' | 'bottom';
 
@@ -147,13 +150,28 @@ export function ChatEventCard({
 				</div>
 				<div className={styles.chatContent}>
 					<div className={styles.messageBubble}>
-						<span className={styles.bubblePointer} aria-hidden="true" />
+						<ChatBubbleTail />
 						{renderMessageText(event.text)}
 					</div>
 					<EventTimestamp ts={event.ts} now={now} />
 				</div>
 			</div>
 		</article>
+	);
+}
+
+function ChatBubbleTail() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox={CHAT_BUBBLE_TAIL_VIEW_BOX}
+			width="16"
+			height="16"
+			className={styles.bubbleTail}
+			aria-hidden="true"
+		>
+			<path d={CHAT_BUBBLE_TAIL_PATH} />
+		</svg>
 	);
 }
 

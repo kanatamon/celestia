@@ -46,6 +46,8 @@ describe('ChatEventCard', () => {
 		expect(html).toContain('+1 more');
 		expect(html).not.toContain('role="tooltip"');
 		expect(html).not.toContain('diamonds');
+		expect(html).toContain('<svg');
+		expect(html).not.toContain('bubblePointer');
 	});
 });
 
