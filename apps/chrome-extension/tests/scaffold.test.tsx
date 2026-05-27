@@ -430,7 +430,6 @@ describe('Chrome extension scaffold', () => {
 
 		expect(container.textContent).toContain('1,234');
 		expect(container.textContent).toContain('5,678');
-		expect(container.textContent).toContain('Live');
 		expect(container.textContent).toContain('Viewer One joined');
 
 		await act(async () => {

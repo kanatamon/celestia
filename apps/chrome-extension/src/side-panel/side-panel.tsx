@@ -480,10 +480,6 @@ function LiveFeed({
 				username={username}
 				onOpenUsernameInput={onOpenUsernameInput}
 			/>
-			<header className={styles.liveFeedHeader}>
-				<strong>@{username}</strong>
-				<span>Live feed</span>
-			</header>
 			<SplitFeedLayout
 				chatEvents={chatEvents}
 				giftEvents={giftEvents}
