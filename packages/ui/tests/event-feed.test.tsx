@@ -22,6 +22,15 @@ globalThis.ResizeObserver ??= class ResizeObserver {
 	disconnect() {}
 };
 
+// JSDOM doesn't implement HTMLElement.scrollTo — polyfill so scrollToBottom works.
+if (!HTMLElement.prototype.scrollTo) {
+	HTMLElement.prototype.scrollTo = function (options?: ScrollToOptions | number) {
+		if (typeof options === 'object' && options?.top !== undefined) {
+			this.scrollTop = options.top;
+		}
+	};
+}
+
 describe('ChatEventCard', () => {
 	it('aggregates gift chips by value, excludes Heart Me, and shows the overflow count', () => {
 		const html = renderToString(
@@ -111,7 +120,7 @@ describe('GiftEventCard', () => {
 });
 
 describe('EventFeed', () => {
-	it('interleaves chat and gift events by timestamp and reveals new messages when scrolled up', async () => {
+	it('interleaves chat and gift events by timestamp and counts unread events while scrolled up', async () => {
 		const container = document.createElement('div');
 		const root = createRoot(container);
 		const firstChat = chatEvent('chat-1', 10, 'first');
@@ -138,27 +147,132 @@ describe('EventFeed', () => {
 			feed?.dispatchEvent(new Event('scroll', { bubbles: true }));
 		});
 
-		expect(container.textContent).toContain('New messages');
+		expect(container.textContent).not.toContain('new messages');
 
 		await act(async () => {
 			root.render(
 				<EventFeed
 					chatEvents={[latestChat, firstChat, chatEvent('chat-3', 40, 'newest')]}
-					giftEvents={[gift]}
+					giftEvents={[gift, giftEvent('gift-2', 50, 'Galaxy', 1, 1)]}
 					now={40}
 				/>,
 			);
 		});
 
-		expect(container.textContent).toContain('New messages');
+		expect(container.textContent).toContain('↓ 2 new messages');
 
 		await act(async () => {
-			getButton(container, 'New messages').dispatchEvent(
+			getButton(container, '↓ 2 new messages').dispatchEvent(
 				new MouseEvent('click', { bubbles: true, cancelable: true }),
 			);
 		});
 
-		expect(container.textContent).not.toContain('New messages');
+		expect(container.textContent).not.toContain('new messages');
+		expect(feed.scrollTop).toBe(1000);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('uses scrollTo with instant behavior so smooth-scroll CSS cannot cause mid-animation scroll events to flip isAtBottom', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const firstChat = chatEvent('chat-1', 10, 'first');
+
+		await act(async () => {
+			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} now={30} />);
+		});
+
+		const feed = getEventFeed(container);
+		Object.defineProperties(feed, {
+			scrollHeight: { configurable: true, value: 1000 },
+			clientHeight: { configurable: true, value: 300 },
+			scrollTop: { configurable: true, writable: true, value: 700 },
+		});
+
+		const scrollToCalls: ScrollToOptions[] = [];
+		feed.scrollTo = ((options?: ScrollToOptions) => {
+			if (options) scrollToCalls.push(options);
+		}) as typeof feed.scrollTo;
+
+		await act(async () => {
+			root.render(
+				<EventFeed
+					chatEvents={[firstChat, chatEvent('chat-2', 40, 'new')]}
+					giftEvents={[]}
+					now={40}
+				/>,
+			);
+		});
+
+		expect(scrollToCalls).toContainEqual(expect.objectContaining({ behavior: 'instant' }));
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('uses a 100px bottom threshold and resets unread count when manual scrolling re-engages auto-scroll', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const firstChat = chatEvent('chat-1', 10, 'first');
+
+		await act(async () => {
+			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} now={30} />);
+		});
+
+		const feed = getEventFeed(container);
+		Object.defineProperties(feed, {
+			scrollHeight: { configurable: true, value: 1000 },
+			clientHeight: { configurable: true, value: 300 },
+			scrollTop: { configurable: true, writable: true, value: 610 },
+		});
+
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		await act(async () => {
+			root.render(
+				<EventFeed
+					chatEvents={[firstChat, chatEvent('chat-2', 40, 'within threshold')]}
+					giftEvents={[]}
+					now={40}
+				/>,
+			);
+		});
+
+		expect(container.textContent).not.toContain('new messages');
+		expect(feed.scrollTop).toBe(1000);
+
+		feed.scrollTop = 590;
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		await act(async () => {
+			root.render(
+				<EventFeed
+					chatEvents={[
+						firstChat,
+						chatEvent('chat-2', 40, 'within threshold'),
+						chatEvent('chat-3', 50, 'past threshold'),
+					]}
+					giftEvents={[]}
+					now={50}
+				/>,
+			);
+		});
+
+		expect(container.textContent).toContain('↓ 1 new messages');
+
+		feed.scrollTop = 900;
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		expect(container.textContent).not.toContain('new messages');
 
 		await act(async () => {
 			root.unmount();

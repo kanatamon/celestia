@@ -1,5 +1,6 @@
 .feedShell {
 	position: relative;
+	height: 100%;
 	min-height: 0;
 	flex: 1 1 auto;
 }
@@ -455,23 +456,34 @@
 }
 
 .newMessagesButton {
-	position: absolute;
-	left: 50%;
-	bottom: 14px;
-	transform: translateX(-50%);
-	border: 1px solid rgba(255, 255, 255, 0.18);
-	border-radius: 999px;
-	background: rgba(20, 20, 24, 0.72);
-	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
-	backdrop-filter: blur(12px);
-	color: var(--ant-color-text-base);
-	cursor: pointer;
-	font: inherit;
-	font-size: 13px;
-	font-weight: 800;
-	padding: 8px 12px;
+	width: auto !important;
 }
 
-.newMessagesButton:hover {
-	background: rgba(40, 40, 48, 0.78);
+.newMessagesButton :global(.ant-float-btn-body) {
+	width: auto;
+	height: auto;
+	padding: 8px 12px;
+	border-radius: 999px;
+	background: rgba(20, 20, 24, 0.72) !important;
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28) !important;
+	backdrop-filter: blur(12px);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.newMessagesButton :global(.ant-float-btn-body):hover {
+	background: rgba(40, 40, 48, 0.78) !important;
+}
+
+.newMessagesButton :global(.ant-float-btn-content) {
+	height: auto;
+	min-height: unset;
+	padding: 0;
+}
+
+.newMessagesButton :global(.ant-float-btn-description) {
+	color: var(--ant-color-text-base);
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1;
+	margin-top: 0;
 }

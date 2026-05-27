@@ -1,5 +1,5 @@
 import type { ChatLiveEvent, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
-import { Splitter, Tooltip } from 'antd';
+import { FloatButton, Splitter, Tooltip } from 'antd';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './event-feed.module.css';
 
@@ -8,7 +8,7 @@ const DEFAULT_GIFT_NAME = 'Gift';
 const GIFT_REPEAT_MARK = '\u00d7';
 const MIN_VISIBLE_GIFT_CHIPS = 2;
 const ESTIMATED_GIFT_CHIP_WIDTH = 72;
-const SCROLL_BOTTOM_THRESHOLD = 24;
+const SCROLL_BOTTOM_THRESHOLD = 100;
 const INDIVIDUAL_FEED_MIN_WIDTH = 240;
 const MAIN_FEED_MIN_WIDTH = 320;
 const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
@@ -220,12 +220,14 @@ export function EventFeed({
 }: EventFeedProps) {
 	const feedRef = useRef<HTMLDivElement>(null);
 	const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
 	const [isAtBottom, setIsAtBottom] = useState(true);
-	const [showNewMessages, setShowNewMessages] = useState(false);
+	const [unreadCount, setUnreadCount] = useState(0);
 	const [uncontrolledPinnedEventId, setUncontrolledPinnedEventId] = useState<string | undefined>();
 	const [pinnedNaturalTop, setPinnedNaturalTop] = useState<number | undefined>();
 	const [pinnedStage, setPinnedStage] = useState<PinnedStage>('inline');
 	const pinnedEventId = controlledPinnedEventId ?? uncontrolledPinnedEventId;
+	const newMessagesLabel = `\u2193 ${unreadCount} new messages`;
 	const events = useMemo(
 		() => [...chatEvents, ...giftEvents].sort((first, second) => first.ts - second.ts),
 		[chatEvents, giftEvents],
@@ -239,18 +241,23 @@ export function EventFeed({
 	);
 
 	useEffect(() => {
+		const previousEventIds = previousEventIdsRef.current;
+		const newEventCount = countNewEvents(events, previousEventIds);
+
+		previousEventIdsRef.current = getEventIds(events);
+
 		if (events.length === 0) {
-			setShowNewMessages(false);
+			setUnreadCount(0);
 			return;
 		}
 
 		if (isAtBottom) {
-			scrollToBottom(feedRef.current);
-			setShowNewMessages(false);
+			scrollToBottom(feedRef.current, 'smooth');
+			setUnreadCount(0);
 		} else {
-			setShowNewMessages(true);
+			setUnreadCount((currentUnreadCount) => currentUnreadCount + newEventCount);
 		}
-	}, [events.length, isAtBottom]);
+	}, [events, isAtBottom]);
 
 	useEffect(() => {
 		if (pinnedEventId && !events.some((event) => event.id === pinnedEventId)) {
@@ -274,7 +281,7 @@ export function EventFeed({
 		setIsAtBottom(nextIsAtBottom);
 
 		if (nextIsAtBottom) {
-			setShowNewMessages(false);
+			setUnreadCount(0);
 		}
 
 		setPinnedStage(
@@ -287,9 +294,9 @@ export function EventFeed({
 	};
 
 	const handleNewMessagesClick = () => {
-		scrollToBottom(feedRef.current);
+		scrollToBottom(feedRef.current, 'instant');
 		setIsAtBottom(true);
-		setShowNewMessages(false);
+		setUnreadCount(0);
 	};
 
 	const handleEventClick = (eventId: string) => {
@@ -346,10 +353,25 @@ export function EventFeed({
 					</button>
 				))}
 			</div>
-			{showNewMessages ? (
-				<button className={styles.newMessagesButton} type="button" onClick={handleNewMessagesClick}>
-					New messages
-				</button>
+			{unreadCount > 0 ? (
+				<FloatButton
+					className={styles.newMessagesButton}
+					description={newMessagesLabel}
+					onClick={handleNewMessagesClick}
+					shape="square"
+					styles={{
+						root: {
+							borderRadius: '100px',
+						},
+					}}
+					style={{
+						position: 'absolute',
+						insetInlineEnd: 'auto',
+						bottom: 14,
+						left: '50%',
+						transform: 'translateX(-50%)',
+					}}
+				/>
 			) : null}
 		</div>
 	);
@@ -796,12 +818,26 @@ function isScrolledToBottom(element: HTMLElement | null): boolean {
 	return element.scrollHeight - element.scrollTop - element.clientHeight <= SCROLL_BOTTOM_THRESHOLD;
 }
 
-function scrollToBottom(element: HTMLElement | null): void {
+function getEventIds(events: FeedLiveEvent[]): Set<string> {
+	return new Set(events.map((event) => event.id));
+}
+
+function countNewEvents(
+	events: FeedLiveEvent[],
+	previousEventIds: Set<string> | undefined,
+): number {
+	if (!previousEventIds) {
+		return 0;
+	}
+
+	return events.filter((event) => !previousEventIds.has(event.id)).length;
+}
+
+function scrollToBottom(element: HTMLElement | null, behavior: 'smooth' | 'instant'): void {
 	if (!element) {
 		return;
 	}
-
-	element.scrollTop = element.scrollHeight;
+	element.scrollTo({ top: element.scrollHeight, behavior });
 }
 
 function getPinnedEventRow(

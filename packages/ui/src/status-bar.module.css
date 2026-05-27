@@ -182,7 +182,12 @@
 	position: absolute;
 	inset: -2px;
 	content: "";
-	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 45%, transparent 90%);
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.22) 45%,
+		transparent 90%
+	);
 	transform: translateX(-120%);
 	animation: signalScan 2.2s linear infinite;
 }
