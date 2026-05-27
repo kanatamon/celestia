@@ -373,57 +373,6 @@
 	object-fit: contain;
 }
 
-.giftImageTooltipAnchor {
-	position: relative;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.giftImageTooltip {
-	position: absolute;
-	left: 50%;
-	bottom: calc(100% + 6px);
-	z-index: 2;
-	max-width: min(220px, calc(100vw - 16px));
-	padding: 5px 8px;
-	transform: translateX(-50%);
-	border: 1px solid rgba(255, 215, 0, 0.25);
-	border-radius: 6px;
-	background: rgba(9, 8, 6, 0.96);
-	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
-	color: #ffd700;
-	font-size: 11px;
-	font-weight: 800;
-	line-height: 1.2;
-	overflow-wrap: anywhere;
-	opacity: 0;
-	pointer-events: none;
-	text-align: center;
-	transition: opacity 120ms ease;
-	visibility: hidden;
-	white-space: normal;
-}
-
-.giftImageTooltipAnchor:hover .giftImageTooltip,
-.giftImageTooltipAnchor:focus-within .giftImageTooltip {
-	opacity: 1;
-	visibility: visible;
-}
-
-.giftImageTooltip::after {
-	position: absolute;
-	left: 50%;
-	top: 100%;
-	width: 7px;
-	height: 7px;
-	transform: translate(-50%, -50%) rotate(45deg);
-	border-right: 1px solid rgba(255, 215, 0, 0.25);
-	border-bottom: 1px solid rgba(255, 215, 0, 0.25);
-	background: rgba(9, 8, 6, 0.96);
-	content: "";
-}
-
 .giftImageFallback {
 	display: inline-block;
 	border-radius: 50%;

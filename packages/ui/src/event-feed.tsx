@@ -1,5 +1,5 @@
 import type { ChatLiveEvent, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
-import { Splitter } from 'antd';
+import { Splitter, Tooltip } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './event-feed.module.css';
 
@@ -634,12 +634,9 @@ function GiftImage({ giftImageUrl, giftName, size, tooltipContent }: GiftImagePr
 	}
 
 	return (
-		<span className={styles.giftImageTooltipAnchor}>
-			{image}
-			<span className={styles.giftImageTooltip} role="tooltip">
-				{tooltipContent}
-			</span>
-		</span>
+		<Tooltip title={tooltipContent}>
+			<span>{image}</span>
+		</Tooltip>
 	);
 }
 

@@ -75,7 +75,7 @@ describe('GiftEventCard', () => {
 		});
 	});
 
-	it('renders the formatted diamond value tooltip only for positive gift image values', () => {
+	it('wraps positive-value gift images with an AntD tooltip trigger only', () => {
 		const container = document.createElement('div');
 		const root = createRoot(container);
 
@@ -86,15 +86,23 @@ describe('GiftEventCard', () => {
 		});
 
 		const giftImage = getImageByAlt(container, 'Galaxy');
+		const tooltipTrigger = giftImage.parentElement;
 
-		expect(giftImage.nextElementSibling?.getAttribute('role')).toBe('tooltip');
-		expect(giftImage.nextElementSibling?.textContent).toBe('3,600 diamonds (1,200 each)');
+		expect(tooltipTrigger).not.toBeNull();
+		expect(tooltipTrigger).not.toBe(giftImage.closest('span[class*="giftItem"]'));
+		expect(giftImage.nextElementSibling).toBeNull();
+		expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
 		act(() => {
 			root.render(<GiftEventCard event={giftEvent('gift-2', 20, 'Rose', 0, 3)} now={30_000} />);
 		});
 
-		expect(getImageByAlt(container, 'Rose').nextElementSibling).toBeNull();
+		const unwrappedGiftImage = getImageByAlt(container, 'Rose');
+
+		expect(unwrappedGiftImage.parentElement).toBe(
+			unwrappedGiftImage.closest('span[class*="giftItem"]'),
+		);
+		expect(unwrappedGiftImage.nextElementSibling).toBeNull();
 
 		act(() => {
 			root.unmount();
