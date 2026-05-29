@@ -137,6 +137,7 @@ function liveEventStoreInitializer(
 		(set) => ({
 			...createInitialPersistedState(),
 			addChatEvent: (event) => {
+				if (!event.text.trim()) return;
 				set((state) => ({
 					chatEvents: appendCapped(state.chatEvents, event, MAX_CHAT_EVENTS),
 				}));

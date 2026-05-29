@@ -56,6 +56,19 @@ describe('live event store', () => {
 		expect(store.getState().memberEvents).toEqual([]);
 	});
 
+	it('ignores chat events with empty or whitespace-only text', async () => {
+		const store = createLiveEventStore({
+			storage: createSessionStorage(storageArea),
+		});
+		await store.persist.rehydrate();
+
+		store.getState().addChatEvent(chatEvent('chat-1'));
+		store.getState().addChatEvent({ ...chatEvent('chat-2'), text: '' });
+		store.getState().addChatEvent({ ...chatEvent('chat-3'), text: '   ' });
+
+		expect(store.getState().chatEvents.map((e) => e.id)).toEqual(['chat-1']);
+	});
+
 	it('deduplicates gifts by groupId and keeps per-user gift history', async () => {
 		const store = createLiveEventStore({
 			storage: createSessionStorage(storageArea),
