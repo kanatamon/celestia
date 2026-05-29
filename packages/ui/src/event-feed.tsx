@@ -591,7 +591,7 @@ export function SplitFeedLayout({
 	} else if (canUseSplitter) {
 		splitFeedContent = (
 			<Splitter className={styles.splitter} orientation="horizontal">
-				<Splitter.Panel min={INDIVIDUAL_FEED_MIN_WIDTH} defaultSize="42%">
+				<Splitter.Panel min={INDIVIDUAL_FEED_MIN_WIDTH} defaultSize="50%">
 					{individualFeed}
 				</Splitter.Panel>
 				<Splitter.Panel min={MAIN_FEED_MIN_WIDTH}>{mainFeed}</Splitter.Panel>
