@@ -47,7 +47,7 @@ The `@celestia/tiktok-live-chrome-extension` package. Chrome-extension-specific 
 _Avoid_: Extension package, CDP package
 
 **ui**:
-The `@celestia/ui` package. Shared React component library used by `apps/extension`. Components are display-only and depend only on `tiktok-live-core` types.
+The `@celestia/ui` package. Shared Web UI runtime used by `apps/extension`. Contains React components and associated Web API behaviors (e.g. sound effects). Depends only on `tiktok-live-core` types; no Chrome API dependencies.
 _Avoid_: Component library, design system
 
 ## Relationships
