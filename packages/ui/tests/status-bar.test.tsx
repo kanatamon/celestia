@@ -10,6 +10,16 @@ declare global {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+class TestResizeObserver {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+
+if (!globalThis.ResizeObserver) {
+	globalThis.ResizeObserver = TestResizeObserver;
+}
+
 describe('StatusBar', () => {
 	it('renders formatted counts, username, and live badge', () => {
 		const html = renderToString(

@@ -20,6 +20,8 @@ export {
 	SplitFeedLayout,
 } from './event-feed.js';
 export { CelestiaProvider } from './provider.js';
+export type { SettingsPopoverProps } from './settings-popover.js';
+export { SettingsPopover } from './settings-popover.js';
 export type { Channel, SoundManager, VolumeKey } from './sound-manager.js';
 export { soundManager } from './sound-manager.js';
 export type { StatusBarProps } from './status-bar.js';

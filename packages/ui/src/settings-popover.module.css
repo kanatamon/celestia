@@ -1,0 +1,96 @@
+.popover {
+	width: 260px;
+	padding: 14px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	background: rgba(10, 14, 28, 0.96);
+	box-shadow:
+		0 18px 48px rgba(0, 0, 0, 0.42),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(18px);
+	color: #f8fafc;
+}
+
+.title {
+	margin-bottom: 14px;
+	color: rgba(248, 250, 252, 0.72);
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: 0.08em;
+}
+
+.rows {
+	display: grid;
+	gap: 10px;
+}
+
+.row {
+	display: grid;
+	grid-template-columns: 44px 1fr 34px auto;
+	align-items: center;
+	gap: 8px;
+	min-height: 24px;
+}
+
+.label {
+	color: rgba(248, 250, 252, 0.82);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.slider {
+	min-width: 0;
+	margin: 0;
+}
+
+.slider :global(.ant-slider-rail) {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.slider :global(.ant-slider-track) {
+	background: #54edff;
+}
+
+.slider :global(.ant-slider-handle::after) {
+	box-shadow: 0 0 0 2px #54edff;
+}
+
+.percentage {
+	color: rgba(248, 250, 252, 0.78);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	text-align: right;
+}
+
+.testButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.05);
+	color: rgba(255, 255, 255, 0.45);
+	cursor: pointer;
+	transition:
+		border-color 160ms ease,
+		background 160ms ease,
+		color 160ms ease;
+}
+
+.testButton:hover,
+.testButton:focus-visible {
+	border-color: rgba(84, 237, 255, 0.62);
+	background: rgba(84, 237, 255, 0.12);
+	color: #54edff;
+}
+
+.testButton:focus-visible {
+	outline: 2px solid rgba(84, 237, 255, 0.52);
+	outline-offset: 2px;
+}

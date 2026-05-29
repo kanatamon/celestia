@@ -1,5 +1,7 @@
 import { EyeOutlined, HeartFilled, SettingOutlined } from '@ant-design/icons';
 import type { ConnectionState } from '@celestia/tiktok-live-core';
+import { type ButtonHTMLAttributes, useState } from 'react';
+import { SettingsPopover } from './settings-popover.js';
 import styles from './status-bar.module.css';
 
 export interface StatusBarProps {
@@ -9,6 +11,7 @@ export interface StatusBarProps {
 	username?: string | null;
 	onOpenUsernameInput?: () => void;
 	onOpenSettings?: () => void;
+	onSettingsOpenChange?: (open: boolean) => void;
 	isSettingsOpen?: boolean;
 }
 
@@ -19,9 +22,8 @@ interface BadgeViewModel {
 	kind: BadgeKind;
 }
 
-interface SettingsButtonProps {
+interface SettingsButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	isOpen: boolean;
-	onOpen?: () => void;
 }
 
 export function StatusBar({
@@ -31,15 +33,33 @@ export function StatusBar({
 	username,
 	onOpenUsernameInput,
 	onOpenSettings,
-	isSettingsOpen = false,
+	onSettingsOpenChange,
+	isSettingsOpen,
 }: StatusBarProps) {
+	const [uncontrolledSettingsOpen, setUncontrolledSettingsOpen] = useState(false);
+	const isSettingsPopoverOpen = isSettingsOpen ?? uncontrolledSettingsOpen;
+	const handleSettingsPopoverOpenChange = (open: boolean) => {
+		if (isSettingsOpen === undefined) {
+			setUncontrolledSettingsOpen(open);
+		}
+
+		onSettingsOpenChange?.(open);
+
+		onOpenSettings?.();
+	};
+	const settingsControl = (
+		<SettingsPopover open={isSettingsPopoverOpen} onOpenChange={handleSettingsPopoverOpenChange}>
+			<SettingsButton isOpen={isSettingsPopoverOpen} />
+		</SettingsPopover>
+	);
+
 	if (connectionState.status === 'idle') {
 		return (
 			<div className={styles.statusBar} role="status">
 				<button className={styles.openButton} type="button" onClick={onOpenUsernameInput}>
 					Open Live
 				</button>
-				<SettingsButton isOpen={isSettingsOpen} onOpen={onOpenSettings} />
+				{settingsControl}
 			</div>
 		);
 	}
@@ -61,25 +81,31 @@ export function StatusBar({
 				<span className={styles.username}>@{displayUsername}</span>
 				{badge ? <ConnectionBadge badge={badge} /> : null}
 			</div>
-			<SettingsButton isOpen={isSettingsOpen} onOpen={onOpenSettings} />
+			{settingsControl}
 		</div>
 	);
 }
 
-function SettingsButton({ isOpen, onOpen }: SettingsButtonProps) {
+function SettingsButton({
+	className,
+	isOpen,
+	type = 'button',
+	...buttonProps
+}: SettingsButtonProps) {
 	const classNames = joinClassNames(
 		styles.settingsButton,
 		isOpen ? styles.settingsButtonActive : undefined,
+		className,
 	);
 
 	return (
 		<button
+			{...buttonProps}
 			aria-label="Open settings"
 			aria-pressed={isOpen}
 			className={classNames}
 			data-celestia-status-settings
-			type="button"
-			onClick={onOpen}
+			type={type}
 		>
 			<SettingOutlined aria-hidden="true" />
 		</button>
