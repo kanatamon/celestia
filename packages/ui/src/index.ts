@@ -3,16 +3,20 @@ export { ActivitySwitcher } from './activity-switcher.js';
 export type {
 	ChatEventCardProps,
 	EventFeedProps,
+	FeedEventCardProps,
 	FeedLiveEvent,
 	GiftEventCardProps,
 	IndividualChatFeedProps,
+	ScrollableFeedListProps,
 	SplitFeedLayoutProps,
 } from './event-feed.js';
 export {
 	ChatEventCard,
 	EventFeed,
+	FeedEventCard,
 	GiftEventCard,
 	IndividualChatFeed,
+	ScrollableFeedList,
 	SplitFeedLayout,
 } from './event-feed.js';
 export { CelestiaProvider } from './provider.js';

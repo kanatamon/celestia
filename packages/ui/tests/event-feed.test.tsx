@@ -6,8 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	ChatEventCard,
 	EventFeed,
+	FeedEventCard,
 	GiftEventCard,
 	IndividualChatFeed,
+	ScrollableFeedList,
 	SplitFeedLayout,
 } from '../src/index.js';
 
@@ -112,6 +114,45 @@ describe('GiftEventCard', () => {
 			unwrappedGiftImage.closest('span[class*="giftItem"]'),
 		);
 		expect(unwrappedGiftImage.nextElementSibling).toBeNull();
+
+		act(() => {
+			root.unmount();
+		});
+	});
+});
+
+describe('FeedEventCard', () => {
+	it('renders a message bubble and nickname for a chat event', () => {
+		const html = renderToString(
+			<FeedEventCard
+				event={chatEvent('chat-1', 10, 'hello world')}
+				now={10}
+				userGiftEventsByUser={new Map()}
+			/>,
+		);
+
+		expect(html).toContain('hello world');
+		expect(html).toContain('Viewer');
+		expect(html).toContain('<svg');
+	});
+
+	it('renders a gift sentence and repeat count for a gift event', () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		act(() => {
+			root.render(
+				<FeedEventCard
+					event={giftEvent('gift-1', 10, 'Rose', 1, 5)}
+					now={10}
+					userGiftEventsByUser={new Map()}
+				/>,
+			);
+		});
+
+		expect(container.textContent).toContain('Rose');
+		expect(container.textContent).toContain('×5');
+		expect(container.querySelector('svg')).toBeNull();
 
 		act(() => {
 			root.unmount();
@@ -351,6 +392,69 @@ describe('EventFeed', () => {
 	});
 });
 
+describe('ScrollableFeedList', () => {
+	it('scrolls to the target event on mount when initialScrollTarget is an event ID', async () => {
+		// jsdom clamps scrollTop to 0 when there is no real layout (scrollHeight = 0).
+		// Replace the Element.prototype scrollTop accessor with a WeakMap-backed one so
+		// direct assignment persists for this test, then restore it afterwards.
+		const scrollTopValues = new WeakMap<object, number>();
+		const originalScrollTopDescriptor =
+			Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop') ?? {};
+		Object.defineProperty(Element.prototype, 'scrollTop', {
+			configurable: true,
+			get(this: Element) {
+				return scrollTopValues.get(this) ?? 0;
+			},
+			set(this: Element, value: number) {
+				scrollTopValues.set(this, value);
+			},
+		});
+
+		// Stub getBoundingClientRect so the scroll delta is non-zero.
+		// feed top=50, chat-2 top=150 → expected delta = 100.
+		const originalGetBCR = HTMLElement.prototype.getBoundingClientRect;
+		HTMLElement.prototype.getBoundingClientRect = function () {
+			if ((this as HTMLElement).dataset.feedEventId === 'chat-2') {
+				return { top: 150 } as DOMRect;
+			}
+			if ((this as HTMLElement).hasAttribute('data-celestia-event-feed')) {
+				return { top: 50 } as DOMRect;
+			}
+			return originalGetBCR.call(this);
+		};
+
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const events = [
+			chatEvent('chat-1', 10, 'first'),
+			chatEvent('chat-2', 20, 'second'),
+			chatEvent('chat-3', 30, 'third'),
+		];
+
+		await act(async () => {
+			root.render(
+				<ScrollableFeedList events={events} initialScrollTarget="chat-2">
+					{events.map((e) => (
+						<div key={e.id} data-feed-event-id={e.id}>
+							{e.text}
+						</div>
+					))}
+				</ScrollableFeedList>,
+			);
+		});
+
+		const feedScrollTop = getFeed(container).scrollTop;
+		HTMLElement.prototype.getBoundingClientRect = originalGetBCR;
+		Object.defineProperty(Element.prototype, 'scrollTop', originalScrollTopDescriptor);
+
+		expect(feedScrollTop).toBe(100);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+});
+
 describe('IndividualChatFeed', () => {
 	it('shows the empty state when no viewer is pinned', () => {
 		const html = renderToString(
@@ -420,8 +524,8 @@ describe('IndividualChatFeed', () => {
 		expect(pill).toBeInstanceOf(HTMLElement);
 		expect(pill?.textContent).toContain('Viewer');
 
-		const dismissButton = container.querySelector('[aria-label="Dismiss pinned viewer"]');
-		expect(dismissButton).toBeInstanceOf(HTMLButtonElement);
+		const dismissButton = container.querySelector('[data-celestia-viewer-pill-dismiss]');
+		expect(dismissButton).toBeInstanceOf(HTMLElement);
 
 		await act(async () => {
 			dismissButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -496,7 +600,7 @@ describe('SplitFeedLayout', () => {
 		);
 
 		await act(async () => {
-			getButtonByAriaLabel(container, 'Dismiss pinned viewer').dispatchEvent(
+			getPillDismiss(container).dispatchEvent(
 				new MouseEvent('click', { bubbles: true, cancelable: true }),
 			);
 		});
@@ -541,6 +645,10 @@ function getTextContent(container: Element): string {
 }
 
 function getEventFeed(container: Element): HTMLElement {
+	return getFeed(container);
+}
+
+function getFeed(container: Element): HTMLElement {
 	const feed = container.querySelector('[data-celestia-event-feed]');
 
 	if (!(feed instanceof HTMLElement)) {
@@ -613,14 +721,14 @@ function getButton(container: Element, text: string): HTMLButtonElement {
 	return button;
 }
 
-function getButtonByAriaLabel(container: Element, label: string): HTMLButtonElement {
-	const button = container.querySelector(`[aria-label="${label}"]`);
+function getPillDismiss(container: Element): HTMLElement {
+	const element = container.querySelector('[data-celestia-viewer-pill-dismiss]');
 
-	if (!(button instanceof HTMLButtonElement)) {
-		throw new Error(`Expected ${label} button to render.`);
+	if (!(element instanceof HTMLElement)) {
+		throw new Error('Expected viewer pill dismiss element to render.');
 	}
 
-	return button;
+	return element;
 }
 
 function chatEvent(id: string, ts: number, text = 'hello @celestia'): ChatLiveEvent {

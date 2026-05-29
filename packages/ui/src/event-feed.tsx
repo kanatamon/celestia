@@ -103,7 +103,7 @@ export function ScrollableFeedList({
 	const internalRef = useRef<HTMLDivElement>(null);
 	const feedRef = externalScrollRef ?? internalRef;
 	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
-	const [isAtBottom, setIsAtBottom] = useState(true);
+	const [isAtBottom, setIsAtBottom] = useState(initialScrollTarget === 'bottom');
 	const [unreadCount, setUnreadCount] = useState(0);
 	const newMessagesLabel = `↓ ${unreadCount} new messages`;
 
@@ -144,7 +144,7 @@ export function ScrollableFeedList({
 		}
 
 		if (isAtBottom) {
-			scrollToBottom(feedRef.current, 'smooth');
+			scrollToBottom(feedRef.current, 'instant');
 			setUnreadCount(0);
 		} else {
 			setUnreadCount((current) => current + newEventCount);
@@ -483,6 +483,7 @@ export function IndividualChatFeed({
 				data-celestia-individual-viewer-pill=""
 				icon={<Avatar user={pinnedEvent.user} />}
 				closable
+				closeIcon={<span data-celestia-viewer-pill-dismiss="" />}
 				onClose={() => onPinnedEventChange?.(undefined)}
 			>
 				{toDisplayName(pinnedEvent.user)}
