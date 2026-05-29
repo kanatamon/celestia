@@ -42,61 +42,52 @@
 }
 
 .individualViewerPill {
-	position: absolute;
-	top: 8px;
-	right: 8px;
-	z-index: 3;
 	--celestia-avatar-size: 24px;
 	--celestia-avatar-font-size: 9px;
 
+	position: absolute !important;
+	top: 8px;
+	left: 50%;
+	z-index: 1;
+	transform: translateX(-50%);
+	max-width: calc(100% - 16px) !important;
+}
+
+.individualViewerPill:global(.ant-tag) {
 	display: inline-flex;
 	align-items: center;
-	max-width: calc(100% - 16px);
 	gap: 8px;
-	padding: 5px 6px 5px 5px;
+	padding: 5px 10px 5px 5px;
 	border: 1px solid rgba(255, 255, 255, 0.14);
 	border-radius: 999px;
 	background: rgba(18, 18, 22, 0.72);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 	backdrop-filter: blur(14px);
 	color: rgba(255, 255, 255, 0.9);
-}
-
-.individualViewerName {
-	min-width: 0;
-	overflow: hidden;
 	font-size: 12px;
 	font-weight: 800;
-	text-overflow: ellipsis;
+	line-height: 1;
 	white-space: nowrap;
 }
 
-.individualViewerDismiss {
+.individualViewerPill :global(.ant-tag-icon) {
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
-	width: 20px;
-	height: 20px;
-	flex: 0 0 auto;
-	padding: 0;
-	border: 0;
-	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.1);
-	color: rgba(255, 255, 255, 0.72);
-	cursor: pointer;
-	font: inherit;
-	font-size: 15px;
-	font-weight: 800;
-	line-height: 1;
+	margin-inline-end: 0;
 }
 
-.individualViewerDismiss:hover {
-	background: rgba(255, 255, 255, 0.18);
+.individualViewerPill :global(.ant-tag-close-icon) {
+	margin-inline-start: 0;
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 10px;
+}
+
+.individualViewerPill :global(.ant-tag-close-icon):hover {
 	color: rgba(255, 255, 255, 0.9);
 }
 
 .individualFeedScroll {
-	padding-top: 48px;
+	padding-top: 44px;
 }
 
 .individualEmptyState {

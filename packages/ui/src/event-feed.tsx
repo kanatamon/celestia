@@ -1,6 +1,14 @@
 import type { ChatLiveEvent, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
-import { FloatButton, Splitter, Tooltip } from 'antd';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FloatButton, Splitter, Tag, Tooltip } from 'antd';
+import {
+	type ReactNode,
+	type RefObject,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import styles from './event-feed.module.css';
 
 const HEART_ME_GIFT_NAME = 'Heart Me';
@@ -52,6 +60,15 @@ export interface IndividualChatFeedProps {
 	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
 }
 
+export interface ScrollableFeedListProps {
+	events: FeedLiveEvent[];
+	children: ReactNode;
+	className?: string;
+	initialScrollTarget?: 'bottom' | string;
+	scrollRef?: RefObject<HTMLDivElement | null>;
+	onScroll?: () => void;
+}
+
 export interface SplitFeedLayoutProps {
 	chatEvents: ChatLiveEvent[];
 	giftEvents: GiftLiveEvent[];
@@ -74,6 +91,116 @@ interface GiftImageProps {
 }
 
 export type FeedLiveEvent = ChatLiveEvent | GiftLiveEvent;
+
+export function ScrollableFeedList({
+	events,
+	children,
+	className,
+	initialScrollTarget = 'bottom',
+	scrollRef: externalScrollRef,
+	onScroll: onScrollProp,
+}: ScrollableFeedListProps) {
+	const internalRef = useRef<HTMLDivElement>(null);
+	const feedRef = externalScrollRef ?? internalRef;
+	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
+	const [isAtBottom, setIsAtBottom] = useState(true);
+	const [unreadCount, setUnreadCount] = useState(0);
+	const newMessagesLabel = `↓ ${unreadCount} new messages`;
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
+	useEffect(() => {
+		const feed = feedRef.current;
+
+		if (!feed) {
+			return;
+		}
+
+		if (initialScrollTarget === 'bottom') {
+			scrollToBottom(feed, 'instant');
+			return;
+		}
+
+		const target = feed.querySelector(`[data-feed-event-id="${initialScrollTarget}"]`);
+
+		if (target instanceof HTMLElement) {
+			const feedRect = feed.getBoundingClientRect();
+			const targetRect = target.getBoundingClientRect();
+			feed.scrollTop += targetRect.top - feedRect.top;
+		} else {
+			scrollToBottom(feed, 'instant');
+		}
+	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: feedRef is a ref, not reactive
+	useEffect(() => {
+		const previousEventIds = previousEventIdsRef.current;
+		const newEventCount = countNewEvents(events, previousEventIds);
+
+		previousEventIdsRef.current = getEventIds(events);
+
+		if (events.length === 0) {
+			setUnreadCount(0);
+			return;
+		}
+
+		if (isAtBottom) {
+			scrollToBottom(feedRef.current, 'smooth');
+			setUnreadCount(0);
+		} else {
+			setUnreadCount((current) => current + newEventCount);
+		}
+	}, [events, isAtBottom]);
+
+	const handleScroll = () => {
+		const nextIsAtBottom = isScrolledToBottom(feedRef.current);
+		setIsAtBottom(nextIsAtBottom);
+
+		if (nextIsAtBottom) {
+			setUnreadCount(0);
+		}
+
+		onScrollProp?.();
+	};
+
+	const handleNewMessagesClick = () => {
+		scrollToBottom(feedRef.current, 'instant');
+		setIsAtBottom(true);
+		setUnreadCount(0);
+	};
+
+	return (
+		<div className={styles.feedShell}>
+			<div
+				className={`${styles.feed}${className ? ` ${className}` : ''}`}
+				data-celestia-event-feed=""
+				onScroll={handleScroll}
+				ref={feedRef}
+			>
+				{children}
+			</div>
+			{unreadCount > 0 ? (
+				<FloatButton
+					className={styles.newMessagesButton}
+					description={newMessagesLabel}
+					onClick={handleNewMessagesClick}
+					shape="square"
+					styles={{
+						root: {
+							borderRadius: '100px',
+						},
+					}}
+					style={{
+						position: 'absolute',
+						insetInlineEnd: 'auto',
+						bottom: 14,
+						left: '50%',
+						transform: 'translateX(-50%)',
+					}}
+				/>
+			) : null}
+		</div>
+	);
+}
 
 export function ChatEventCard({
 	event,
@@ -220,14 +347,10 @@ export function EventFeed({
 }: EventFeedProps) {
 	const feedRef = useRef<HTMLDivElement>(null);
 	const rowRefs = useRef(new Map<string, HTMLButtonElement>());
-	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
-	const [isAtBottom, setIsAtBottom] = useState(true);
-	const [unreadCount, setUnreadCount] = useState(0);
 	const [uncontrolledPinnedEventId, setUncontrolledPinnedEventId] = useState<string | undefined>();
 	const [pinnedNaturalTop, setPinnedNaturalTop] = useState<number | undefined>();
 	const [pinnedStage, setPinnedStage] = useState<PinnedStage>('inline');
 	const pinnedEventId = controlledPinnedEventId ?? uncontrolledPinnedEventId;
-	const newMessagesLabel = `\u2193 ${unreadCount} new messages`;
 	const events = useMemo(
 		() => [...chatEvents, ...giftEvents].sort((first, second) => first.ts - second.ts),
 		[chatEvents, giftEvents],
@@ -239,25 +362,6 @@ export function EventFeed({
 		},
 		[onPinnedEventChange],
 	);
-
-	useEffect(() => {
-		const previousEventIds = previousEventIdsRef.current;
-		const newEventCount = countNewEvents(events, previousEventIds);
-
-		previousEventIdsRef.current = getEventIds(events);
-
-		if (events.length === 0) {
-			setUnreadCount(0);
-			return;
-		}
-
-		if (isAtBottom) {
-			scrollToBottom(feedRef.current, 'smooth');
-			setUnreadCount(0);
-		} else {
-			setUnreadCount((currentUnreadCount) => currentUnreadCount + newEventCount);
-		}
-	}, [events, isAtBottom]);
 
 	useEffect(() => {
 		if (pinnedEventId && !events.some((event) => event.id === pinnedEventId)) {
@@ -277,13 +381,6 @@ export function EventFeed({
 	}, [events, pinnedEventId, pinnedNaturalTop, updatePinnedEvent]);
 
 	const handleScroll = () => {
-		const nextIsAtBottom = isScrolledToBottom(feedRef.current);
-		setIsAtBottom(nextIsAtBottom);
-
-		if (nextIsAtBottom) {
-			setUnreadCount(0);
-		}
-
 		setPinnedStage(
 			getPinnedStage(
 				feedRef.current,
@@ -291,12 +388,6 @@ export function EventFeed({
 				pinnedNaturalTop,
 			),
 		);
-	};
-
-	const handleNewMessagesClick = () => {
-		scrollToBottom(feedRef.current, 'instant');
-		setIsAtBottom(true);
-		setUnreadCount(0);
 	};
 
 	const handleEventClick = (eventId: string) => {
@@ -331,49 +422,23 @@ export function EventFeed({
 	};
 
 	return (
-		<div className={styles.feedShell}>
-			<div
-				className={styles.feed}
-				data-celestia-event-feed=""
-				onScroll={handleScroll}
-				ref={feedRef}
-			>
-				{events.map((event) => (
-					<button
-						className={getCardRowClassName(event.id === pinnedEventId, pinnedStage)}
-						data-event-id={event.id}
-						data-pinned={event.id === pinnedEventId ? 'true' : undefined}
-						data-sticky-stage={event.id === pinnedEventId ? pinnedStage : undefined}
-						key={event.id}
-						onClick={() => handleEventClick(event.id)}
-						ref={setRowRef(event.id)}
-						type="button"
-					>
-						<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
-					</button>
-				))}
-			</div>
-			{unreadCount > 0 ? (
-				<FloatButton
-					className={styles.newMessagesButton}
-					description={newMessagesLabel}
-					onClick={handleNewMessagesClick}
-					shape="square"
-					styles={{
-						root: {
-							borderRadius: '100px',
-						},
-					}}
-					style={{
-						position: 'absolute',
-						insetInlineEnd: 'auto',
-						bottom: 14,
-						left: '50%',
-						transform: 'translateX(-50%)',
-					}}
-				/>
-			) : null}
-		</div>
+		<ScrollableFeedList events={events} scrollRef={feedRef} onScroll={handleScroll}>
+			{events.map((event) => (
+				<button
+					className={getCardRowClassName(event.id === pinnedEventId, pinnedStage)}
+					data-event-id={event.id}
+					data-feed-event-id={event.id}
+					data-pinned={event.id === pinnedEventId ? 'true' : undefined}
+					data-sticky-stage={event.id === pinnedEventId ? pinnedStage : undefined}
+					key={event.id}
+					onClick={() => handleEventClick(event.id)}
+					ref={setRowRef(event.id)}
+					type="button"
+				>
+					<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
+				</button>
+			))}
+		</ScrollableFeedList>
 	);
 }
 
@@ -413,29 +478,32 @@ export function IndividualChatFeed({
 			className={styles.individualFeed}
 			data-celestia-individual-chat-feed=""
 		>
-			<div className={styles.individualViewerPill} data-celestia-individual-viewer-pill="">
-				<Avatar user={pinnedEvent.user} />
-				<span className={styles.individualViewerName}>{toDisplayName(pinnedEvent.user)}</span>
-				<button
-					aria-label="Dismiss pinned viewer"
-					className={styles.individualViewerDismiss}
-					onClick={() => onPinnedEventChange?.(undefined)}
-					type="button"
-				>
-					×
-				</button>
-			</div>
-			<div className={`${styles.feed} ${styles.individualFeedScroll}`}>
+			<Tag
+				className={styles.individualViewerPill}
+				data-celestia-individual-viewer-pill=""
+				icon={<Avatar user={pinnedEvent.user} />}
+				closable
+				onClose={() => onPinnedEventChange?.(undefined)}
+			>
+				{toDisplayName(pinnedEvent.user)}
+			</Tag>
+			<ScrollableFeedList
+				key={pinnedEvent.user?.userId}
+				events={events}
+				initialScrollTarget={pinnedEvent.id}
+				className={styles.individualFeedScroll}
+			>
 				{events.map((event) => (
 					<div
 						className={getIndividualEventRowClassName(event.id === pinnedEvent.id)}
 						data-individual-event-id={event.id}
+						data-feed-event-id={event.id}
 						key={event.id}
 					>
 						<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
 					</div>
 				))}
-			</div>
+			</ScrollableFeedList>
 		</section>
 	);
 }
