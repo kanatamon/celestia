@@ -134,7 +134,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 					name: 'implementer',
 					maxIterations: 100,
 					agent: sandcastle.codex('gpt-5.5', {
-						effort: 'low',
+						effort: 'high',
 					}),
 					promptFile: './.sandcastle/implement-prompt.md',
 					promptArgs: {
@@ -150,7 +150,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 						name: 'reviewer',
 						maxIterations: 1,
 						agent: sandcastle.codex('gpt-5.5', {
-							effort: 'low',
+							effort: 'xhigh',
 						}),
 						promptFile: './.sandcastle/review-prompt.md',
 						promptArgs: {
@@ -217,7 +217,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 		name: 'merger',
 		maxIterations: 1,
 		agent: sandcastle.codex('gpt-5.5', {
-			effort: 'low',
+			effort: 'high',
 		}),
 		promptFile: './.sandcastle/merge-prompt.md',
 		promptArgs: {
