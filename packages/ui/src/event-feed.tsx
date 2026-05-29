@@ -1,3 +1,4 @@
+import { CloseOutlined } from '@ant-design/icons';
 import type { ChatLiveEvent, EmoteInfo, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
 import { FloatButton, Splitter, Tag, Tooltip } from 'antd';
 import {
@@ -484,7 +485,11 @@ export function IndividualChatFeed({
 				data-celestia-individual-viewer-pill=""
 				icon={<Avatar user={pinnedEvent.user} />}
 				closable
-				closeIcon={<span data-celestia-viewer-pill-dismiss="" />}
+				closeIcon={
+					<span data-celestia-viewer-pill-dismiss="">
+						<CloseOutlined />
+					</span>
+				}
 				onClose={() => onPinnedEventChange?.(undefined)}
 			>
 				{toDisplayName(pinnedEvent.user)}

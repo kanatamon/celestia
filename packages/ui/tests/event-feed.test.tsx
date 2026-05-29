@@ -526,6 +526,7 @@ describe('IndividualChatFeed', () => {
 
 		const dismissButton = container.querySelector('[data-celestia-viewer-pill-dismiss]');
 		expect(dismissButton).toBeInstanceOf(HTMLElement);
+		expect(dismissButton?.querySelector('svg')).toBeInstanceOf(SVGElement);
 
 		await act(async () => {
 			dismissButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
