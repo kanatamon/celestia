@@ -1,4 +1,4 @@
-import { HeartFilled, UserOutlined } from '@ant-design/icons';
+import { EyeOutlined, HeartFilled, SettingOutlined } from '@ant-design/icons';
 import type { ConnectionState } from '@celestia/tiktok-live-core';
 import styles from './status-bar.module.css';
 
@@ -8,6 +8,8 @@ export interface StatusBarProps {
 	likeCount: number;
 	username?: string | null;
 	onOpenUsernameInput?: () => void;
+	onOpenSettings?: () => void;
+	isSettingsOpen?: boolean;
 }
 
 type BadgeKind = 'discovering' | 'connected' | 'offline' | 'reconnecting' | 'ended';
@@ -17,12 +19,19 @@ interface BadgeViewModel {
 	kind: BadgeKind;
 }
 
+interface SettingsButtonProps {
+	isOpen: boolean;
+	onOpen?: () => void;
+}
+
 export function StatusBar({
 	connectionState,
 	viewerCount,
 	likeCount,
 	username,
 	onOpenUsernameInput,
+	onOpenSettings,
+	isSettingsOpen = false,
 }: StatusBarProps) {
 	if (connectionState.status === 'idle') {
 		return (
@@ -30,6 +39,7 @@ export function StatusBar({
 				<button className={styles.openButton} type="button" onClick={onOpenUsernameInput}>
 					Open Live
 				</button>
+				<SettingsButton isOpen={isSettingsOpen} onOpen={onOpenSettings} />
 			</div>
 		);
 	}
@@ -39,21 +49,40 @@ export function StatusBar({
 
 	return (
 		<div className={styles.statusBar} role="status">
-			<div className={styles.metricGroup}>
+			<div className={styles.statusCluster} data-celestia-status-cluster>
 				<span className={styles.metric}>
-					<UserOutlined aria-hidden="true" />
+					<EyeOutlined aria-hidden="true" />
 					{viewerCount.toLocaleString()}
 				</span>
 				<span className={styles.metric}>
 					<HeartFilled aria-hidden="true" />
 					{likeCount.toLocaleString()}
 				</span>
-			</div>
-			<div className={styles.identityGroup}>
 				<span className={styles.username}>@{displayUsername}</span>
 				{badge ? <ConnectionBadge badge={badge} /> : null}
 			</div>
+			<SettingsButton isOpen={isSettingsOpen} onOpen={onOpenSettings} />
 		</div>
+	);
+}
+
+function SettingsButton({ isOpen, onOpen }: SettingsButtonProps) {
+	const classNames = joinClassNames(
+		styles.settingsButton,
+		isOpen ? styles.settingsButtonActive : undefined,
+	);
+
+	return (
+		<button
+			aria-label="Open settings"
+			aria-pressed={isOpen}
+			className={classNames}
+			data-celestia-status-settings
+			type="button"
+			onClick={onOpen}
+		>
+			<SettingOutlined aria-hidden="true" />
+		</button>
 	);
 }
 
@@ -80,6 +109,10 @@ function ConnectionBadge({ badge }: { badge: BadgeViewModel }) {
 			<span className={styles.label}>{badge.label}</span>
 		</span>
 	);
+}
+
+function joinClassNames(...classNames: Array<string | undefined>): string {
+	return classNames.filter((className): className is string => Boolean(className)).join(' ');
 }
 
 function toBadgeViewModel(state: ConnectionState): BadgeViewModel | undefined {

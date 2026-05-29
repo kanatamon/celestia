@@ -23,6 +23,15 @@ declare global {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+// JSDOM doesn't implement HTMLElement.scrollTo, which the shared feed uses.
+if (!HTMLElement.prototype.scrollTo) {
+	HTMLElement.prototype.scrollTo = function (options?: ScrollToOptions | number) {
+		if (typeof options === 'object' && options?.top !== undefined) {
+			this.scrollTop = options.top;
+		}
+	};
+}
+
 type DevToolsTestWindow = Window & {
 	__CELESTIA__?: CelestiaDevToolsNamespace;
 	__CELESTIA_EXPORT_LIVE_TRACE__?: unknown;
