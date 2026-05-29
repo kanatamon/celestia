@@ -82,7 +82,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 		maxIterations: 1,
 		// Opus for planning: dependency analysis benefits from deeper reasoning.
 		agent: sandcastle.codex('gpt-5.5', {
-			effort: 'high',
+			effort: 'xhigh',
 		}),
 		promptFile: './.sandcastle/plan-prompt.md',
 	});
@@ -134,7 +134,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 					name: 'implementer',
 					maxIterations: 100,
 					agent: sandcastle.codex('gpt-5.5', {
-						effort: 'high',
+						effort: 'low',
 					}),
 					promptFile: './.sandcastle/implement-prompt.md',
 					promptArgs: {
@@ -217,7 +217,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 		name: 'merger',
 		maxIterations: 1,
 		agent: sandcastle.codex('gpt-5.5', {
-			effort: 'high',
+			effort: 'medium',
 		}),
 		promptFile: './.sandcastle/merge-prompt.md',
 		promptArgs: {
