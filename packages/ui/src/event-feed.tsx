@@ -278,9 +278,11 @@ export function ChatEventCard({
 					</span>
 				</div>
 				<div className={styles.chatContent}>
-					<div className={styles.messageBubble}>
+					<div className={styles.messageBubbleWrapper}>
 						<ChatBubbleTail />
-						{renderMessageText(event.text, event.emotes)}
+						<div className={styles.messageBubble}>
+							{renderMessageText(event.text, event.emotes)}
+						</div>
 					</div>
 					<EventTimestamp ts={event.ts} now={now} />
 				</div>

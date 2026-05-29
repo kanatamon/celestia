@@ -319,12 +319,17 @@
 	min-width: 0;
 }
 
-.messageBubble {
+.messageBubbleWrapper {
 	--bubble-bg: rgba(0, 0, 0, 0.5);
 
 	position: relative;
 	width: fit-content;
 	max-width: 100%;
+}
+
+.messageBubble {
+	position: relative;
+	z-index: 1;
 	padding: 6px 8px;
 	border-radius: 12px;
 	background: var(--bubble-bg);
@@ -339,6 +344,7 @@
 	position: absolute;
 	top: 0;
 	left: -6px;
+	z-index: 0;
 }
 
 .bubbleTail path {
