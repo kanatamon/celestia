@@ -606,15 +606,13 @@ export function SplitFeedLayout({
 	);
 }
 
-function FeedEventCard({
-	event,
-	now,
-	userGiftEventsByUser,
-}: {
+export interface FeedEventCardProps {
 	event: FeedLiveEvent;
 	now: number;
 	userGiftEventsByUser: Map<string, GiftLiveEvent[]>;
-}) {
+}
+
+export function FeedEventCard({ event, now, userGiftEventsByUser }: FeedEventCardProps) {
 	const userGiftEvents = getUserGiftEvents(userGiftEventsByUser, event.user);
 
 	switch (event.type) {
