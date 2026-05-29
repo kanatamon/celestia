@@ -1,4 +1,4 @@
-import type { ChatLiveEvent, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
+import type { ChatLiveEvent, EmoteInfo, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
 import { FloatButton, Splitter, Tag, Tooltip } from 'antd';
 import {
 	type ReactNode,
@@ -10,6 +10,7 @@ import {
 	useState,
 } from 'react';
 import styles from './event-feed.module.css';
+import { TIKTOK_EMOJIS } from './tiktok-emojis.js';
 
 const HEART_ME_GIFT_NAME = 'Heart Me';
 const DEFAULT_GIFT_NAME = 'Gift';
@@ -278,7 +279,7 @@ export function ChatEventCard({
 				<div className={styles.chatContent}>
 					<div className={styles.messageBubble}>
 						<ChatBubbleTail />
-						{renderMessageText(event.text)}
+						{renderMessageText(event.text, event.emotes)}
 					</div>
 					<EventTimestamp ts={event.ts} now={now} />
 				</div>
@@ -813,36 +814,98 @@ function formatGiftDiamondTooltip(
 	return `${totalDiamonds.toLocaleString()} diamonds (${diamondsPerGift.toLocaleString()} each)`;
 }
 
-function renderMessageText(text: string) {
-	const parts: Array<string | { key: string; value: string }> = [];
-	const mentionPattern = /@[\w.-]+/g;
-	let lastIndex = 0;
+type TextPart =
+	| { kind: 'text'; value: string; start: number }
+	| { kind: 'mention'; value: string; start: number }
+	| { kind: 'emote'; name: string; src: string; start: number };
 
-	for (const match of text.matchAll(mentionPattern)) {
-		const mention = match[0];
-		const index = match.index;
+type Splice =
+	| { kind: 'mention'; start: number; end: number; value: string }
+	| { kind: 'emote'; start: number; end: number; name: string; src: string };
 
-		if (index > lastIndex) {
-			parts.push(text.slice(lastIndex, index));
+function renderMessageText(text: string, emotes?: EmoteInfo[]) {
+	return buildParts(text, emotes).map((part) => {
+		if (part.kind === 'mention') {
+			return (
+				<span className={styles.mention} key={`m${part.start}`}>
+					{part.value}
+				</span>
+			);
 		}
+		if (part.kind === 'emote') {
+			return (
+				<img
+					key={`e${part.start}`}
+					className={styles.emote}
+					src={part.src}
+					alt={`[${part.name}]`}
+				/>
+			);
+		}
+		return part.value;
+	});
+}
 
-		parts.push({ key: `${mention}-${index}`, value: mention });
-		lastIndex = index + mention.length;
+function buildParts(text: string, emotes?: EmoteInfo[]): TextPart[] {
+	const splices: Splice[] = [];
+
+	for (const match of text.matchAll(/@[\w.-]+/g)) {
+		splices.push({
+			kind: 'mention',
+			start: match.index,
+			end: match.index + match[0].length,
+			value: match[0],
+		});
 	}
 
-	if (lastIndex < text.length) {
-		parts.push(text.slice(lastIndex));
+	for (const match of text.matchAll(/\[(\w+)\]/g)) {
+		const name = match[1]!;
+		const src = TIKTOK_EMOJIS[name];
+		if (src) {
+			splices.push({
+				kind: 'emote',
+				start: match.index,
+				end: match.index + match[0].length,
+				name,
+				src,
+			});
+		}
 	}
 
-	return parts.map((part) =>
-		typeof part === 'string' ? (
-			part
-		) : (
-			<span className={styles.mention} key={part.key}>
-				{part.value}
-			</span>
-		),
-	);
+	if (emotes) {
+		for (const emote of emotes) {
+			const pos = emote.placeInComment;
+			if (pos === undefined || pos < 0 || pos >= text.length) continue;
+			if (text[pos] !== ' ') continue;
+			const src = TIKTOK_EMOJIS[emote.emoteId] || emote.imageUrl || '';
+			if (!src) continue;
+			splices.push({ kind: 'emote', start: pos, end: pos + 1, name: emote.emoteId, src });
+		}
+	}
+
+	splices.sort((a, b) => a.start - b.start);
+
+	const parts: TextPart[] = [];
+	let cursor = 0;
+
+	for (const splice of splices) {
+		if (splice.start < cursor) continue;
+		if (splice.start > cursor) {
+			parts.push({ kind: 'text', value: text.slice(cursor, splice.start), start: cursor });
+		}
+		parts.push(
+			splice.kind === 'mention'
+				? { kind: 'mention', value: splice.value, start: splice.start }
+				: { kind: 'emote', name: splice.name, src: splice.src, start: splice.start },
+		);
+		cursor = splice.end;
+	}
+
+	if (cursor < text.length) {
+		parts.push({ kind: 'text', value: text.slice(cursor), start: cursor });
+	}
+
+	return parts;
 }
 
 function getUserGiftEvents(
