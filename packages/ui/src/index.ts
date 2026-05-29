@@ -36,3 +36,4 @@ export {
 	celestiaSemanticTokens,
 	celestiaThemeConfig,
 } from './theme.js';
+export { useSoundEffects } from './use-sound-effects.js';

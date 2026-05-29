@@ -5,6 +5,7 @@ import type {
 	TikTokLiveProvider,
 	Unsubscribe,
 } from '@celestia/tiktok-live-core';
+import { soundManager } from '@celestia/ui';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
@@ -387,6 +388,7 @@ describe('Chrome extension scaffold', () => {
 	it('attaches the Provider for TikTok Live tabs, dispatches events to the store, and detaches on unmount', async () => {
 		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@celestia/live');
 		const provider = new FakeProvider();
+		const playSound = vi.spyOn(soundManager, 'play').mockImplementation(() => {});
 		const container = document.createElement('div');
 		const root = createRoot(container);
 
@@ -426,6 +428,18 @@ describe('Chrome extension scaffold', () => {
 				},
 			});
 			provider.emitEvent({
+				id: 'chat-1',
+				ts: Date.now(),
+				type: 'chat',
+				source: 'test',
+				text: 'hello',
+				user: {
+					userId: 'viewer-1',
+					uniqueId: 'viewer.one',
+					nickname: 'Viewer One',
+				},
+			});
+			provider.emitEvent({
 				id: 'gift-1',
 				ts: Date.now(),
 				type: 'gift',
@@ -440,6 +454,9 @@ describe('Chrome extension scaffold', () => {
 		expect(container.textContent).toContain('1,234');
 		expect(container.textContent).toContain('5,678');
 		expect(container.textContent).toContain('Viewer One joined');
+		expect(playSound).toHaveBeenCalledTimes(2);
+		expect(playSound).toHaveBeenNthCalledWith(1, 'chat');
+		expect(playSound).toHaveBeenNthCalledWith(2, 'gift');
 
 		await act(async () => {
 			container

@@ -7,8 +7,8 @@ import type {
 	ProviderLog,
 	TikTokLiveProvider,
 } from '@celestia/tiktok-live-core';
-import { ActivitySwitcher, SplitFeedLayout, StatusBar } from '@celestia/ui';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { ActivitySwitcher, SplitFeedLayout, StatusBar, useSoundEffects } from '@celestia/ui';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveEventStore } from './live-event-store.js';
 import styles from './side-panel.module.css';
 
@@ -391,6 +391,12 @@ function LiveFeed({
 	const giftEvents = useLiveEventStore((state) => state.giftEvents);
 	const memberEvents = useLiveEventStore((state) => state.memberEvents);
 	const userGiftEvents = useLiveEventStore((state) => state.userGiftEvents);
+	const soundEffectEvents = useMemo(
+		() => [...chatEvents, ...giftEvents].sort((a, b) => a.ts - b.ts),
+		[chatEvents, giftEvents],
+	);
+
+	useSoundEffects(soundEffectEvents);
 
 	useEffect(() => {
 		let provider: AttachableTikTokLiveProvider;

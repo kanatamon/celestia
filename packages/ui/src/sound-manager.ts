@@ -86,7 +86,7 @@ class BrowserSoundManager implements SoundManager {
 			// Some browser media elements are not seekable until metadata has loaded.
 		}
 
-		void audio.play().catch(() => undefined);
+		void audio.play()?.catch(() => undefined);
 	}
 }
 
