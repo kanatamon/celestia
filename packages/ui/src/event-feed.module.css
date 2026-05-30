@@ -484,10 +484,10 @@
 	min-width: 0;
 	padding: 9px 12px 10px;
 	border: 0;
-	border-top: 1px solid rgba(140, 80, 255, 0.4);
-	background: linear-gradient(to right, rgba(40, 10, 80, 0.88), rgba(10, 40, 70, 0.88));
+	border-top: 1px solid rgba(236, 72, 153, 0.45);
+	background: linear-gradient(to right, rgba(20, 12, 32, 0.94), rgba(10, 24, 40, 0.94));
 	backdrop-filter: blur(14px);
-	box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.34);
+	box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.42);
 	color: var(--ant-color-text-base);
 	cursor: pointer;
 	font: inherit;
@@ -495,7 +495,7 @@
 }
 
 .newMessagesBar:hover {
-	background: linear-gradient(to right, rgba(50, 16, 96, 0.9), rgba(12, 48, 84, 0.9));
+	background: linear-gradient(to right, rgba(28, 16, 44, 0.96), rgba(14, 32, 54, 0.96));
 }
 
 .newMessagesTopRow,
@@ -519,11 +519,11 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 22px;
 	height: 22px;
-	flex: 0 0 22px;
-	border-radius: 50%;
-	background: linear-gradient(135deg, #8040ff, #0090e0);
+	flex: 0 0 auto;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: linear-gradient(135deg, #ec4899, #8b5cf6);
 	color: #fff;
 	font-size: 12px;
 	font-weight: 900;
@@ -531,7 +531,7 @@
 }
 
 .newMessagesLabel {
-	color: #b880ff;
+	color: #f5b8da;
 	font-size: 12px;
 	font-weight: 800;
 	line-height: 1;
@@ -540,8 +540,8 @@
 
 .newMessagesHint {
 	flex: 0 0 auto;
-	color: #4a4a78;
-	font-size: 11px;
+	color: #7fd6e8;
+	font-size: 12px;
 	font-weight: 800;
 	line-height: 1;
 	white-space: nowrap;
@@ -559,7 +559,7 @@
 	flex: 0 1 auto;
 	min-width: 0;
 	overflow: hidden;
-	color: #c090ff;
+	color: #67e8f9;
 	font-weight: 900;
 	text-overflow: ellipsis;
 }
@@ -568,7 +568,7 @@
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow: hidden;
-	color: #5060a0;
+	color: #d6dae8;
 	font-weight: 700;
 	text-overflow: ellipsis;
 }
