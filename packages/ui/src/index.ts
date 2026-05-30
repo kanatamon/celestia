@@ -22,8 +22,14 @@ export {
 export { CelestiaProvider } from './provider.js';
 export type { SettingsPopoverProps } from './settings-popover.js';
 export { SettingsPopover } from './settings-popover.js';
-export type { Channel, SoundManager, VolumeKey } from './sound-manager.js';
-export { soundManager } from './sound-manager.js';
+export type {
+	Channel,
+	CreateSoundManagerOptions,
+	SoundManager,
+	SoundManagerStorage,
+	VolumeKey,
+} from './sound-manager.js';
+export { configureSoundManagerStorage, createSoundManager, soundManager } from './sound-manager.js';
 export type { StatusBarProps } from './status-bar.js';
 export { StatusBar } from './status-bar.js';
 export type {

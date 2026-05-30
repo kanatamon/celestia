@@ -17,6 +17,7 @@ import {
 	SidePanel,
 	type TabObserver,
 } from '../src/side-panel/side-panel.js';
+import { userPreferences } from '../src/user-preferences/user-preferences.js';
 
 declare global {
 	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -39,9 +40,9 @@ type DevToolsTestWindow = Window & {
 };
 
 describe('Chrome extension scaffold', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		resetLiveEventStore();
-		window.localStorage.clear();
+		await userPreferences.setTraceModeEnabled(false);
 		delete (window as DevToolsTestWindow).__CELESTIA__;
 		delete (window as DevToolsTestWindow).__CELESTIA_EXPORT_LIVE_TRACE__;
 		vi.restoreAllMocks();
@@ -107,7 +108,7 @@ describe('Chrome extension scaffold', () => {
 	});
 
 	it('prints the boot banner with trace ON and exports through window.__CELESTIA__', async () => {
-		window.localStorage.setItem('celestia.trace', '1');
+		await userPreferences.setTraceModeEnabled(true);
 		const info = vi.spyOn(console, 'info').mockImplementation(() => {});
 		const tabObserver = new FakeTabObserver('https://www.tiktok.com/@celestia/live');
 		const provider = new FakeProvider();
@@ -146,7 +147,7 @@ describe('Chrome extension scaffold', () => {
 		await expect(getCelestiaNamespace().exportTrace()).resolves.toBeUndefined();
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('Trace mode is OFF'));
 
-		window.localStorage.setItem('celestia.trace', '1');
+		await userPreferences.setTraceModeEnabled(true);
 
 		await expect(getCelestiaNamespace().exportTrace()).resolves.toBeUndefined();
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('Connect to a Live Session first'));
@@ -171,18 +172,18 @@ describe('Chrome extension scaffold', () => {
 
 		await vi.advanceTimersByTimeAsync(3000);
 
-		expect(window.localStorage.getItem('celestia.trace')).toBeNull();
+		await expect(userPreferences.isTraceModeEnabled()).resolves.toBe(false);
 		expect(info).toHaveBeenCalledWith('[Celestia Debug Tools] Pending trace reload canceled.');
 
 		getCelestiaNamespace().enableTrace();
 		await vi.advanceTimersByTimeAsync(3000);
 
-		expect(window.localStorage.getItem('celestia.trace')).toBe('1');
+		await expect(userPreferences.isTraceModeEnabled()).resolves.toBe(true);
 
 		getCelestiaNamespace().disableTrace();
 		await vi.advanceTimersByTimeAsync(3000);
 
-		expect(window.localStorage.getItem('celestia.trace')).toBeNull();
+		await expect(userPreferences.isTraceModeEnabled()).resolves.toBe(false);
 
 		await act(async () => {
 			root.unmount();

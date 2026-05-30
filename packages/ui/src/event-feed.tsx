@@ -18,7 +18,7 @@ const DEFAULT_GIFT_NAME = 'Gift';
 const GIFT_REPEAT_MARK = '\u00d7';
 const MIN_VISIBLE_GIFT_CHIPS = 2;
 const ESTIMATED_GIFT_CHIP_WIDTH = 72;
-const SCROLL_BOTTOM_THRESHOLD = 150;
+const SCROLL_BOTTOM_THRESHOLD = 100;
 const INDIVIDUAL_FEED_MIN_WIDTH = 240;
 const MAIN_FEED_MIN_WIDTH = 320;
 const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
@@ -610,7 +610,9 @@ export function IndividualChatFeed({
 					</span>
 				}
 				onClose={() => onPinnedEventChange?.(undefined)}
-			/>
+			>
+				{toDisplayName(pinnedEvent.user)}
+			</Tag>
 			<ScrollableFeedList
 				key={pinnedEvent.user?.userId}
 				events={events}

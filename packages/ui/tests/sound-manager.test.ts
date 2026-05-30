@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { soundManager } from '../src/index.js';
+import {
+	configureSoundManagerStorage,
+	createSoundManager,
+	soundManager,
+	type VolumeKey,
+} from '../src/index.js';
 
 class MockAudio {
 	static instances: MockAudio[] = [];
@@ -19,14 +24,13 @@ describe('soundManager', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(1_000);
 		vi.stubGlobal('Audio', MockAudio);
-		localStorage.clear();
+		configureSoundManagerStorage(createTestSoundManagerStorage());
 		MockAudio.instances = [];
 	});
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
 		vi.useRealTimers();
-		localStorage.clear();
 	});
 
 	it('deduplicates play calls by channel cooldown and applies persisted volume scaling', () => {
@@ -38,9 +42,6 @@ describe('soundManager', () => {
 		soundManager.setVolume('chat', 25);
 		soundManager.setVolume('gift', 75);
 
-		expect(localStorage.getItem('celestia:volume:master')).toBe('40');
-		expect(localStorage.getItem('celestia:volume:chat')).toBe('25');
-		expect(localStorage.getItem('celestia:volume:gift')).toBe('75');
 		expect(soundManager.getVolume('master')).toBe(40);
 		expect(soundManager.getVolume('chat')).toBe(25);
 		expect(soundManager.getVolume('gift')).toBe(75);
@@ -75,4 +76,46 @@ describe('soundManager', () => {
 		soundManager.preview('gift');
 		expect(giftAudio?.play).toHaveBeenCalledTimes(3);
 	});
+
+	it('round-trips volumes through injected storage and returns defaults when storage is empty', () => {
+		const storedVolumes = new Map<VolumeKey, number>();
+		const manager = createSoundManager({
+			storage: {
+				getVolume: (key) => storedVolumes.get(key),
+				setVolume: (key, value) => {
+					storedVolumes.set(key, value);
+				},
+			},
+		});
+
+		expect(manager.getVolume('master')).toBe(100);
+		expect(manager.getVolume('chat')).toBe(30);
+		expect(manager.getVolume('gift')).toBe(50);
+
+		manager.setVolume('master', 40);
+		manager.setVolume('chat', 25);
+		manager.setVolume('gift', 75);
+
+		expect(storedVolumes).toEqual(
+			new Map<VolumeKey, number>([
+				['master', 40],
+				['chat', 25],
+				['gift', 75],
+			]),
+		);
+		expect(manager.getVolume('master')).toBe(40);
+		expect(manager.getVolume('chat')).toBe(25);
+		expect(manager.getVolume('gift')).toBe(75);
+	});
 });
+
+function createTestSoundManagerStorage() {
+	const storedVolumes = new Map<VolumeKey, number>();
+
+	return {
+		getVolume: (key: VolumeKey) => storedVolumes.get(key),
+		setVolume: (key: VolumeKey, value: number) => {
+			storedVolumes.set(key, value);
+		},
+	};
+}

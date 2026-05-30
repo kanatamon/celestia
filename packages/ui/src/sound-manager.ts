@@ -8,6 +8,15 @@ export interface SoundManager {
 	getVolume(key: VolumeKey): number;
 }
 
+export interface SoundManagerStorage {
+	getVolume(key: VolumeKey): number | null | undefined;
+	setVolume(key: VolumeKey, value: number): void | Promise<void>;
+}
+
+export interface CreateSoundManagerOptions {
+	storage?: SoundManagerStorage;
+}
+
 const cooldownMs = 300;
 const audioSources: Record<Channel, string> = {
 	chat: '/sfx-chat.mp3',
@@ -22,6 +31,15 @@ const defaultVolumes: Record<VolumeKey, number> = {
 class BrowserSoundManager implements SoundManager {
 	readonly #audioByChannel = new Map<Channel, HTMLAudioElement>();
 	readonly #lastPlayedAt = new Map<Channel, number>();
+	#storage: SoundManagerStorage;
+
+	constructor({ storage = createMemorySoundManagerStorage() }: CreateSoundManagerOptions = {}) {
+		this.#storage = storage;
+	}
+
+	setStorage(storage: SoundManagerStorage): void {
+		this.#storage = storage;
+	}
 
 	play(channel: Channel): void {
 		const now = Date.now();
@@ -40,11 +58,11 @@ class BrowserSoundManager implements SoundManager {
 	}
 
 	setVolume(key: VolumeKey, value: number): void {
-		globalThis.localStorage?.setItem(storageKey(key), String(normalizeVolume(value)));
+		void this.#storage.setVolume(key, normalizeVolume(value));
 	}
 
 	getVolume(key: VolumeKey): number {
-		const storedValue = globalThis.localStorage?.getItem(storageKey(key));
+		const storedValue = this.#storage.getVolume(key);
 		const parsedValue =
 			storedValue === null || storedValue === undefined ? NaN : Number(storedValue);
 
@@ -90,10 +108,6 @@ class BrowserSoundManager implements SoundManager {
 	}
 }
 
-function storageKey(key: VolumeKey): string {
-	return `celestia:volume:${key}`;
-}
-
 function normalizeVolume(value: number): number {
 	if (!Number.isFinite(value)) {
 		return 0;
@@ -102,4 +116,25 @@ function normalizeVolume(value: number): number {
 	return Math.min(100, Math.max(0, value));
 }
 
-export const soundManager: SoundManager = new BrowserSoundManager();
+function createMemorySoundManagerStorage(): SoundManagerStorage {
+	const volumes = new Map<VolumeKey, number>();
+
+	return {
+		getVolume: (key) => volumes.get(key),
+		setVolume: (key, value) => {
+			volumes.set(key, value);
+		},
+	};
+}
+
+export function createSoundManager(options: CreateSoundManagerOptions = {}): SoundManager {
+	return new BrowserSoundManager(options);
+}
+
+const defaultSoundManager = new BrowserSoundManager();
+
+export function configureSoundManagerStorage(storage: SoundManagerStorage): void {
+	defaultSoundManager.setStorage(storage);
+}
+
+export const soundManager: SoundManager = defaultSoundManager;

@@ -9,6 +9,7 @@ import type {
 } from '@celestia/tiktok-live-core';
 import { ActivitySwitcher, SplitFeedLayout, StatusBar, useSoundEffects } from '@celestia/ui';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { userPreferences } from '../user-preferences/user-preferences.js';
 import { useLiveEventStore } from './live-event-store.js';
 import styles from './side-panel.module.css';
 
@@ -96,7 +97,6 @@ let pendingTraceCountdown: number | undefined;
 
 type TraceReloadAction = 'enable' | 'disable';
 
-const TRACE_STORAGE_KEY = 'celestia.trace';
 const TRACE_RELOAD_DELAY_MS = 3000;
 const TRACE_RELOAD_COUNTDOWN_SECONDS = TRACE_RELOAD_DELAY_MS / 1000;
 const LEGACY_TRACE_EXPORT_NAME = '__CELESTIA_EXPORT_LIVE_TRACE__';
@@ -649,27 +649,16 @@ function clearPendingTraceReload(): void {
 
 function isTraceModeEnabled(): boolean {
 	const params = new URLSearchParams(window.location.search);
-	return (
-		params.get('celestiaTrace') === '1' || window.localStorage.getItem(TRACE_STORAGE_KEY) === '1'
-	);
+	return params.get('celestiaTrace') === '1' || userPreferences.getCachedTraceModeEnabled();
 }
 
 function setTraceModeEnabled(enabled: boolean): void {
-	if (enabled) {
-		window.localStorage.setItem(TRACE_STORAGE_KEY, '1');
-		return;
-	}
-
-	window.localStorage.removeItem(TRACE_STORAGE_KEY);
+	void userPreferences.setTraceModeEnabled(enabled);
 }
 
 function isDiagnosticsModeEnabled(traceEnabled = isTraceModeEnabled()): boolean {
 	const params = new URLSearchParams(window.location.search);
-	return (
-		traceEnabled ||
-		params.get('celestiaDiagnostics') === '1' ||
-		window.localStorage.getItem('celestia.diagnostics') === '1'
-	);
+	return traceEnabled || params.get('celestiaDiagnostics') === '1';
 }
 
 function getExtensionVersion(): string {
