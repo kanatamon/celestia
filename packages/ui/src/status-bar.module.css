@@ -58,38 +58,29 @@
 	animation: polarGlint 2.8s ease-in-out infinite;
 }
 
-.badge {
-	position: relative;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
+.separator {
 	flex: 0 0 auto;
-	min-height: 24px;
-	padding: 3px 9px;
-	overflow: hidden;
-	border: 1px solid var(--signal-border);
-	border-radius: 999px;
-	background: var(--signal-bg);
-	color: var(--signal-text);
-	font-size: 12px;
-	font-weight: 700;
-	line-height: 1;
-	box-shadow:
-		0 0 15px var(--signal-soft),
-		inset 0 0 10px rgba(255, 255, 255, 0.06);
-	animation: statusBreathe 2.2s ease-in-out infinite;
+	width: 1px;
+	height: 14px;
+	background: rgba(255, 255, 255, 0.22);
 }
 
 .signalBars {
+	display: inline-flex;
+	align-items: flex-end;
+	gap: 2px;
+	flex: 0 0 auto;
 	--signal: #5eead4;
 	--signal-soft: rgba(94, 234, 212, 0.34);
 	--signal-bg: rgba(20, 184, 166, 0.13);
 	--signal-border: rgba(45, 212, 191, 0.42);
 	--signal-text: #ecfeff;
 	--bar-speed: 1s;
+	width: 13px;
+	height: 10px;
 }
 
-.badgeDiscovering {
+.signalDiscovering {
 	--signal: #93c5fd;
 	--signal-soft: rgba(147, 197, 253, 0.32);
 	--signal-bg: rgba(37, 99, 235, 0.14);
@@ -98,16 +89,7 @@
 	--bar-speed: 0.86s;
 }
 
-.badgeDiscovering::before {
-	position: absolute;
-	inset: -2px;
-	content: "";
-	background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 45%, transparent 90%);
-	transform: translateX(-120%);
-	animation: signalScan 1.8s linear infinite;
-}
-
-.badgeConnected {
+.signalConnected {
 	--signal: #5eead4;
 	--signal-soft: rgba(94, 234, 212, 0.34);
 	--signal-bg: rgba(20, 184, 166, 0.13);
@@ -116,25 +98,7 @@
 	--bar-speed: 1s;
 }
 
-.badgeConnected::after {
-	position: absolute;
-	inset: -8px;
-	content: "";
-	background: radial-gradient(circle at 30% 50%, rgba(94, 234, 212, 0.24), transparent 52%);
-	animation: liveGlow 2.2s ease-in-out infinite;
-}
-
-.bars {
-	position: relative;
-	z-index: 1;
-	display: inline-flex;
-	align-items: flex-end;
-	gap: 2px;
-	width: 13px;
-	height: 10px;
-}
-
-.bars i {
+.signalBars i {
 	display: block;
 	width: 3px;
 	border-radius: 99px;
@@ -143,21 +107,21 @@
 	animation: barRise var(--bar-speed) ease-in-out infinite;
 }
 
-.bars i:nth-child(1) {
+.signalBars i:nth-child(1) {
 	height: 4px;
 }
 
-.bars i:nth-child(2) {
+.signalBars i:nth-child(2) {
 	height: 7px;
 	animation-delay: 0.12s;
 }
 
-.bars i:nth-child(3) {
+.signalBars i:nth-child(3) {
 	height: 10px;
 	animation-delay: 0.24s;
 }
 
-.badgeOffline {
+.signalOffline {
 	--signal: #fb7185;
 	--signal-soft: rgba(251, 113, 133, 0.36);
 	--signal-bg: rgba(127, 29, 29, 0.28);
@@ -166,11 +130,11 @@
 	--bar-speed: 0.62s;
 }
 
-.badgeOffline .bars i {
+.signalOffline i {
 	animation-name: barJitter;
 }
 
-.badgeReconnecting {
+.signalReconnecting {
 	--signal: #fbbf24;
 	--signal-soft: rgba(251, 191, 36, 0.32);
 	--signal-bg: rgba(120, 53, 15, 0.22);
@@ -179,48 +143,28 @@
 	--bar-speed: 0.74s;
 }
 
-.badgeReconnecting::before {
-	position: absolute;
-	inset: -2px;
-	content: "";
-	background: linear-gradient(
-		90deg,
-		transparent 0%,
-		rgba(255, 255, 255, 0.22) 45%,
-		transparent 90%
-	);
-	transform: translateX(-120%);
-	animation: signalScan 2.2s linear infinite;
-}
-
-.badgeEnded {
+.signalEnded {
 	--signal: #94a3b8;
 	--signal-soft: rgba(148, 163, 184, 0.2);
 	--signal-bg: rgba(15, 23, 42, 0.36);
 	--signal-border: rgba(148, 163, 184, 0.28);
 	--signal-text: rgba(226, 232, 240, 0.72);
-	animation: none;
 }
 
-.badgeEnded .bars i {
+.signalEnded i {
 	opacity: 0.55;
 	transform: scaleY(0.58);
 	animation: none;
 }
 
-.badgeEnded .bars i:nth-child(2) {
+.signalEnded i:nth-child(2) {
 	opacity: 0.42;
 	transform: scaleY(0.42);
 }
 
-.badgeEnded .bars i:nth-child(3) {
+.signalEnded i:nth-child(3) {
 	opacity: 0.28;
 	transform: scaleY(0.28);
-}
-
-.label {
-	position: relative;
-	z-index: 1;
 }
 
 .openButton {
@@ -291,23 +235,6 @@
 	}
 }
 
-@keyframes signalScan {
-	to {
-		transform: translateX(120%);
-	}
-}
-
-@keyframes liveGlow {
-	0%,
-	100% {
-		opacity: 0.42;
-	}
-
-	50% {
-		opacity: 0.88;
-	}
-}
-
 @keyframes barRise {
 	0%,
 	100% {
@@ -336,20 +263,5 @@
 	68% {
 		opacity: 0.86;
 		transform: scaleY(0.82) translateX(0.5px);
-	}
-}
-
-@keyframes statusBreathe {
-	0%,
-	100% {
-		box-shadow:
-			0 0 12px var(--signal-soft),
-			inset 0 0 10px rgba(255, 255, 255, 0.05);
-	}
-
-	50% {
-		box-shadow:
-			0 0 22px var(--signal-soft),
-			inset 0 0 13px rgba(255, 255, 255, 0.08);
 	}
 }

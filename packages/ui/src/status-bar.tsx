@@ -15,16 +15,27 @@ export interface StatusBarProps {
 	isSettingsOpen?: boolean;
 }
 
-type BadgeKind = 'discovering' | 'connected' | 'offline' | 'reconnecting' | 'ended';
+type ConnectionSignalKind = 'discovering' | 'connected' | 'offline' | 'reconnecting' | 'ended';
+type ActiveConnectionState = ConnectionState & {
+	status: Exclude<ConnectionState['status'], 'idle'>;
+};
 
-interface BadgeViewModel {
+interface ConnectionSignalViewModel {
 	label: string;
-	kind: BadgeKind;
+	kind: ConnectionSignalKind;
 }
 
 interface SettingsButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	isOpen: boolean;
 }
+
+const connectionSignalClassNames: Record<ConnectionSignalKind, string | undefined> = {
+	discovering: styles.signalDiscovering,
+	connected: styles.signalConnected,
+	offline: styles.signalOffline,
+	reconnecting: styles.signalReconnecting,
+	ended: styles.signalEnded,
+};
 
 export function StatusBar({
 	connectionState,
@@ -53,7 +64,7 @@ export function StatusBar({
 		</SettingsPopover>
 	);
 
-	if (connectionState.status === 'idle') {
+	if (!isActiveConnectionState(connectionState)) {
 		return (
 			<div className={styles.statusBar} role="status">
 				<button className={styles.openButton} type="button" onClick={onOpenUsernameInput}>
@@ -64,12 +75,15 @@ export function StatusBar({
 		);
 	}
 
-	const badge = toBadgeViewModel(connectionState);
+	const connectionSignal = toConnectionSignalViewModel(connectionState);
 	const displayUsername = username || connectionState.username;
 
 	return (
 		<div className={styles.statusBar} role="status">
 			<div className={styles.statusCluster} data-celestia-status-cluster>
+				<ConnectionSignal signal={connectionSignal} />
+				<span className={styles.username}>@{displayUsername}</span>
+				<span className={styles.separator} aria-hidden="true" />
 				<span className={styles.metric}>
 					<EyeOutlined aria-hidden="true" />
 					{viewerCount.toLocaleString()}
@@ -78,8 +92,6 @@ export function StatusBar({
 					<HeartFilled aria-hidden="true" />
 					{likeCount.toLocaleString()}
 				</span>
-				<span className={styles.username}>@{displayUsername}</span>
-				{badge ? <ConnectionBadge badge={badge} /> : null}
 			</div>
 			{settingsControl}
 		</div>
@@ -112,27 +124,14 @@ function SettingsButton({
 	);
 }
 
-function ConnectionBadge({ badge }: { badge: BadgeViewModel }) {
-	const classNames = [
-		styles.badge,
-		styles.signalBars,
-		badge.kind === 'discovering' ? styles.badgeDiscovering : undefined,
-		badge.kind === 'connected' ? styles.badgeConnected : undefined,
-		badge.kind === 'offline' ? styles.badgeOffline : undefined,
-		badge.kind === 'reconnecting' ? styles.badgeReconnecting : undefined,
-		badge.kind === 'ended' ? styles.badgeEnded : undefined,
-	]
-		.filter(Boolean)
-		.join(' ');
+function ConnectionSignal({ signal }: { signal: ConnectionSignalViewModel }) {
+	const classNames = joinClassNames(styles.signalBars, connectionSignalClassNames[signal.kind]);
 
 	return (
-		<span className={classNames} role="status" aria-label={`Connection state: ${badge.label}`}>
-			<span className={styles.bars} aria-hidden="true">
-				<i />
-				<i />
-				<i />
-			</span>
-			<span className={styles.label}>{badge.label}</span>
+		<span className={classNames} role="status" aria-label={`Connection state: ${signal.label}`}>
+			<i aria-hidden="true" />
+			<i aria-hidden="true" />
+			<i aria-hidden="true" />
 		</span>
 	);
 }
@@ -141,7 +140,11 @@ function joinClassNames(...classNames: Array<string | undefined>): string {
 	return classNames.filter((className): className is string => Boolean(className)).join(' ');
 }
 
-function toBadgeViewModel(state: ConnectionState): BadgeViewModel | undefined {
+function isActiveConnectionState(state: ConnectionState): state is ActiveConnectionState {
+	return state.status !== 'idle';
+}
+
+function toConnectionSignalViewModel(state: ActiveConnectionState): ConnectionSignalViewModel {
 	switch (state.status) {
 		case 'attaching':
 		case 'attached':
@@ -159,7 +162,5 @@ function toBadgeViewModel(state: ConnectionState): BadgeViewModel | undefined {
 		case 'detached':
 		case 'disconnected':
 			return { label: 'Stream Ended', kind: 'ended' };
-		case 'idle':
-			return undefined;
 	}
 }

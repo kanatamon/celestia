@@ -478,7 +478,7 @@ describe('Chrome extension scaffold', () => {
 
 		expect(container.textContent).toContain('1,234');
 		expect(container.textContent).toContain('5,678');
-		expect(container.textContent).toContain('Stream Ended');
+		expect(getConnectionSignal(container, 'Stream Ended')).toBeInstanceOf(HTMLElement);
 
 		await act(async () => {
 			root.unmount();
@@ -507,13 +507,23 @@ describe('Chrome extension scaffold', () => {
 		await clickButton(container, 'Confirm');
 
 		expect(container.textContent).toContain('@celestia');
-		expect(container.textContent).toContain('Reconnecting');
+		expect(getConnectionSignal(container, 'Reconnecting')).toBeInstanceOf(HTMLElement);
 
 		await act(async () => {
 			root.unmount();
 		});
 	});
 });
+
+function getConnectionSignal(container: Element, label: string): HTMLElement {
+	const element = container.querySelector(`[aria-label="Connection state: ${label}"]`);
+
+	if (!(element instanceof HTMLElement)) {
+		throw new Error(`Expected Side Panel to render the ${label} connection signal.`);
+	}
+
+	return element;
+}
 
 async function clickButton(container: HTMLElement, label: string): Promise<void> {
 	const button = Array.from(container.querySelectorAll('button')).find(

@@ -21,7 +21,7 @@ if (!globalThis.ResizeObserver) {
 }
 
 describe('StatusBar', () => {
-	it('renders formatted counts, username, and live badge', () => {
+	it('renders formatted counts, username, and connection signal', () => {
 		const html = renderToString(
 			<StatusBar
 				connectionState={{ status: 'connected', username: 'celestia' }}
@@ -47,7 +47,7 @@ describe('StatusBar', () => {
 		['error', 'Reconnecting'],
 		['detached', 'Stream Ended'],
 		['disconnected', 'Stream Ended'],
-	] as const)('maps %s to the %s badge label', (status, label) => {
+	] as const)('maps %s to the %s connection signal label', (status, label) => {
 		const html = renderToString(
 			<StatusBar
 				connectionState={{ status, username: 'celestia' }}
@@ -63,7 +63,7 @@ describe('StatusBar', () => {
 		['offline', 'Offline'],
 		['interrupted', 'Reconnecting'],
 		['stale', 'Reconnecting'],
-	] as const)('maps error with reason %s to the %s badge label', (reason, label) => {
+	] as const)('maps error with reason %s to the %s connection signal label', (reason, label) => {
 		const html = renderToString(
 			<StatusBar
 				connectionState={{ status: 'error', reason, username: 'celestia' }}
@@ -75,7 +75,7 @@ describe('StatusBar', () => {
 		expect(html).toContain(`Connection state: ${label}`);
 	});
 
-	it('hides the badge and shows the username modal trigger while idle', () => {
+	it('hides the connection signal and shows the username modal trigger while idle', () => {
 		const html = renderToString(
 			<StatusBar
 				connectionState={{ status: 'idle', username: '' }}
@@ -87,6 +87,39 @@ describe('StatusBar', () => {
 		expect(html).toContain('Open Live');
 		expect(html).toContain('Open settings');
 		expect(html).not.toContain('Connection state:');
+	});
+
+	it('renders the identity first with bare signal bars and no visible signal label', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(
+				<StatusBar
+					connectionState={{ status: 'connected', username: 'celestia' }}
+					viewerCount={1200}
+					likeCount={45000}
+				/>,
+			);
+		});
+
+		const cluster = getStatusCluster(container);
+		const children = Array.from(cluster.children);
+		const connectionSignal = getConnectionSignal(container, 'Connected');
+		const [signalElement, usernameElement, separatorElement, viewerMetric, likeMetric] = children;
+
+		expect(children).toHaveLength(5);
+		expect(signalElement).toBe(connectionSignal);
+		expect(usernameElement?.textContent).toBe('@celestia');
+		expect(separatorElement?.textContent).toBe('');
+		expect(viewerMetric?.textContent).toBe('1,200');
+		expect(likeMetric?.textContent).toBe('45,000');
+		expect(cluster.textContent).not.toContain('Connected');
+		expect(connectionSignal.textContent).toBe('');
+
+		await act(async () => {
+			root.unmount();
+		});
 	});
 
 	it('groups status details in one left cluster and opens settings from the right icon button', async () => {
@@ -112,7 +145,7 @@ describe('StatusBar', () => {
 		expect(cluster.textContent).toContain('1,200');
 		expect(cluster.textContent).toContain('45,000');
 		expect(cluster.textContent).toContain('@a-very-long-celestia-host-name');
-		expect(cluster.textContent).toContain('Connected');
+		expect(getConnectionSignal(container, 'Connected')).toBeInstanceOf(HTMLElement);
 		expect(container.firstElementChild?.firstElementChild).toBe(cluster);
 		expect(container.firstElementChild?.lastElementChild).toBe(settingsButton);
 		expect(settingsButton.getAttribute('aria-pressed')).toBe('true');
@@ -144,6 +177,16 @@ function getSettingsButton(container: Element): HTMLButtonElement {
 
 	if (!(element instanceof HTMLButtonElement)) {
 		throw new Error('Expected StatusBar to render the settings button.');
+	}
+
+	return element;
+}
+
+function getConnectionSignal(container: Element, label: string): HTMLElement {
+	const element = container.querySelector(`[aria-label="Connection state: ${label}"]`);
+
+	if (!(element instanceof HTMLElement)) {
+		throw new Error(`Expected StatusBar to render the ${label} connection signal.`);
 	}
 
 	return element;
