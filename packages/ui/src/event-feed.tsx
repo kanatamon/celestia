@@ -111,7 +111,6 @@ export function ScrollableFeedList({
 	const internalRef = useRef<HTMLDivElement>(null);
 	const feedRef = externalScrollRef ?? internalRef;
 	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
-	const [isAtBottom, setIsAtBottom] = useState(initialScrollTarget === 'bottom');
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [latestUnreadEvent, setLatestUnreadEvent] = useState<FeedLiveEvent | undefined>();
 
@@ -142,6 +141,7 @@ export function ScrollableFeedList({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: feedRef is a ref, not reactive
 	useEffect(() => {
 		const previousEventIds = previousEventIdsRef.current;
+		const isInitialRun = previousEventIds === undefined;
 		const newEvents = getNewEventSummary(events, previousEventIds);
 
 		previousEventIdsRef.current = getEventIds(events);
@@ -152,7 +152,16 @@ export function ScrollableFeedList({
 			return;
 		}
 
-		if (isAtBottom) {
+		// The mount-only effect above already positions the feed (bottom or scroll target).
+		// Skip this run so it isn't yanked to the bottom before any new events arrive.
+		if (isInitialRun) {
+			return;
+		}
+
+		// Decide from the live scroll position rather than a cached flag: a short,
+		// non-scrollable feed is always at the bottom yet never fires a scroll event to
+		// refresh a cached flag, which would otherwise surface the bar with nothing hidden.
+		if (isScrolledToBottom(feedRef.current)) {
 			scrollToBottom(feedRef.current, 'instant');
 			setUnreadCount(0);
 			setLatestUnreadEvent(undefined);
@@ -160,13 +169,10 @@ export function ScrollableFeedList({
 			setUnreadCount((current) => current + newEvents.count);
 			setLatestUnreadEvent((current) => newEvents.latestEvent ?? current);
 		}
-	}, [events, isAtBottom]);
+	}, [events]);
 
 	const handleScroll = () => {
-		const nextIsAtBottom = isScrolledToBottom(feedRef.current);
-		setIsAtBottom(nextIsAtBottom);
-
-		if (nextIsAtBottom) {
+		if (isScrolledToBottom(feedRef.current)) {
 			setUnreadCount(0);
 			setLatestUnreadEvent(undefined);
 		}
@@ -176,7 +182,6 @@ export function ScrollableFeedList({
 
 	const handleNewMessagesClick = () => {
 		scrollToBottom(feedRef.current, 'instant');
-		setIsAtBottom(true);
 		setUnreadCount(0);
 		setLatestUnreadEvent(undefined);
 	};

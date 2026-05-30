@@ -533,6 +533,42 @@ describe('IndividualChatFeed', () => {
 			root.unmount();
 		});
 	});
+
+	it('does not surface the new-messages bar when an event arrives on a short, non-scrollable feed', async () => {
+		// jsdom leaves scrollHeight/clientHeight at 0, so the feed is non-scrollable and
+		// fires no scroll event. Because IndividualChatFeed uses an event ID as its
+		// initialScrollTarget, a cached "at bottom" flag would stay false and never be
+		// corrected — surfacing the bar even though every event is already visible.
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
+
+		await act(async () => {
+			root.render(
+				<IndividualChatFeed
+					chatEvents={[pinnedViewerChat]}
+					giftEvents={[]}
+					pinnedEvent={pinnedViewerChat}
+				/>,
+			);
+		});
+
+		await act(async () => {
+			root.render(
+				<IndividualChatFeed
+					chatEvents={[pinnedViewerChat, chatEvent('chat-2', 20, 'just arrived')]}
+					giftEvents={[]}
+					pinnedEvent={pinnedViewerChat}
+				/>,
+			);
+		});
+
+		expect(container.textContent).not.toContain('new messages');
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
 });
 
 describe('SplitFeedLayout', () => {
