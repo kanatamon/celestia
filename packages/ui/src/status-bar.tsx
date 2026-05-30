@@ -80,14 +80,11 @@ export function StatusBar({
 
 	return (
 		<div className={styles.statusBar} role="status">
-			<div
-				className={styles.statusCluster}
-				data-celestia-status-cluster
-				data-state={connectionSignal.kind}
-			>
-				<ConnectionSignal signal={connectionSignal} />
-				<span className={styles.username}>@{displayUsername}</span>
-				<span className={styles.separator} aria-hidden="true" />
+			<div className={styles.statusCluster} data-celestia-status-cluster>
+				<span className={styles.connectionCluster}>
+					<ConnectionSignal signal={connectionSignal} />
+					<span className={styles.username}>@{displayUsername}</span>
+				</span>
 				<span className={styles.metric}>
 					<EyeOutlined aria-hidden="true" />
 					{viewerCount.toLocaleString()}
@@ -132,7 +129,12 @@ function ConnectionSignal({ signal }: { signal: ConnectionSignalViewModel }) {
 	const classNames = joinClassNames(styles.signalBars, connectionSignalClassNames[signal.kind]);
 
 	return (
-		<span className={classNames} role="status" aria-label={`Connection state: ${signal.label}`}>
+		<span
+			className={classNames}
+			role="status"
+			aria-label={`Connection state: ${signal.label}`}
+			data-state={signal.kind}
+		>
 			<i aria-hidden="true" />
 			<i aria-hidden="true" />
 			<i aria-hidden="true" />

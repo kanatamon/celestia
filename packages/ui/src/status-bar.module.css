@@ -14,7 +14,7 @@
 .statusCluster {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 12px;
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow: hidden;
@@ -22,6 +22,12 @@
 	--username-gradient-stops:
 		#54edff 0%, #54edff 24%, #f9ffff 35%, #788fff 45%, #bc83ff 64%, #ff87c8 82%, #54edff 100%;
 	--username-animation: polarGlint 2.8s ease-in-out infinite;
+}
+
+.connectionCluster {
+	display: flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .metric {
@@ -35,10 +41,7 @@
 }
 
 .username {
-	flex: 1 1 auto;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	flex: 0 0 auto;
 	white-space: nowrap;
 	color: transparent;
 	background: linear-gradient(110deg, var(--username-gradient-stops));
@@ -68,13 +71,6 @@
 	--username-gradient-stops:
 		rgba(148, 163, 184, 0.55) 0%, rgba(200, 210, 220, 0.4) 50%, rgba(148, 163, 184, 0.55) 100%;
 	--username-animation: none;
-}
-
-.separator {
-	flex: 0 0 auto;
-	width: 1px;
-	height: 14px;
-	background: rgba(255, 255, 255, 0.22);
 }
 
 .signalBars {

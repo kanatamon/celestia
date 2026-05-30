@@ -135,12 +135,13 @@ describe('StatusBar', () => {
 		const cluster = getStatusCluster(container);
 		const children = Array.from(cluster.children);
 		const connectionSignal = getConnectionSignal(container, 'Connected');
-		const [signalElement, usernameElement, separatorElement, viewerMetric, likeMetric] = children;
+		const [identityElement, viewerMetric, likeMetric] = children;
+		const [signalElement, usernameElement] = Array.from(identityElement?.children ?? []);
 
-		expect(children).toHaveLength(5);
+		expect(children).toHaveLength(3);
+		expect(identityElement?.tagName).toBe('SPAN');
 		expect(signalElement).toBe(connectionSignal);
 		expect(usernameElement?.textContent).toBe('@celestia');
-		expect(separatorElement?.textContent).toBe('');
 		expect(viewerMetric?.textContent).toBe('1,200');
 		expect(likeMetric?.textContent).toBe('45,000');
 		expect(cluster.textContent).not.toContain('Connected');
