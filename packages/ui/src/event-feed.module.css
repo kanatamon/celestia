@@ -134,8 +134,23 @@
 	position: relative;
 }
 
-.pinnedIndividualEventRow {
+.individualEventRow::before {
+	position: absolute;
+	inset: -4px -12px;
+	z-index: 0;
+	content: "";
+	opacity: 0;
+	pointer-events: none;
+}
+
+.individualEventRow > * {
+	position: relative;
+	z-index: 1;
+}
+
+.pinnedIndividualEventRow::before {
 	background: linear-gradient(to right, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, transparent 100%);
+	opacity: 1;
 }
 
 .feed {
