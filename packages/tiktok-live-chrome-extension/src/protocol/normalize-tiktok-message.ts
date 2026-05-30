@@ -158,7 +158,7 @@ function eventId(decoded: DecodedTikTokMessage, message: WebcastMessage): string
 
 function eventTimestamp(decoded: DecodedTikTokMessage): number {
 	const createTime = decoded.event?.createTime;
-	return createTime === undefined ? Date.now() : Number(createTime) * 1000;
+	return createTime === undefined ? Date.now() : Number(createTime);
 }
 
 function humanizeMemberAction(actionId: number | undefined): string | undefined {

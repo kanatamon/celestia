@@ -22,7 +22,7 @@ const SCROLL_BOTTOM_THRESHOLD = 100;
 const INDIVIDUAL_FEED_MIN_WIDTH = 240;
 const MAIN_FEED_MIN_WIDTH = 320;
 const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
-const SECOND_MS = 1_000;
+const FIVE_SECOND_MS = 5_000;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const CHAT_BUBBLE_TAIL_VIEW_BOX = '0 0 500 500';
@@ -35,20 +35,17 @@ export interface ChatEventCardProps {
 	event: ChatLiveEvent;
 	userGiftEvents?: GiftLiveEvent[];
 	visibleGiftChipCount?: number;
-	now?: number;
 }
 
 export interface GiftEventCardProps {
 	event: GiftLiveEvent;
 	userGiftEvents?: GiftLiveEvent[];
-	now?: number;
 }
 
 export interface EventFeedProps {
 	chatEvents: ChatLiveEvent[];
 	giftEvents: GiftLiveEvent[];
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
-	now?: number;
 	pinnedEventId?: string;
 	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
 }
@@ -58,7 +55,6 @@ export interface IndividualChatFeedProps {
 	giftEvents: GiftLiveEvent[];
 	pinnedEvent?: FeedLiveEvent;
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
-	now?: number;
 	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
 }
 
@@ -75,7 +71,6 @@ export interface SplitFeedLayoutProps {
 	chatEvents: ChatLiveEvent[];
 	giftEvents: GiftLiveEvent[];
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
-	now?: number;
 }
 
 interface GiftChipViewModel {
@@ -208,7 +203,6 @@ export function ChatEventCard({
 	event,
 	userGiftEvents = [],
 	visibleGiftChipCount,
-	now = Date.now(),
 }: ChatEventCardProps) {
 	const chipListRef = useRef<HTMLSpanElement>(null);
 	const [measuredVisibleChipCount, setMeasuredVisibleChipCount] = useState<number | undefined>(
@@ -284,7 +278,7 @@ export function ChatEventCard({
 							{renderMessageText(event.text, event.emotes)}
 						</div>
 					</div>
-					<EventTimestamp ts={event.ts} now={now} />
+					<EventTimestamp ts={event.ts} />
 				</div>
 			</div>
 		</article>
@@ -306,11 +300,7 @@ function ChatBubbleTail() {
 	);
 }
 
-export function GiftEventCard({
-	event,
-	userGiftEvents = [],
-	now = Date.now(),
-}: GiftEventCardProps) {
+export function GiftEventCard({ event, userGiftEvents = [] }: GiftEventCardProps) {
 	const heartMeGift = userGiftEvents.find((gift) => gift.giftName === HEART_ME_GIFT_NAME);
 	const repeatCount = toPositiveRepeatCount(event.repeatCount);
 	const giftName = event.giftName ?? DEFAULT_GIFT_NAME;
@@ -336,7 +326,7 @@ export function GiftEventCard({
 				<span className={styles.repeatPrefix}>{GIFT_REPEAT_MARK}</span>
 				<span className={styles.repeatCount}>{repeatCount.toLocaleString()}</span>
 			</span>
-			<EventTimestamp className={styles.giftTimestamp} ts={event.ts} now={now} />
+			<EventTimestamp className={styles.giftTimestamp} ts={event.ts} />
 		</article>
 	);
 }
@@ -345,7 +335,6 @@ export function EventFeed({
 	chatEvents,
 	giftEvents,
 	userGiftEvents = new Map(),
-	now = Date.now(),
 	pinnedEventId: controlledPinnedEventId,
 	onPinnedEventChange,
 }: EventFeedProps) {
@@ -439,7 +428,7 @@ export function EventFeed({
 					ref={setRowRef(event.id)}
 					type="button"
 				>
-					<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
+					<FeedEventCard event={event} userGiftEventsByUser={userGiftEvents} />
 				</button>
 			))}
 		</ScrollableFeedList>
@@ -451,7 +440,6 @@ export function IndividualChatFeed({
 	giftEvents,
 	pinnedEvent,
 	userGiftEvents = new Map(),
-	now = Date.now(),
 	onPinnedEventChange,
 }: IndividualChatFeedProps) {
 	if (!pinnedEvent) {
@@ -509,7 +497,7 @@ export function IndividualChatFeed({
 						data-feed-event-id={event.id}
 						key={event.id}
 					>
-						<FeedEventCard event={event} now={now} userGiftEventsByUser={userGiftEvents} />
+						<FeedEventCard event={event} userGiftEventsByUser={userGiftEvents} />
 					</div>
 				))}
 			</ScrollableFeedList>
@@ -521,17 +509,10 @@ export function SplitFeedLayout({
 	chatEvents,
 	giftEvents,
 	userGiftEvents = new Map(),
-	now,
 }: SplitFeedLayoutProps) {
 	const layoutRef = useRef<HTMLDivElement>(null);
 	const [pinnedEvent, setPinnedEventState] = useState<FeedLiveEvent | undefined>();
 	const [isIndividualFeedCollapsed, setIsIndividualFeedCollapsed] = useState(false);
-	const latestEventTimestamp = useMemo(
-		() => getLatestEventTimestamp(chatEvents, giftEvents),
-		[chatEvents, giftEvents],
-	);
-	const liveNow = useLiveTimestampNow(latestEventTimestamp);
-	const displayNow = now ?? liveNow;
 
 	useEffect(() => {
 		const layout = layoutRef.current;
@@ -569,7 +550,6 @@ export function SplitFeedLayout({
 			chatEvents={chatEvents}
 			giftEvents={giftEvents}
 			userGiftEvents={userGiftEvents}
-			now={displayNow}
 			pinnedEventId={pinnedEvent?.id}
 			onPinnedEventChange={setPinnedEventState}
 		/>
@@ -582,7 +562,6 @@ export function SplitFeedLayout({
 			giftEvents={giftEvents}
 			userGiftEvents={userGiftEvents}
 			pinnedEvent={pinnedEvent}
-			now={displayNow}
 			onPinnedEventChange={setPinnedEventState}
 		/>
 	);
@@ -617,56 +596,26 @@ export function SplitFeedLayout({
 
 export interface FeedEventCardProps {
 	event: FeedLiveEvent;
-	now: number;
 	userGiftEventsByUser: Map<string, GiftLiveEvent[]>;
 }
 
-export function FeedEventCard({ event, now, userGiftEventsByUser }: FeedEventCardProps) {
+export function FeedEventCard({ event, userGiftEventsByUser }: FeedEventCardProps) {
 	const userGiftEvents = getUserGiftEvents(userGiftEventsByUser, event.user);
 
 	switch (event.type) {
 		case 'chat':
-			return <ChatEventCard event={event} userGiftEvents={userGiftEvents} now={now} />;
+			return <ChatEventCard event={event} userGiftEvents={userGiftEvents} />;
 		case 'gift':
-			return <GiftEventCard event={event} userGiftEvents={userGiftEvents} now={now} />;
+			return <GiftEventCard event={event} userGiftEvents={userGiftEvents} />;
 	}
 }
 
-function useLiveTimestampNow(latestEventTimestamp: number): number {
-	const [now, setNow] = useState(() => Date.now());
-
-	useEffect(() => {
-		let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-		const scheduleNextTick = () => {
-			const currentNow = Date.now();
-			setNow(currentNow);
-			timeoutId = setTimeout(
-				scheduleNextTick,
-				getNextTimestampDelay(currentNow, latestEventTimestamp),
-			);
-		};
-
-		timeoutId = setTimeout(
-			scheduleNextTick,
-			getNextTimestampDelay(Date.now(), latestEventTimestamp),
-		);
-
-		return () => {
-			if (timeoutId !== undefined) {
-				clearTimeout(timeoutId);
-			}
-		};
-	}, [latestEventTimestamp]);
-
-	return now;
-}
-
-function getNextTimestampDelay(now: number, latestEventTimestamp: number): number {
-	const age = Math.max(now - latestEventTimestamp, 0);
+function getTimestampTickDelay(ts: number): number {
+	const now = Date.now();
+	const age = Math.max(now - ts, 0);
 
 	if (age < MINUTE_MS) {
-		return SECOND_MS - (now % SECOND_MS);
+		return FIVE_SECOND_MS - (now % FIVE_SECOND_MS);
 	}
 
 	if (age < HOUR_MS) {
@@ -674,20 +623,6 @@ function getNextTimestampDelay(now: number, latestEventTimestamp: number): numbe
 	}
 
 	return HOUR_MS - (now % HOUR_MS);
-}
-
-function getLatestEventTimestamp(chatEvents: ChatLiveEvent[], giftEvents: GiftLiveEvent[]): number {
-	let latestEventTimestamp = 0;
-
-	for (const event of chatEvents) {
-		latestEventTimestamp = Math.max(latestEventTimestamp, event.ts);
-	}
-
-	for (const event of giftEvents) {
-		latestEventTimestamp = Math.max(latestEventTimestamp, event.ts);
-	}
-
-	return latestEventTimestamp;
 }
 
 function isIndividualFeedEvent(event: FeedLiveEvent, pinnedEvent: FeedLiveEvent): boolean {
@@ -767,7 +702,27 @@ function GiftImage({ giftImageUrl, giftName, size, tooltipContent }: GiftImagePr
 	);
 }
 
-function EventTimestamp({ ts, now, className }: { ts: number; now: number; className?: string }) {
+function EventTimestamp({ ts, className }: { ts: number; className?: string }) {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+		const tick = () => {
+			const currentNow = Date.now();
+			setNow(currentNow);
+			timeoutId = setTimeout(tick, getTimestampTickDelay(ts));
+		};
+
+		timeoutId = setTimeout(tick, getTimestampTickDelay(ts));
+
+		return () => {
+			if (timeoutId !== undefined) {
+				clearTimeout(timeoutId);
+			}
+		};
+	}, [ts]);
+
 	return (
 		<time className={`${styles.timestamp} ${className ?? ''}`}>
 			{formatMinimalTimestamp(ts, now)}

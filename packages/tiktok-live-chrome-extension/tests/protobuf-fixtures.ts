@@ -32,7 +32,7 @@ export function user(id = 1001): Uint8Array {
 	]);
 }
 
-export function event(msgId: number, createTime = 1_764_288_000): Uint8Array {
+export function event(msgId: number, createTime = 1_764_288_000_000): Uint8Array {
 	return msg([uint(2, msgId), uint(4, createTime)]);
 }
 

@@ -46,7 +46,6 @@ describe('ChatEventCard', () => {
 					giftEvent('lion-1', 14, 'Lion', 29999, 1),
 				]}
 				visibleGiftChipCount={2}
-				now={40}
 			/>,
 		);
 
@@ -64,11 +63,13 @@ describe('ChatEventCard', () => {
 
 describe('GiftEventCard', () => {
 	it('renders as a compact one-line gift sentence with the timestamp pinned last', () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(30_000);
 		const container = document.createElement('div');
 		const root = createRoot(container);
 
 		act(() => {
-			root.render(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2)} now={30_000} />);
+			root.render(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2)} />);
 		});
 
 		const avatar = getImageByAlt(container, '');
@@ -84,6 +85,7 @@ describe('GiftEventCard', () => {
 		act(() => {
 			root.unmount();
 		});
+		vi.useRealTimers();
 	});
 
 	it('wraps positive-value gift images with an AntD tooltip trigger only', () => {
@@ -91,9 +93,7 @@ describe('GiftEventCard', () => {
 		const root = createRoot(container);
 
 		act(() => {
-			root.render(
-				<GiftEventCard event={giftEvent('gift-1', 20, 'Galaxy', 1_200, 3)} now={30_000} />,
-			);
+			root.render(<GiftEventCard event={giftEvent('gift-1', 20, 'Galaxy', 1_200, 3)} />);
 		});
 
 		const giftImage = getImageByAlt(container, 'Galaxy');
@@ -105,7 +105,7 @@ describe('GiftEventCard', () => {
 		expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
 		act(() => {
-			root.render(<GiftEventCard event={giftEvent('gift-2', 20, 'Rose', 0, 3)} now={30_000} />);
+			root.render(<GiftEventCard event={giftEvent('gift-2', 20, 'Rose', 0, 3)} />);
 		});
 
 		const unwrappedGiftImage = getImageByAlt(container, 'Rose');
@@ -126,7 +126,6 @@ describe('FeedEventCard', () => {
 		const html = renderToString(
 			<FeedEventCard
 				event={chatEvent('chat-1', 10, 'hello world')}
-				now={10}
 				userGiftEventsByUser={new Map()}
 			/>,
 		);
@@ -144,7 +143,6 @@ describe('FeedEventCard', () => {
 			root.render(
 				<FeedEventCard
 					event={giftEvent('gift-1', 10, 'Rose', 1, 5)}
-					now={10}
 					userGiftEventsByUser={new Map()}
 				/>,
 			);
@@ -169,7 +167,7 @@ describe('EventFeed', () => {
 		const latestChat = chatEvent('chat-2', 30, 'latest');
 
 		await act(async () => {
-			root.render(<EventFeed chatEvents={[latestChat, firstChat]} giftEvents={[gift]} now={30} />);
+			root.render(<EventFeed chatEvents={[latestChat, firstChat]} giftEvents={[gift]} />);
 		});
 
 		const text = getTextContent(container);
@@ -195,7 +193,6 @@ describe('EventFeed', () => {
 				<EventFeed
 					chatEvents={[latestChat, firstChat, chatEvent('chat-3', 40, 'newest')]}
 					giftEvents={[gift, giftEvent('gift-2', 50, 'Galaxy', 1, 1)]}
-					now={40}
 				/>,
 			);
 		});
@@ -222,7 +219,7 @@ describe('EventFeed', () => {
 		const firstChat = chatEvent('chat-1', 10, 'first');
 
 		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} now={30} />);
+			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
 		});
 
 		const feed = getEventFeed(container);
@@ -239,11 +236,7 @@ describe('EventFeed', () => {
 
 		await act(async () => {
 			root.render(
-				<EventFeed
-					chatEvents={[firstChat, chatEvent('chat-2', 40, 'new')]}
-					giftEvents={[]}
-					now={40}
-				/>,
+				<EventFeed chatEvents={[firstChat, chatEvent('chat-2', 40, 'new')]} giftEvents={[]} />,
 			);
 		});
 
@@ -260,7 +253,7 @@ describe('EventFeed', () => {
 		const firstChat = chatEvent('chat-1', 10, 'first');
 
 		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} now={30} />);
+			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
 		});
 
 		const feed = getEventFeed(container);
@@ -279,7 +272,6 @@ describe('EventFeed', () => {
 				<EventFeed
 					chatEvents={[firstChat, chatEvent('chat-2', 40, 'within threshold')]}
 					giftEvents={[]}
-					now={40}
 				/>,
 			);
 		});
@@ -301,7 +293,6 @@ describe('EventFeed', () => {
 						chatEvent('chat-3', 50, 'past threshold'),
 					]}
 					giftEvents={[]}
-					now={50}
 				/>,
 			);
 		});
@@ -328,7 +319,7 @@ describe('EventFeed', () => {
 		const latestChat = chatEvent('chat-2', 30, 'latest');
 
 		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat, latestChat]} giftEvents={[gift]} now={30} />);
+			root.render(<EventFeed chatEvents={[firstChat, latestChat]} giftEvents={[gift]} />);
 		});
 
 		const feed = getEventFeed(container);
@@ -458,7 +449,7 @@ describe('ScrollableFeedList', () => {
 describe('IndividualChatFeed', () => {
 	it('shows the empty state when no viewer is pinned', () => {
 		const html = renderToString(
-			<IndividualChatFeed chatEvents={[chatEvent('chat-1', 10)]} giftEvents={[]} now={40} />,
+			<IndividualChatFeed chatEvents={[chatEvent('chat-1', 10)]} giftEvents={[]} />,
 		);
 
 		expect(html).toContain('Click a message to open a viewer&#x27;s feed');
@@ -486,7 +477,6 @@ describe('IndividualChatFeed', () => {
 				chatEvents={[pinnedViewerChat, mention, unrelated]}
 				giftEvents={[pinnedViewerGift]}
 				pinnedEvent={pinnedViewerGift}
-				now={40}
 			/>,
 		);
 
@@ -513,7 +503,6 @@ describe('IndividualChatFeed', () => {
 					onPinnedEventChange={(event) => {
 						dismissedEvent = event;
 					}}
-					now={40}
 				/>,
 			);
 		});
@@ -557,7 +546,7 @@ describe('SplitFeedLayout', () => {
 		};
 
 		await act(async () => {
-			root.render(<SplitFeedLayout chatEvents={[firstChat, mention]} giftEvents={[]} now={30} />);
+			root.render(<SplitFeedLayout chatEvents={[firstChat, mention]} giftEvents={[]} />);
 		});
 
 		const layout = getSplitFeedLayout(container);
