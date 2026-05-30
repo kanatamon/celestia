@@ -197,12 +197,16 @@ describe('EventFeed', () => {
 			);
 		});
 
-		expect(container.textContent).toContain('↓ 2 new messages');
+		const newMessagesBar = getNewMessagesBar(container);
+		expect(newMessagesBar.getAttribute('aria-label')).toBe('2 new messages, scroll down');
+		expect(newMessagesBar.textContent).toContain('new messages');
+		expect(newMessagesBar.textContent).toContain('scroll down ↓');
+		expect(newMessagesBar.textContent).toContain('Viewer');
+		expect(newMessagesBar.textContent).toContain('sent Galaxy');
+		expect(newMessagesBar.className).toContain('newMessagesBar');
 
 		await act(async () => {
-			getButton(container, '↓ 2 new messages').dispatchEvent(
-				new MouseEvent('click', { bubbles: true, cancelable: true }),
-			);
+			newMessagesBar.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 		});
 
 		expect(container.textContent).not.toContain('new messages');
@@ -297,7 +301,9 @@ describe('EventFeed', () => {
 			);
 		});
 
-		expect(container.textContent).toContain('↓ 1 new messages');
+		const newMessagesBar = getNewMessagesBar(container);
+		expect(newMessagesBar.getAttribute('aria-label')).toBe('1 new messages, scroll down');
+		expect(newMessagesBar.textContent).toContain('new messages');
 
 		feed.scrollTop = 900;
 		await act(async () => {
@@ -699,13 +705,11 @@ function emitResize(element: HTMLElement, width: number): void {
 	});
 }
 
-function getButton(container: Element, text: string): HTMLButtonElement {
-	const button = [...container.querySelectorAll('button')].find(
-		(element) => element.textContent === text,
-	);
+function getNewMessagesBar(container: Element): HTMLButtonElement {
+	const button = container.querySelector('button[data-celestia-new-messages-bar]');
 
 	if (!(button instanceof HTMLButtonElement)) {
-		throw new Error(`Expected ${text} button to render.`);
+		throw new Error('Expected new messages bar to render.');
 	}
 
 	return button;

@@ -456,35 +456,104 @@
 	margin-left: auto;
 }
 
-.newMessagesButton {
-	width: auto !important;
-}
-
-.newMessagesButton :global(.ant-float-btn-body) {
-	width: auto;
-	height: auto;
-	padding: 8px 12px;
-	border-radius: 999px;
-	background: rgba(20, 20, 24, 0.72) !important;
-	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28) !important;
-	backdrop-filter: blur(12px);
-	border: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-.newMessagesButton :global(.ant-float-btn-body):hover {
-	background: rgba(40, 40, 48, 0.78) !important;
-}
-
-.newMessagesButton :global(.ant-float-btn-content) {
-	height: auto;
-	min-height: unset;
-	padding: 0;
-}
-
-.newMessagesButton :global(.ant-float-btn-description) {
+.newMessagesBar {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 3;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	width: 100%;
+	min-width: 0;
+	padding: 9px 12px 10px;
+	border: 0;
+	border-top: 1px solid rgba(140, 80, 255, 0.4);
+	background: linear-gradient(to right, rgba(40, 10, 80, 0.88), rgba(10, 40, 70, 0.88));
+	backdrop-filter: blur(14px);
+	box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.34);
 	color: var(--ant-color-text-base);
-	font-size: 13px;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
+}
+
+.newMessagesBar:hover {
+	background: linear-gradient(to right, rgba(50, 16, 96, 0.9), rgba(12, 48, 84, 0.9));
+}
+
+.newMessagesTopRow,
+.newMessagesTitle,
+.newMessagesPreview {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.newMessagesTopRow {
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.newMessagesTitle {
+	gap: 8px;
+}
+
+.newMessagesCount {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	flex: 0 0 22px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #8040ff, #0090e0);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+.newMessagesLabel {
+	color: #b880ff;
+	font-size: 12px;
 	font-weight: 800;
 	line-height: 1;
-	margin-top: 0;
+	white-space: nowrap;
+}
+
+.newMessagesHint {
+	flex: 0 0 auto;
+	color: #4a4a78;
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.newMessagesPreview {
+	gap: 6px;
+	overflow: hidden;
+	font-size: 12px;
+	line-height: 1.25;
+	white-space: nowrap;
+}
+
+.newMessagesPreviewName {
+	flex: 0 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	color: #c090ff;
+	font-weight: 900;
+	text-overflow: ellipsis;
+}
+
+.newMessagesPreviewText {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	color: #5060a0;
+	font-weight: 700;
+	text-overflow: ellipsis;
 }

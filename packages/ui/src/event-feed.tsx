@@ -1,6 +1,6 @@
 import { CloseOutlined } from '@ant-design/icons';
 import type { ChatLiveEvent, EmoteInfo, GiftLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
-import { FloatButton, Splitter, Tag, Tooltip } from 'antd';
+import { Splitter, Tag, Tooltip } from 'antd';
 import {
 	type ReactNode,
 	type RefObject,
@@ -87,6 +87,17 @@ interface GiftImageProps {
 	tooltipContent?: string;
 }
 
+interface NewEventSummary {
+	count: number;
+	latestEvent: FeedLiveEvent | undefined;
+}
+
+interface NewMessagesBarProps {
+	count: number;
+	latestUnreadEvent: FeedLiveEvent | undefined;
+	onClick: () => void;
+}
+
 export type FeedLiveEvent = ChatLiveEvent | GiftLiveEvent;
 
 export function ScrollableFeedList({
@@ -102,7 +113,7 @@ export function ScrollableFeedList({
 	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
 	const [isAtBottom, setIsAtBottom] = useState(initialScrollTarget === 'bottom');
 	const [unreadCount, setUnreadCount] = useState(0);
-	const newMessagesLabel = `↓ ${unreadCount} new messages`;
+	const [latestUnreadEvent, setLatestUnreadEvent] = useState<FeedLiveEvent | undefined>();
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
 	useEffect(() => {
@@ -131,20 +142,23 @@ export function ScrollableFeedList({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: feedRef is a ref, not reactive
 	useEffect(() => {
 		const previousEventIds = previousEventIdsRef.current;
-		const newEventCount = countNewEvents(events, previousEventIds);
+		const newEvents = getNewEventSummary(events, previousEventIds);
 
 		previousEventIdsRef.current = getEventIds(events);
 
 		if (events.length === 0) {
 			setUnreadCount(0);
+			setLatestUnreadEvent(undefined);
 			return;
 		}
 
 		if (isAtBottom) {
 			scrollToBottom(feedRef.current, 'instant');
 			setUnreadCount(0);
+			setLatestUnreadEvent(undefined);
 		} else {
-			setUnreadCount((current) => current + newEventCount);
+			setUnreadCount((current) => current + newEvents.count);
+			setLatestUnreadEvent((current) => newEvents.latestEvent ?? current);
 		}
 	}, [events, isAtBottom]);
 
@@ -154,6 +168,7 @@ export function ScrollableFeedList({
 
 		if (nextIsAtBottom) {
 			setUnreadCount(0);
+			setLatestUnreadEvent(undefined);
 		}
 
 		onScrollProp?.();
@@ -163,6 +178,7 @@ export function ScrollableFeedList({
 		scrollToBottom(feedRef.current, 'instant');
 		setIsAtBottom(true);
 		setUnreadCount(0);
+		setLatestUnreadEvent(undefined);
 	};
 
 	return (
@@ -176,26 +192,40 @@ export function ScrollableFeedList({
 				{children}
 			</div>
 			{unreadCount > 0 ? (
-				<FloatButton
-					className={styles.newMessagesButton}
-					description={newMessagesLabel}
+				<NewMessagesBar
+					count={unreadCount}
+					latestUnreadEvent={latestUnreadEvent}
 					onClick={handleNewMessagesClick}
-					shape="square"
-					styles={{
-						root: {
-							borderRadius: '100px',
-						},
-					}}
-					style={{
-						position: 'absolute',
-						insetInlineEnd: 'auto',
-						bottom: 14,
-						left: '50%',
-						transform: 'translateX(-50%)',
-					}}
 				/>
 			) : null}
 		</div>
+	);
+}
+
+function NewMessagesBar({ count, latestUnreadEvent, onClick }: NewMessagesBarProps) {
+	const previewName = toDisplayName(latestUnreadEvent?.user);
+	const previewText = toUnreadPreviewText(latestUnreadEvent);
+
+	return (
+		<button
+			aria-label={`${count} new messages, scroll down`}
+			className={styles.newMessagesBar}
+			data-celestia-new-messages-bar=""
+			onClick={onClick}
+			type="button"
+		>
+			<span className={styles.newMessagesTopRow}>
+				<span className={styles.newMessagesTitle}>
+					<span className={styles.newMessagesCount}>{count}</span>
+					<span className={styles.newMessagesLabel}>new messages</span>
+				</span>
+				<span className={styles.newMessagesHint}>scroll down ↓</span>
+			</span>
+			<span className={styles.newMessagesPreview}>
+				<span className={styles.newMessagesPreviewName}>{previewName}</span>
+				<span className={styles.newMessagesPreviewText}>{previewText}</span>
+			</span>
+		</button>
 	);
 }
 
@@ -821,7 +851,8 @@ function buildParts(text: string, emotes?: EmoteInfo[]): TextPart[] {
 	}
 
 	for (const match of text.matchAll(/\[(\w+)\]/g)) {
-		const name = match[1]!;
+		const name = match[1];
+		if (!name) continue;
 		const src = TIKTOK_EMOJIS[name];
 		if (src) {
 			splices.push({
@@ -914,15 +945,39 @@ function getEventIds(events: FeedLiveEvent[]): Set<string> {
 	return new Set(events.map((event) => event.id));
 }
 
-function countNewEvents(
+function getNewEventSummary(
 	events: FeedLiveEvent[],
 	previousEventIds: Set<string> | undefined,
-): number {
+): NewEventSummary {
 	if (!previousEventIds) {
-		return 0;
+		return { count: 0, latestEvent: undefined };
 	}
 
-	return events.filter((event) => !previousEventIds.has(event.id)).length;
+	let count = 0;
+	let latestEvent: FeedLiveEvent | undefined;
+
+	for (const event of events) {
+		if (previousEventIds.has(event.id)) {
+			continue;
+		}
+
+		count += 1;
+		latestEvent = event;
+	}
+
+	return { count, latestEvent };
+}
+
+function toUnreadPreviewText(event: FeedLiveEvent | undefined): string {
+	if (!event) {
+		return '';
+	}
+
+	if (event.type === 'chat') {
+		return event.text;
+	}
+
+	return `sent ${event.giftName || DEFAULT_GIFT_NAME}`;
 }
 
 function scrollToBottom(element: HTMLElement | null, behavior: 'smooth' | 'instant'): void {
