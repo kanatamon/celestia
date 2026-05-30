@@ -60,6 +60,35 @@ describe('StatusBar', () => {
 	});
 
 	it.each([
+		['connecting', 'discovering'],
+		['connected', 'connected'],
+		['error', 'reconnecting'],
+		['detached', 'ended'],
+	] as const)('marks %s username styling with the %s state bucket', (status, state) => {
+		const html = renderToString(
+			<StatusBar
+				connectionState={{ status, username: 'celestia' }}
+				viewerCount={1}
+				likeCount={2}
+			/>,
+		);
+
+		expect(html).toContain(`data-state="${state}"`);
+	});
+
+	it('marks offline errors with the offline username styling bucket', () => {
+		const html = renderToString(
+			<StatusBar
+				connectionState={{ status: 'error', reason: 'offline', username: 'celestia' }}
+				viewerCount={1}
+				likeCount={2}
+			/>,
+		);
+
+		expect(html).toContain('data-state="offline"');
+	});
+
+	it.each([
 		['offline', 'Offline'],
 		['interrupted', 'Reconnecting'],
 		['stale', 'Reconnecting'],

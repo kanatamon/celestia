@@ -80,7 +80,11 @@ export function StatusBar({
 
 	return (
 		<div className={styles.statusBar} role="status">
-			<div className={styles.statusCluster} data-celestia-status-cluster>
+			<div
+				className={styles.statusCluster}
+				data-celestia-status-cluster
+				data-state={connectionSignal.kind}
+			>
 				<ConnectionSignal signal={connectionSignal} />
 				<span className={styles.username}>@{displayUsername}</span>
 				<span className={styles.separator} aria-hidden="true" />
