@@ -511,9 +511,7 @@ export function IndividualChatFeed({
 					</span>
 				}
 				onClose={() => onPinnedEventChange?.(undefined)}
-			>
-				{toDisplayName(pinnedEvent.user)}
-			</Tag>
+			/>
 			<ScrollableFeedList
 				key={pinnedEvent.user?.userId}
 				events={events}
