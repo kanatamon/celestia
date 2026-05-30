@@ -47,9 +47,8 @@
 
 	position: absolute !important;
 	top: 8px;
-	left: 50%;
+	right: 12px;
 	z-index: 1;
-	transform: translateX(-50%);
 	max-width: calc(100% - 16px) !important;
 }
 
@@ -88,6 +87,7 @@
 
 .individualFeedScroll {
 	padding-top: 44px;
+	isolation: isolate;
 }
 
 .individualEmptyState {
