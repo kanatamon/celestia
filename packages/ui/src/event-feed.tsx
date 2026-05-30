@@ -18,7 +18,7 @@ const DEFAULT_GIFT_NAME = 'Gift';
 const GIFT_REPEAT_MARK = '\u00d7';
 const MIN_VISIBLE_GIFT_CHIPS = 2;
 const ESTIMATED_GIFT_CHIP_WIDTH = 72;
-const SCROLL_BOTTOM_THRESHOLD = 100;
+const SCROLL_BOTTOM_THRESHOLD = 150;
 const INDIVIDUAL_FEED_MIN_WIDTH = 240;
 const MAIN_FEED_MIN_WIDTH = 320;
 const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
@@ -111,6 +111,7 @@ export function ScrollableFeedList({
 	const internalRef = useRef<HTMLDivElement>(null);
 	const feedRef = externalScrollRef ?? internalRef;
 	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
+	const [isAtBottom, setIsAtBottom] = useState(initialScrollTarget === 'bottom');
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [latestUnreadEvent, setLatestUnreadEvent] = useState<FeedLiveEvent | undefined>();
 
@@ -163,16 +164,21 @@ export function ScrollableFeedList({
 		// refresh a cached flag, which would otherwise surface the bar with nothing hidden.
 		if (isScrolledToBottom(feedRef.current)) {
 			scrollToBottom(feedRef.current, 'instant');
+			setIsAtBottom(true);
 			setUnreadCount(0);
 			setLatestUnreadEvent(undefined);
 		} else {
+			setIsAtBottom(false);
 			setUnreadCount((current) => current + newEvents.count);
 			setLatestUnreadEvent((current) => newEvents.latestEvent ?? current);
 		}
 	}, [events]);
 
 	const handleScroll = () => {
-		if (isScrolledToBottom(feedRef.current)) {
+		const atBottom = isScrolledToBottom(feedRef.current);
+		setIsAtBottom(atBottom);
+
+		if (atBottom) {
 			setUnreadCount(0);
 			setLatestUnreadEvent(undefined);
 		}
@@ -182,6 +188,7 @@ export function ScrollableFeedList({
 
 	const handleNewMessagesClick = () => {
 		scrollToBottom(feedRef.current, 'instant');
+		setIsAtBottom(true);
 		setUnreadCount(0);
 		setLatestUnreadEvent(undefined);
 	};
@@ -202,10 +209,97 @@ export function ScrollableFeedList({
 					latestUnreadEvent={latestUnreadEvent}
 					onClick={handleNewMessagesClick}
 				/>
+			) : isAtBottom ? (
+				<AuroraOverlay />
 			) : null}
 		</div>
 	);
 }
+
+function AuroraOverlay() {
+	return (
+		<div aria-hidden="true" className={styles.aurora} data-celestia-aurora="">
+			{AURORA_PARTICLES.map((p) => (
+				<span className={styles.auroraParticle} key={p.key} style={p.style} />
+			))}
+		</div>
+	);
+}
+
+const AURORA_PARTICLES = [
+	{
+		key: 0,
+		style: {
+			'--aurora-color': '#00e5b0',
+			'--aurora-delay': '0s',
+			'--aurora-size': '3px',
+			left: '8%',
+		},
+	},
+	{
+		key: 1,
+		style: {
+			'--aurora-color': '#5060ff',
+			'--aurora-delay': '0.4s',
+			'--aurora-size': '4px',
+			left: '22%',
+		},
+	},
+	{
+		key: 2,
+		style: {
+			'--aurora-color': '#a030e0',
+			'--aurora-delay': '0.8s',
+			'--aurora-size': '5px',
+			left: '40%',
+		},
+	},
+	{
+		key: 3,
+		style: {
+			'--aurora-color': '#00b4d8',
+			'--aurora-delay': '0.2s',
+			'--aurora-size': '4px',
+			left: '58%',
+		},
+	},
+	{
+		key: 4,
+		style: {
+			'--aurora-color': '#90e0ef',
+			'--aurora-delay': '1.1s',
+			'--aurora-size': '3px',
+			left: '72%',
+		},
+	},
+	{
+		key: 5,
+		style: {
+			'--aurora-color': '#7b2ff7',
+			'--aurora-delay': '0.6s',
+			'--aurora-size': '4px',
+			left: '88%',
+		},
+	},
+	{
+		key: 6,
+		style: {
+			'--aurora-color': '#48cae4',
+			'--aurora-delay': '1.5s',
+			'--aurora-size': '3px',
+			left: '15%',
+		},
+	},
+	{
+		key: 7,
+		style: {
+			'--aurora-color': '#f72585',
+			'--aurora-delay': '1.8s',
+			'--aurora-size': '3px',
+			left: '50%',
+		},
+	},
+] as const;
 
 function NewMessagesBar({ count, latestUnreadEvent, onClick }: NewMessagesBarProps) {
 	const previewName = toDisplayName(latestUnreadEvent?.user);

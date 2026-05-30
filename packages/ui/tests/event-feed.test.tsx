@@ -390,6 +390,64 @@ describe('EventFeed', () => {
 });
 
 describe('ScrollableFeedList', () => {
+	it('renders the aurora overlay when the feed starts at the bottom', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const events = [chatEvent('chat-1', 10, 'first')];
+
+		await act(async () => {
+			root.render(
+				<ScrollableFeedList events={events}>
+					<div>content</div>
+				</ScrollableFeedList>,
+			);
+		});
+
+		expect(container.querySelector('[data-celestia-aurora]')).toBeInstanceOf(HTMLElement);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
+	it('hides the aurora overlay as soon as the user scrolls away from the bottom', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const events = [chatEvent('chat-1', 10, 'first')];
+
+		await act(async () => {
+			root.render(
+				<ScrollableFeedList events={events}>
+					<div>content</div>
+				</ScrollableFeedList>,
+			);
+		});
+
+		const feed = container.querySelector('[data-celestia-event-feed]') as HTMLElement;
+		Object.defineProperties(feed, {
+			scrollHeight: { configurable: true, value: 1000 },
+			clientHeight: { configurable: true, value: 300 },
+			scrollTop: { configurable: true, writable: true, value: 100 },
+		});
+
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		expect(container.querySelector('[data-celestia-aurora]')).toBeNull();
+
+		feed.scrollTop = 1000;
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		expect(container.querySelector('[data-celestia-aurora]')).toBeInstanceOf(HTMLElement);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
 	it('scrolls to the target event on mount when initialScrollTarget is an event ID', async () => {
 		// jsdom clamps scrollTop to 0 when there is no real layout (scrollHeight = 0).
 		// Replace the Element.prototype scrollTop accessor with a WeakMap-backed one so
