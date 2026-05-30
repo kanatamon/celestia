@@ -86,8 +86,6 @@
 	display: inline-flex;
 	align-items: center;
 	width: max-content;
-	min-width: 100%;
-	animation: giftTicker 5s linear infinite;
 	will-change: transform;
 }
 
@@ -160,14 +158,4 @@
 
 .activeDot {
 	background: rgba(255, 255, 255, 0.95);
-}
-
-@keyframes giftTicker {
-	from {
-		transform: translateX(0);
-	}
-
-	to {
-		transform: translateX(-50%);
-	}
 }

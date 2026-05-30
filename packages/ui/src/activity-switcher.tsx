@@ -1,7 +1,10 @@
 import { GiftOutlined, LoginOutlined } from '@ant-design/icons';
 import type { GiftLiveEvent, MemberLiveEvent, UserInfo } from '@celestia/tiktok-live-core';
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styles from './activity-switcher.module.css';
+import { computeGiftParadeMotion } from './gift-parade-motion.js';
+
+const GIFT_PARADE_SPEED_PX_PER_SEC = 90;
 
 export type ActivitySwitcherView = 'join' | 'gifts';
 
@@ -89,23 +92,101 @@ function GiftParade({
 	items: GiftParadeItem[];
 	tickerSignature: string;
 }) {
+	const viewportRef = useRef<HTMLSpanElement>(null);
+	const trackRef = useRef<HTMLSpanElement>(null);
+	const animationRef = useRef<Animation | null>(null);
+	const [isPaused, setIsPaused] = useState(false);
+	const isPausedRef = useRef(isPaused);
+	isPausedRef.current = isPaused;
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: rebuild the animation when the parade's gift set changes (signature), not every render.
+	useLayoutEffect(() => {
+		const viewport = viewportRef.current;
+		const track = trackRef.current;
+
+		if (!viewport || !track) {
+			return;
+		}
+
+		const applyMotion = () => {
+			animationRef.current?.cancel();
+			animationRef.current = null;
+			track.style.transform = '';
+
+			const motion = computeGiftParadeMotion({
+				barWidth: viewport.clientWidth,
+				paradeWidth: track.scrollWidth,
+				speedPxPerSec: GIFT_PARADE_SPEED_PX_PER_SEC,
+			});
+
+			if (motion.kind === 'parked' || typeof track.animate !== 'function') {
+				return;
+			}
+
+			const animation = track.animate(
+				[
+					{ transform: `translateX(${motion.fromPx}px)` },
+					{ transform: `translateX(${motion.toPx}px)` },
+				],
+				{ duration: motion.durationMs, iterations: Number.POSITIVE_INFINITY, easing: 'linear' },
+			);
+
+			if (isPausedRef.current) {
+				animation.pause();
+			}
+
+			animationRef.current = animation;
+		};
+
+		applyMotion();
+
+		let observer: ResizeObserver | undefined;
+		if (typeof ResizeObserver !== 'undefined') {
+			observer = new ResizeObserver(applyMotion);
+			observer.observe(viewport);
+			observer.observe(track);
+		}
+
+		return () => {
+			observer?.disconnect();
+			animationRef.current?.cancel();
+			animationRef.current = null;
+		};
+	}, [tickerSignature]);
+
 	if (items.length === 0) {
 		return <span className={styles.placeholder}>No gifts yet...</span>;
 	}
 
+	const handlePause = () => {
+		setIsPaused(true);
+		animationRef.current?.pause();
+	};
+
+	const handleResume = () => {
+		setIsPaused(false);
+		animationRef.current?.play();
+	};
+
 	return (
-		<span className={styles.tickerViewport}>
+		<span
+			className={styles.tickerViewport}
+			data-celestia-gift-parade=""
+			data-parade-paused={isPaused}
+			ref={viewportRef}
+			role="marquee"
+			aria-label="Gift parade"
+			onMouseEnter={handlePause}
+			onMouseLeave={handleResume}
+		>
 			<span
 				className={styles.tickerTrack}
 				data-celestia-gift-ticker=""
 				data-ticker-signature={tickerSignature}
-				key={tickerSignature}
+				ref={trackRef}
 			>
 				{items.map((item) => (
 					<GiftParadeChip item={item} key={item.giftName} />
-				))}
-				{items.map((item) => (
-					<GiftParadeChip ariaHidden item={item} key={`${item.giftName}-duplicate`} />
 				))}
 			</span>
 		</span>

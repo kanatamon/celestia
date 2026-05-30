@@ -100,6 +100,41 @@ describe('ActivitySwitcher', () => {
 			root.unmount();
 		});
 	});
+
+	it('pauses the gift parade while hovered and resumes on leave', async () => {
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		await act(async () => {
+			root.render(
+				<ActivitySwitcher
+					memberEvents={[]}
+					giftEvents={[giftEvent('rose-1', 'Rose', 1, 1), giftEvent('galaxy-1', 'Galaxy', 1000, 1)]}
+					initialView="gifts"
+				/>,
+			);
+		});
+
+		const parade = getParade(container);
+
+		expect(parade.dataset.paradePaused).toBe('false');
+
+		await act(async () => {
+			parade.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }));
+		});
+
+		expect(parade.dataset.paradePaused).toBe('true');
+
+		await act(async () => {
+			parade.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, cancelable: true }));
+		});
+
+		expect(parade.dataset.paradePaused).toBe('false');
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
 });
 
 function getActivitySwitcher(container: Element): HTMLElement {
@@ -117,6 +152,16 @@ function getTicker(container: Element): HTMLElement {
 
 	if (!(element instanceof HTMLElement)) {
 		throw new Error('Expected gift ticker to render.');
+	}
+
+	return element;
+}
+
+function getParade(container: Element): HTMLElement {
+	const element = container.querySelector('[data-celestia-gift-parade]');
+
+	if (!(element instanceof HTMLElement)) {
+		throw new Error('Expected gift parade to render.');
 	}
 
 	return element;
