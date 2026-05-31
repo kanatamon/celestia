@@ -6,7 +6,6 @@ const SESSION_TAB_PATH = 'src/session-tab/index.html';
 
 interface ChromeTabsApi {
 	create(props: { url: string }): Promise<{ id?: number }>;
-	remove(tabId: number): Promise<void>;
 }
 
 interface ChromeDebuggerApi {
@@ -32,9 +31,13 @@ interface CreateSessionCoordinatorOptions {
  * Pairing Registry plus the Chrome Debugger when either tab is closed.
  */
 export interface SessionCoordinator {
-	openLiveSession(username: string): Promise<TabPair>;
+	openLiveSession(request: OpenLiveSessionRequest): Promise<TabPair>;
 	handleTabRemoved(tabId: number): Promise<void>;
 }
+
+export type OpenLiveSessionRequest =
+	| { username: string; tiktokTabId?: undefined }
+	| { tiktokTabId: number; username?: string };
 
 export function createSessionCoordinator({
 	registry,
@@ -45,16 +48,17 @@ export function createSessionCoordinator({
 	sessionTabUrl = defaultSessionTabUrl,
 }: CreateSessionCoordinatorOptions): SessionCoordinator {
 	return {
-		async openLiveSession(username) {
-			const tiktokTab = await tabs.create({ url: tiktokLiveUrl(username) });
-			const tiktokTabId = requireTabId(tiktokTab.id);
+		async openLiveSession(request) {
+			const tiktokTabId = await getOrCreateTiktokTabId(request, tabs, tiktokLiveUrl);
 
 			const sessionTab = await tabs.create({ url: sessionTabUrl(tiktokTabId) });
 			const sessionTabId = requireTabId(sessionTab.id);
 
 			const pair: TabPair = { tiktokTabId, sessionTabId };
 			await registry.setPair(pair);
-			await preferences.setRecentStreamerUsername(username);
+			if (request.username) {
+				await preferences.setRecentStreamerUsername(request.username);
+			}
 
 			return pair;
 		},
@@ -72,6 +76,19 @@ export function createSessionCoordinator({
 			}
 		},
 	};
+}
+
+async function getOrCreateTiktokTabId(
+	request: OpenLiveSessionRequest,
+	tabs: ChromeTabsApi,
+	tiktokLiveUrl: (username: string) => string,
+): Promise<number> {
+	if (typeof request.tiktokTabId === 'number') {
+		return request.tiktokTabId;
+	}
+
+	const tiktokTab = await tabs.create({ url: tiktokLiveUrl(request.username) });
+	return requireTabId(tiktokTab.id);
 }
 
 async function detachQuietly(

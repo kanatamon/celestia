@@ -53,8 +53,9 @@ describe('Chrome extension scaffold', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('declares the Side Panel and background service worker in the MV3 manifest', () => {
+	it('declares the Launcher, Side Panel, and background service worker in the MV3 manifest', () => {
 		expect(manifestDefinition.manifest_version).toBe(3);
+		expect(manifestDefinition.action.default_popup).toBe('src/launcher/index.html');
 		expect(manifestDefinition.permissions).toContain('debugger');
 		expect(manifestDefinition.permissions).toContain('sidePanel');
 		expect(manifestDefinition.permissions).toContain('storage');

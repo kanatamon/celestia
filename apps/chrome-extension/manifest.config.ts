@@ -7,6 +7,7 @@ export const manifestDefinition = {
 	version: '0.0.0',
 	action: {
 		default_title: 'Celestia',
+		default_popup: 'src/launcher/index.html',
 	},
 	background: {
 		service_worker: 'src/background/service-worker.ts',

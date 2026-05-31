@@ -27,30 +27,32 @@ describe('session coordinator', () => {
 	it('opens a tiktok live tab and paired session tab and writes the pair on OPEN_LIVE_SESSION', async () => {
 		const coordinator = createCoordinator();
 
-		const pair = await coordinator.openLiveSession('celestia');
+		const pair = await coordinator.openLiveSession({ username: 'celestia' });
 
-		const tiktokTab = tabs.created[0];
-		const sessionTab = tabs.created[1];
+		const tiktokTab = requireCreatedTab(tabs.created[0]);
+		const sessionTab = requireCreatedTab(tabs.created[1]);
 
-		expect(tiktokTab?.url).toBe('https://www.tiktok.com/@celestia/live');
-		expect(sessionTab?.url).toContain(`?tiktokTabId=${tiktokTab?.id}`);
-		expect(pair).toEqual({ tiktokTabId: tiktokTab?.id, sessionTabId: sessionTab?.id });
+		expect(tiktokTab.url).toBe('https://www.tiktok.com/@celestia/live');
+		expect(sessionTab.url).toContain(`?tiktokTabId=${tiktokTab.id}`);
+		expect(pair).toEqual({ tiktokTabId: tiktokTab.id, sessionTabId: sessionTab.id });
 
 		const registry = createTabPairingRegistry(storageArea);
-		await expect(registry.getSessionTabId(tiktokTab?.id as number)).resolves.toBe(sessionTab?.id);
+		await expect(registry.getSessionTabId(tiktokTab.id)).resolves.toBe(sessionTab.id);
 	});
 
 	it('writes the username to User Preferences as recentStreamerUsername', async () => {
 		const coordinator = createCoordinator();
 
-		await coordinator.openLiveSession('celestia');
+		await coordinator.openLiveSession({ username: 'celestia' });
 
 		expect(preferences.recentStreamerUsername).toBe('celestia');
 	});
 
 	it('detaches the debugger from the paired tiktok tab and removes the pair when the session tab is closed', async () => {
 		const coordinator = createCoordinator();
-		const { tiktokTabId, sessionTabId } = await coordinator.openLiveSession('celestia');
+		const { tiktokTabId, sessionTabId } = await coordinator.openLiveSession({
+			username: 'celestia',
+		});
 
 		await coordinator.handleTabRemoved(sessionTabId);
 
@@ -61,7 +63,9 @@ describe('session coordinator', () => {
 
 	it('removes the pair without detaching or closing the session tab when the tiktok tab is closed', async () => {
 		const coordinator = createCoordinator();
-		const { tiktokTabId, sessionTabId } = await coordinator.openLiveSession('celestia');
+		const { tiktokTabId, sessionTabId } = await coordinator.openLiveSession({
+			username: 'celestia',
+		});
 
 		await coordinator.handleTabRemoved(tiktokTabId);
 
@@ -73,7 +77,7 @@ describe('session coordinator', () => {
 
 	it('ignores removal of an unknown tab', async () => {
 		const coordinator = createCoordinator();
-		await coordinator.openLiveSession('celestia');
+		await coordinator.openLiveSession({ username: 'celestia' });
 
 		await coordinator.handleTabRemoved(99999);
 
@@ -81,7 +85,30 @@ describe('session coordinator', () => {
 		const registry = createTabPairingRegistry(storageArea);
 		await expect(registry.listPairs()).resolves.toHaveLength(1);
 	});
+
+	it('opens a Session Tab for an existing unpaired tiktok live tab without creating another tiktok tab', async () => {
+		const coordinator = createCoordinator();
+
+		const pair = await coordinator.openLiveSession({ tiktokTabId: 321, username: 'nova' });
+		const sessionTab = requireCreatedTab(tabs.created[0]);
+
+		expect(tabs.created).toHaveLength(1);
+		expect(sessionTab.url).toContain('?tiktokTabId=321');
+		expect(pair).toEqual({ tiktokTabId: 321, sessionTabId: sessionTab.id });
+		expect(preferences.recentStreamerUsername).toBe('nova');
+	});
 });
+
+function requireCreatedTab(tab: { id: number; url: string } | undefined): {
+	id: number;
+	url: string;
+} {
+	if (!tab) {
+		throw new Error('Expected created tab');
+	}
+
+	return tab;
+}
 
 class FakeChromeSessionStorageArea {
 	readonly values = new Map<string, unknown>();

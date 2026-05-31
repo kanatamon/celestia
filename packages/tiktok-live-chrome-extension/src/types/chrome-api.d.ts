@@ -42,9 +42,14 @@ declare namespace ChromeApi {
 
 declare const chrome: {
 	tabs: {
-		query(queryInfo: { active: boolean; currentWindow: boolean }): Promise<ChromeApi.Tab[]>;
+		query(
+			queryInfo: { active: boolean; currentWindow: boolean } | { url: string },
+		): Promise<ChromeApi.Tab[]>;
 		create(createProperties: { url: string }): Promise<ChromeApi.Tab>;
-		update(tabId: number, updateProperties: { url: string }): Promise<ChromeApi.Tab>;
+		update(
+			tabId: number,
+			updateProperties: { active: boolean } | { url: string },
+		): Promise<ChromeApi.Tab>;
 		remove(tabId: number): Promise<void>;
 		onActivated: {
 			addListener(handler: ChromeApi.TabActivatedHandler): void;
@@ -61,6 +66,7 @@ declare const chrome: {
 	};
 	runtime: {
 		getURL(path: string): string;
+		sendMessage(message: unknown): Promise<unknown>;
 		onMessage: {
 			addListener(handler: ChromeApi.MessageHandler): void;
 			removeListener(handler: ChromeApi.MessageHandler): void;
