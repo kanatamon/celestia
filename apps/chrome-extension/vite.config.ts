@@ -6,6 +6,13 @@ import manifest from './manifest.config.js';
 
 export default defineConfig({
 	plugins: [react(), crx({ manifest })],
+	build: {
+		rollupOptions: {
+			input: {
+				'session-tab': fileURLToPath(new URL('src/session-tab/index.html', import.meta.url)),
+			},
+		},
+	},
 	resolve: {
 		alias: {
 			'@celestia/tiktok-live-chrome-extension': fileURLToPath(

@@ -185,18 +185,20 @@ function LiveFeed({
 				/>
 			) : null}
 			<section aria-label="Live feed" className={styles.liveFeed}>
-				<StatusBar
-					connectionState={state.connectionState}
-					viewerCount={state.viewerCount}
-					likeCount={state.likeCount}
-					username={state.streamerUsername ?? ''}
-				/>
-				<SplitFeedLayout
-					chatEvents={state.chatEvents}
-					giftEvents={state.giftEvents}
-					userGiftEvents={state.userGiftEvents}
-				/>
-				<ActivitySwitcher memberEvents={state.memberEvents} giftEvents={state.giftEvents} />
+				<div className={styles.liveFeedContent}>
+					<StatusBar
+						connectionState={state.connectionState}
+						viewerCount={state.viewerCount}
+						likeCount={state.likeCount}
+						username={state.streamerUsername ?? ''}
+					/>
+					<SplitFeedLayout
+						chatEvents={state.chatEvents}
+						giftEvents={state.giftEvents}
+						userGiftEvents={state.userGiftEvents}
+					/>
+					<ActivitySwitcher memberEvents={state.memberEvents} giftEvents={state.giftEvents} />
+				</div>
 			</section>
 		</main>
 	);
