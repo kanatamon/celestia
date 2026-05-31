@@ -756,6 +756,7 @@ describe('SplitFeedLayout', () => {
 			HTMLElement,
 		);
 		expect(container.textContent).toContain("Click a message to open a viewer's feed");
+		expect(getEventRow(container, 'chat-1').dataset.pinned).toBeUndefined();
 
 		await act(async () => {
 			root.unmount();

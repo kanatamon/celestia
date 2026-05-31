@@ -46,8 +46,6 @@ export interface EventFeedProps {
 	chatEvents: ChatLiveEvent[];
 	giftEvents: GiftLiveEvent[];
 	userGiftEvents?: Map<string, GiftLiveEvent[]>;
-	pinnedEventId?: string;
-	onPinnedEventChange?: (event: FeedLiveEvent | undefined) => void;
 }
 
 export interface IndividualChatFeedProps {
@@ -99,6 +97,11 @@ interface NewMessagesBarProps {
 }
 
 export type FeedLiveEvent = ChatLiveEvent | GiftLiveEvent;
+
+interface EventFeedPanelProps extends EventFeedProps {
+	pinnedEvent?: FeedLiveEvent;
+	onPinnedEventChange: (event: FeedLiveEvent | undefined) => void;
+}
 
 export function ScrollableFeedList({
 	events,
@@ -392,27 +395,39 @@ export function GiftEventCard({ event, userGiftEvents = [] }: GiftEventCardProps
 	);
 }
 
-export function EventFeed({
+export function EventFeed({ chatEvents, giftEvents, userGiftEvents = new Map() }: EventFeedProps) {
+	const [pinnedEvent, setPinnedEvent] = useState<FeedLiveEvent | undefined>();
+
+	return (
+		<EventFeedPanel
+			chatEvents={chatEvents}
+			giftEvents={giftEvents}
+			userGiftEvents={userGiftEvents}
+			pinnedEvent={pinnedEvent}
+			onPinnedEventChange={setPinnedEvent}
+		/>
+	);
+}
+
+function EventFeedPanel({
 	chatEvents,
 	giftEvents,
 	userGiftEvents = new Map(),
-	pinnedEventId: controlledPinnedEventId,
+	pinnedEvent,
 	onPinnedEventChange,
-}: EventFeedProps) {
+}: EventFeedPanelProps) {
 	const feedRef = useRef<HTMLDivElement>(null);
 	const rowRefs = useRef(new Map<string, HTMLButtonElement>());
-	const [uncontrolledPinnedEventId, setUncontrolledPinnedEventId] = useState<string | undefined>();
 	const [pinnedNaturalTop, setPinnedNaturalTop] = useState<number | undefined>();
 	const [pinnedStage, setPinnedStage] = useState<PinnedStage>('inline');
-	const pinnedEventId = controlledPinnedEventId ?? uncontrolledPinnedEventId;
+	const pinnedEventId = pinnedEvent?.id;
 	const events = useMemo(
 		() => [...chatEvents, ...giftEvents].sort((first, second) => first.ts - second.ts),
 		[chatEvents, giftEvents],
 	);
 	const updatePinnedEvent = useCallback(
 		(event: FeedLiveEvent | undefined) => {
-			setUncontrolledPinnedEventId(event?.id);
-			onPinnedEventChange?.(event);
+			onPinnedEventChange(event);
 		},
 		[onPinnedEventChange],
 	);
@@ -607,11 +622,11 @@ export function SplitFeedLayout({
 	}, []);
 
 	const mainFeed = (
-		<EventFeed
+		<EventFeedPanel
 			chatEvents={chatEvents}
 			giftEvents={giftEvents}
 			userGiftEvents={userGiftEvents}
-			pinnedEventId={pinnedEvent?.id}
+			pinnedEvent={pinnedEvent}
 			onPinnedEventChange={setPinnedEventState}
 		/>
 	);
