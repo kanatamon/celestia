@@ -4,10 +4,12 @@ export const manifestDefinition = {
 	manifest_version: 3,
 	name: 'Celestia',
 	description: 'TikTok Live companion Session Tab.',
-	version: '0.0.0',
+	version: '1.0.0',
 	icons: {
 		16: 'public/icon-16.png',
 		32: 'public/icon-32.png',
+		48: 'public/icon-48.png',
+		128: 'public/icon-128.png',
 	},
 	action: {
 		default_title: 'Celestia',
@@ -15,6 +17,8 @@ export const manifestDefinition = {
 		default_icon: {
 			16: 'public/icon-16.png',
 			32: 'public/icon-32.png',
+			48: 'public/icon-48.png',
+			128: 'public/icon-128.png',
 		},
 	},
 	background: {
