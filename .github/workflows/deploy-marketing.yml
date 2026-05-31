@@ -27,10 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy extension assets into marketing folder
+      - name: Copy extension icon into marketing folder
         run: |
           cp apps/chrome-extension/public/icon-128.png apps/marketing/icon-128.png
-          cp apps/chrome-extension/screenshot-1.png apps/marketing/screenshot-1.png
 
       - uses: actions/configure-pages@v5
 
