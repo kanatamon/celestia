@@ -211,6 +211,7 @@ export function ScrollableFeedList({
 
 	return (
 		<div className={styles.feedShell}>
+			{unreadCount === 0 && isAtBottom && <AuroraOverlay />}
 			<div
 				className={`${styles.feed}${className ? ` ${className}` : ''}`}
 				data-celestia-event-feed=""
@@ -225,8 +226,6 @@ export function ScrollableFeedList({
 					latestUnreadEvent={latestUnreadEvent}
 					onClick={handleNewMessagesClick}
 				/>
-			) : isAtBottom ? (
-				<AuroraOverlay />
 			) : null}
 		</div>
 	);
