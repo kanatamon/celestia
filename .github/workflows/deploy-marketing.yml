@@ -1,0 +1,42 @@
+name: Deploy marketing site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/marketing/**
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy extension assets into marketing folder
+        run: |
+          cp apps/chrome-extension/public/icon-128.png apps/marketing/icon-128.png
+          cp apps/chrome-extension/screenshot-1.png apps/marketing/screenshot-1.png
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/marketing
+
+      - uses: actions/deploy-pages@v4
+        id: deployment

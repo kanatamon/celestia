@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Celestia — TikTok Live Companion</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #080e1f;
+      color: #e8eaf6;
+      min-height: 100vh;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 24px;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(32, 178, 170, 0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(100, 60, 200, 0.15) 0%, transparent 60%),
+        #080e1f;
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 640px; }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 0 40px rgba(32, 178, 170, 0.4);
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #7fffd4 0%, #20b2aa 50%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .tagline {
+      font-size: 1.2rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #20b2aa, #7c3aed);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 32px;
+      border-radius: 999px;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      box-shadow: 0 4px 24px rgba(32, 178, 170, 0.35);
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .install-note {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    .install-note a { color: #64748b; }
+
+    /* ── Screenshot ── */
+    .screenshot-section {
+      padding: 80px 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .screenshot-wrap {
+      max-width: 960px;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .screenshot-wrap img { width: 100%; display: block; }
+
+    /* ── Features ── */
+    .features {
+      padding: 0 24px 80px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .features-grid {
+      max-width: 800px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 28px 24px;
+    }
+
+    .feature-icon { font-size: 2rem; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; color: #e2e8f0; }
+    .feature-card p { font-size: 0.875rem; color: #64748b; line-height: 1.6; }
+
+    /* ── Install guide ── */
+    .install-section {
+      padding: 0 24px 80px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .install-box {
+      max-width: 640px;
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 40px;
+    }
+
+    .install-box h2 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #e2e8f0;
+    }
+
+    .install-box .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 28px;
+    }
+
+    ol { padding-left: 20px; }
+
+    ol li {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      line-height: 1.7;
+      margin-bottom: 6px;
+    }
+
+    ol li strong { color: #e2e8f0; }
+
+    code {
+      background: rgba(255,255,255,0.08);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #7fffd4;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.8rem;
+      color: #334155;
+    }
+
+    footer a { color: #475569; text-decoration: none; }
+    footer a:hover { color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <img class="logo" src="icon-128.png" alt="Celestia icon" />
+      <h1>Celestia</h1>
+      <p class="tagline">
+        A real-time TikTok Live companion.<br />
+        Chat, gifts, and viewer activity — in a dedicated tab alongside your stream.
+      </p>
+      <a class="btn-primary" href="https://github.com/kanatamon/celestia/releases/download/v1.0.0/celestia-1.0.0.zip">
+        ↓ Download Extension
+      </a>
+      <p class="install-note">
+        Chrome · version 1.0.0 · <a href="#install">Manual install required</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Screenshot -->
+  <section class="screenshot-section">
+    <div class="screenshot-wrap">
+      <img src="screenshot-1.png" alt="Celestia session tab showing live chat and gifts" />
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Live Chat Feed</h3>
+        <p>See every chat message as it arrives, with avatars and timestamps.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎁</div>
+        <h3>Gift Alerts</h3>
+        <p>Gift events highlighted in real time so you never miss a moment.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Viewer Activity</h3>
+        <p>Track viewer counts, likes, and member joins throughout the session.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>No Account Needed</h3>
+        <p>TikTok handles all auth. Celestia only watches — nothing is stored or sent.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install guide -->
+  <section class="install-section" id="install">
+    <div class="install-box">
+      <h2>How to install</h2>
+      <p class="subtitle">Celestia is pending Chrome Web Store review. In the meantime, install it manually in under a minute.</p>
+      <ol>
+        <li>Click <strong>Download Extension</strong> above and unzip the file.</li>
+        <li>Open Chrome and go to <code>chrome://extensions</code>.</li>
+        <li>Enable <strong>Developer mode</strong> using the toggle in the top-right corner.</li>
+        <li>Click <strong>Load unpacked</strong> and select the unzipped <code>dist</code> folder.</li>
+        <li>Celestia appears in your toolbar. Open a TikTok Live tab and click it.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      <a href="https://github.com/kanatamon/celestia">GitHub</a> ·
+      <a href="privacy-policy.html">Privacy Policy</a>
+    </p>
+    <p style="margin-top: 8px;">© 2026 Celestia</p>
+  </footer>
+
+</body>
+</html>

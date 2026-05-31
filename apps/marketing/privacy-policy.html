@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Celestia</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #080e1f;
+      color: #94a3b8;
+      min-height: 100vh;
+      padding: 64px 24px;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; }
+
+    .back {
+      display: inline-block;
+      font-size: 0.875rem;
+      color: #475569;
+      text-decoration: none;
+      margin-bottom: 40px;
+    }
+
+    .back:hover { color: #94a3b8; }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+
+    .meta { font-size: 0.875rem; color: #475569; margin-bottom: 48px; }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 36px 0 12px;
+    }
+
+    p { line-height: 1.75; margin-bottom: 12px; font-size: 0.95rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 0.875rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    th { background: rgba(255,255,255,0.04); color: #e2e8f0; font-weight: 600; }
+    td { color: #94a3b8; }
+
+    a { color: #7fffd4; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.8rem;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back" href="index.html">← Back to Celestia</a>
+
+    <h1>Privacy Policy</h1>
+    <p class="meta">Celestia — TikTok Live Companion · Last updated: 2026-05-31</p>
+
+    <h2>Overview</h2>
+    <p>Celestia is a Chrome extension that displays a real-time TikTok Live event feed in a dedicated browser tab. This policy explains what data Celestia accesses, how it is used, and what is never collected.</p>
+
+    <h2>Data We Access</h2>
+
+    <h2>TikTok Live tab URLs and titles</h2>
+    <p>Celestia reads the URL and title of open browser tabs solely to identify which tabs are active TikTok Live streams. This powers the Launcher — the popup that lists your open TikTok Live tabs. Tab data is never stored, transmitted, or shared.</p>
+
+    <h2>Live stream event data</h2>
+    <p>Celestia attaches the Chrome Debugger API to the TikTok Live tab you explicitly select in order to observe the WebSocket connection TikTok establishes. This is the only mechanism Chrome provides to intercept live stream events from an existing tab. All event data (chat messages, gifts, viewer counts, likes, member joins) is displayed in real time and <strong style="color:#e2e8f0">discarded when the Live Session ends</strong>. It is never written to disk, never sent to any server, and never shared with any third party.</p>
+
+    <h2>User Preferences</h2>
+    <p>Celestia stores two pieces of information locally on your device using <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;color:#7fffd4">chrome.storage.local</code>:</p>
+    <p>— The most recently entered streamer username (to pre-fill the Launcher input)<br />— Sound effect volume levels</p>
+    <p>This data never leaves your device.</p>
+
+    <h2>Tab Pairing Registry</h2>
+    <p>Celestia uses <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;color:#7fffd4">chrome.storage.session</code> to remember which TikTok Live tabs already have an open Session Tab, preventing duplicates. This data is cleared automatically when the browser closes.</p>
+
+    <h2>Data We Do Not Collect</h2>
+    <p>We do not collect, store, or transmit any personal information. We do not have a backend server — there is no account, login, or sign-up. We do not use analytics, crash reporting, or any third-party tracking. We do not collect TikTok credentials or authentication tokens. We do not share any data with any third party.</p>
+
+    <h2>Permissions</h2>
+    <table>
+      <thead>
+        <tr><th>Permission</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code style="color:#7fffd4">debugger</code></td><td>Observe the TikTok Live WebSocket stream in the user-selected tab</td></tr>
+        <tr><td><code style="color:#7fffd4">storage</code></td><td>Persist user preferences and the tab pairing registry locally</td></tr>
+        <tr><td><code style="color:#7fffd4">tabs</code></td><td>Identify TikTok Live tabs and manage Session Tab lifecycle</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Data Retention</h2>
+    <p>All live stream event data is ephemeral — it exists only in memory while a Live Session is active and is discarded when the session ends. User Preferences persist in <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;color:#7fffd4">chrome.storage.local</code> until you uninstall the extension or clear extension storage.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>If this policy changes materially, the "Last updated" date above will be updated. Continued use of the extension after changes constitutes acceptance of the revised policy.</p>
+
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy, please open an issue at <a href="https://github.com/kanatamon/celestia">github.com/kanatamon/celestia</a>.</p>
+
+    <footer>© 2026 Celestia</footer>
+  </div>
+</body>
+</html>
