@@ -137,6 +137,9 @@ export function Launcher({
 							placeholder="username"
 							autoComplete="off"
 						/>
+						<button type="submit" className={styles.submit}>
+							Go →
+						</button>
 					</div>
 				</form>
 

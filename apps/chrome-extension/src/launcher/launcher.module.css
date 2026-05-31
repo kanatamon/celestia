@@ -1,3 +1,10 @@
+:global(html),
+:global(body) {
+	margin: 0;
+	padding: 0;
+	background: transparent;
+}
+
 .launcher {
 	width: 360px;
 	min-height: 460px;
@@ -14,8 +21,6 @@
 	box-sizing: border-box;
 	min-height: 460px;
 	padding: 22px;
-	background: rgba(255, 255, 255, 0.18);
-	backdrop-filter: blur(8px);
 }
 
 .header {
@@ -53,9 +58,8 @@
 	display: flex;
 	align-items: center;
 	height: 46px;
-	padding: 0 14px;
-	border: 1px solid rgba(255, 255, 255, 0.65);
-	border-radius: 8px;
+	padding: 0 6px 0 14px;
+	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.76);
 	box-shadow: 0 12px 30px rgba(71, 31, 94, 0.16);
 }
@@ -80,6 +84,34 @@
 	color: #986aa2;
 }
 
+@keyframes rainbow-sweep {
+	0%   { background-position: 0% 50%; }
+	100% { background-position: 200% 50%; }
+}
+
+.submit {
+	flex-shrink: 0;
+	height: 34px;
+	padding: 0 16px;
+	border: none;
+	border-radius: 999px;
+	background: linear-gradient(110deg, #ff6eb4, #ff9a3c, #ffe04b, #7ef9b4, #5bc8f5, #c084fc, #ff6eb4);
+	background-size: 200% auto;
+	animation: rainbow-sweep 2.4s linear infinite;
+	color: #fff;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.01em;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+	cursor: pointer;
+	transition: opacity 0.15s;
+}
+
+.submit:hover {
+	opacity: 0.88;
+}
+
 .liveList {
 	display: grid;
 	gap: 10px;
@@ -94,10 +126,10 @@
 	gap: 12px;
 	align-items: center;
 	width: 100%;
-	min-height: 68px;
-	padding: 12px;
-	border: 1px solid rgba(255, 255, 255, 0.58);
-	border-radius: 8px;
+	min-height: 56px;
+	padding: 12px 16px;
+	border: none;
+	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.62);
 	color: #261535;
 	text-align: left;
