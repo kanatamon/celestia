@@ -1,9 +1,9 @@
-import { defineManifest } from '@crxjs/vite-plugin';
+import { defineManifest, type ManifestV3Export } from '@crxjs/vite-plugin';
 
 export const manifestDefinition = {
 	manifest_version: 3,
 	name: 'Celestia',
-	description: 'TikTok Live companion Side Panel.',
+	description: 'TikTok Live companion Session Tab.',
 	version: '0.0.0',
 	action: {
 		default_title: 'Celestia',
@@ -13,16 +13,13 @@ export const manifestDefinition = {
 		service_worker: 'src/background/service-worker.ts',
 		type: 'module',
 	},
-	permissions: ['debugger', 'sidePanel', 'storage', 'tabs'],
-	side_panel: {
-		default_path: 'src/side-panel/index.html',
-	},
+	permissions: ['debugger', 'storage', 'tabs'],
 	web_accessible_resources: [
 		{
 			resources: ['src/session-tab/index.html'],
 			matches: ['<all_urls>'],
 		},
 	],
-} satisfies chrome.runtime.ManifestV3;
+} satisfies ManifestV3Export;
 
 export default defineManifest(manifestDefinition);

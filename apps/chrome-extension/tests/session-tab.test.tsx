@@ -9,7 +9,6 @@ import { soundManager } from '@celestia/ui';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { manifestDefinition } from '../manifest.config.js';
 import { SessionTab } from '../src/session-tab/session-tab.js';
 
 declare global {
@@ -30,15 +29,6 @@ if (!HTMLElement.prototype.scrollTo) {
 describe('Session Tab', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
-	});
-
-	it('registers the Session Tab HTML entry as a web-accessible resource while keeping the Side Panel', () => {
-		const resources = manifestDefinition.web_accessible_resources?.flatMap(
-			(entry) => entry.resources,
-		);
-
-		expect(resources).toContain('src/session-tab/index.html');
-		expect(manifestDefinition.side_panel.default_path).toBe('src/side-panel/index.html');
 	});
 
 	it('attaches the Provider to the paired tiktokTabId and dispatches LiveEvents to the feed', async () => {
