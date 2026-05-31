@@ -26,12 +26,26 @@ declare namespace ChromeApi {
 	type DebuggerDetachHandler = (source: Debuggee, reason: string) => void;
 	type TabActivatedHandler = (activeInfo: ActiveInfo) => void;
 	type TabUpdatedHandler = (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void;
+	interface TabRemoveInfo {
+		isWindowClosing: boolean;
+		windowId: number;
+	}
+	type TabRemovedHandler = (tabId: number, removeInfo: TabRemoveInfo) => void;
+	type MessageSender = { tab?: Tab; id?: string };
+	type SendResponse = (response?: unknown) => void;
+	type MessageHandler = (
+		message: unknown,
+		sender: MessageSender,
+		sendResponse: SendResponse,
+	) => boolean | undefined;
 }
 
 declare const chrome: {
 	tabs: {
 		query(queryInfo: { active: boolean; currentWindow: boolean }): Promise<ChromeApi.Tab[]>;
+		create(createProperties: { url: string }): Promise<ChromeApi.Tab>;
 		update(tabId: number, updateProperties: { url: string }): Promise<ChromeApi.Tab>;
+		remove(tabId: number): Promise<void>;
 		onActivated: {
 			addListener(handler: ChromeApi.TabActivatedHandler): void;
 			removeListener(handler: ChromeApi.TabActivatedHandler): void;
@@ -39,6 +53,17 @@ declare const chrome: {
 		onUpdated: {
 			addListener(handler: ChromeApi.TabUpdatedHandler): void;
 			removeListener(handler: ChromeApi.TabUpdatedHandler): void;
+		};
+		onRemoved: {
+			addListener(handler: ChromeApi.TabRemovedHandler): void;
+			removeListener(handler: ChromeApi.TabRemovedHandler): void;
+		};
+	};
+	runtime: {
+		getURL(path: string): string;
+		onMessage: {
+			addListener(handler: ChromeApi.MessageHandler): void;
+			removeListener(handler: ChromeApi.MessageHandler): void;
 		};
 	};
 	debugger: {
