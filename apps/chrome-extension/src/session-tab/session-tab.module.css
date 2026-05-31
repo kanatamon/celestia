@@ -1,0 +1,36 @@
+.sessionTab {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	min-height: 0;
+}
+
+.liveFeed {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+	background: url("./assets/live-feed-background.webp") center / cover no-repeat;
+	color: var(--ant-color-text-base);
+}
+
+.disconnectedBanner {
+	display: grid;
+	gap: 4px;
+	padding: 12px 16px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+	background: rgba(16, 22, 35, 0.96);
+	color: var(--ant-color-text-base);
+}
+
+.disconnectedBanner strong {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.disconnectedBanner p {
+	margin: 0;
+	color: var(--ant-color-text-secondary);
+	font-size: 13px;
+	line-height: 1.45;
+}

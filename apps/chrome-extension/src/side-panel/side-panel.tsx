@@ -9,8 +9,8 @@ import type {
 } from '@celestia/tiktok-live-core';
 import { ActivitySwitcher, SplitFeedLayout, StatusBar, useSoundEffects } from '@celestia/ui';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveEventStore } from '../session-tab/live-event-store.js';
 import { userPreferences } from '../user-preferences/user-preferences.js';
-import { useLiveEventStore } from './live-event-store.js';
 import styles from './side-panel.module.css';
 
 export interface TabObserver {

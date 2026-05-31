@@ -11,7 +11,7 @@ import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { manifestDefinition } from '../manifest.config.js';
-import { useLiveEventStore } from '../src/side-panel/live-event-store.js';
+import { useLiveEventStore } from '../src/session-tab/live-event-store.js';
 import {
 	type CelestiaDevToolsNamespace,
 	SidePanel,

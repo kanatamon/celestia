@@ -67,6 +67,7 @@ interface ChromeSessionStorageArea {
 
 interface CreateLiveEventStoreOptions {
 	storage?: PersistStorage<LiveEventStorePersistedState, Promise<void>>;
+	name?: string;
 }
 
 const initialPersistedState: LiveEventStorePersistedState = {
@@ -86,8 +87,11 @@ export const useLiveEventStore = create<LiveEventStore>()(
 
 export function createLiveEventStore({
 	storage = createSessionStorage(),
+	name = STORE_NAME,
 }: CreateLiveEventStoreOptions = {}): LiveEventStoreApi {
-	return createStore<LiveEventStore>()(liveEventStoreInitializer(storage)) as LiveEventStoreApi;
+	return createStore<LiveEventStore>()(
+		liveEventStoreInitializer(storage, name),
+	) as LiveEventStoreApi;
 }
 
 export function createSessionStorage(
@@ -132,6 +136,7 @@ export function createSessionStorage(
 
 function liveEventStoreInitializer(
 	storage: PersistStorage<LiveEventStorePersistedState, Promise<void>>,
+	name: string = STORE_NAME,
 ) {
 	return persist<LiveEventStore, [], [], LiveEventStorePersistedState>(
 		(set) => ({
@@ -186,7 +191,7 @@ function liveEventStoreInitializer(
 			},
 		}),
 		{
-			name: STORE_NAME,
+			name,
 			storage,
 			partialize: pickPersistedState,
 			merge: mergePersistedState,

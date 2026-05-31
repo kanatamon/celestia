@@ -16,6 +16,12 @@ export const manifestDefinition = {
 	side_panel: {
 		default_path: 'src/side-panel/index.html',
 	},
+	web_accessible_resources: [
+		{
+			resources: ['src/session-tab/index.html'],
+			matches: ['<all_urls>'],
+		},
+	],
 } satisfies chrome.runtime.ManifestV3;
 
 export default defineManifest(manifestDefinition);

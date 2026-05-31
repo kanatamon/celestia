@@ -9,7 +9,7 @@ import {
 	createLiveEventStore,
 	createSessionStorage,
 	type LiveGiftEvent,
-} from '../src/side-panel/live-event-store.js';
+} from '../src/session-tab/live-event-store.js';
 
 describe('live event store', () => {
 	let storageArea: FakeChromeSessionStorageArea;
