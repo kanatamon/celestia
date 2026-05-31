@@ -59,6 +59,38 @@ describe('Launcher', () => {
 		await mount.unmount();
 	});
 
+	it('preserves typed username across re-renders with a new registry reference', async () => {
+		const mount = await renderLauncher({ chromeApi, preferences, registry });
+
+		await act(async () => {
+			setInputValue(input(mount.container), 'nova');
+		});
+		expect(input(mount.container).value).toBe('nova');
+
+		// Simulate what happens in production: default prop values create a new
+		// registry object on every render, causing the effect to re-run and reset username.
+		await act(async () => {
+			mount.root.render(
+				<Launcher
+					chromeApi={chromeApi}
+					preferences={preferences}
+					registry={new FakeRegistry()}
+					closeWindow={() => {
+						closed = true;
+					}}
+				/>,
+			);
+			await Promise.resolve();
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(input(mount.container).value).toBe('nova');
+
+		await mount.unmount();
+	});
+
 	it('shows paired and unpaired live tabs and routes each click correctly', async () => {
 		chromeApi.liveTabs = [
 			{ id: 10, title: 'Nova LIVE', url: 'https://www.tiktok.com/@nova/live' },

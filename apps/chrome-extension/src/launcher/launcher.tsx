@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import { type FormEvent, type ReactElement, useEffect, useState } from 'react';
+import { type FormEvent, type ReactElement, useEffect, useRef, useState } from 'react';
 import {
 	createTabPairingRegistry,
 	type TabPairingRegistry,
@@ -55,17 +55,21 @@ export function Launcher({
 	const [liveTabs, setLiveTabs] = useState<LiveTabItem[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
+	const chromeApiRef = useRef(chromeApi);
+	const preferencesRef = useRef(preferences);
+	const registryRef = useRef(registry);
+
 	useEffect(() => {
 		let isMounted = true;
 
 		async function loadLauncherState() {
 			const [recentUsername, tabs] = await Promise.all([
-				preferences.getRecentStreamerUsername(),
-				chromeApi.tabs.query(liveTabQuery),
+				preferencesRef.current.getRecentStreamerUsername(),
+				chromeApiRef.current.tabs.query(liveTabQuery),
 			]);
 
 			const items = await Promise.all(
-				tabs.filter(hasTabId).map((tab) => toLiveTabItem(tab, registry)),
+				tabs.filter(hasTabId).map((tab) => toLiveTabItem(tab, registryRef.current)),
 			);
 
 			if (!isMounted) return;
@@ -79,7 +83,7 @@ export function Launcher({
 		return () => {
 			isMounted = false;
 		};
-	}, [chromeApi, preferences, registry]);
+	}, []);
 
 	const hasLiveTabs = liveTabs.length > 0;
 	const subtitle = hasLiveTabs ? 'Choose an open Live or start another' : 'Start a Live Session';
