@@ -798,6 +798,9 @@ function toGiftChips(giftEvents: GiftLiveEvent[]): GiftChipViewModel[] {
 		if (!event.giftName || event.giftName === HEART_ME_GIFT_NAME) {
 			continue;
 		}
+		if (!event?.repeatEnd) {
+			continue;
+		}
 
 		const repeatCount = toPositiveRepeatCount(event.repeatCount);
 		const diamondCount = toNonNegativeDiamondCount(event.diamondCount);
