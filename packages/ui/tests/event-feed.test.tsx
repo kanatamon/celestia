@@ -317,6 +317,63 @@ describe('EventFeed', () => {
 		});
 	});
 
+	it('auto-scrolls when events arrive in a high-frequency burst that grows the DOM before the effect reads scroll position', async () => {
+		// Regression for: useEffect([events]) fires after the DOM is already committed with
+		// new rows, so a live isScrolledToBottom measurement sees the inflated scrollHeight
+		// and falsely reports "not at bottom", causing the unread bar to surface even when
+		// the user was at the bottom.
+		//
+		// The fix reads isAtBottomRef (set by the scroll handler, pre-render) instead of
+		// re-measuring the DOM inside the effect.
+		//
+		// To reproduce: prime the ref via a scroll event, then update scrollHeight to
+		// simulate the DOM having already grown before the effect runs.
+		const container = document.createElement('div');
+		const root = createRoot(container);
+		const firstChat = chatEvent('chat-1', 10, 'first');
+
+		await act(async () => {
+			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
+		});
+
+		const feed = getEventFeed(container);
+		// User is exactly at bottom: scrollHeight(400) - scrollTop(100) - clientHeight(300) = 0
+		Object.defineProperties(feed, {
+			scrollHeight: { configurable: true, value: 400 },
+			clientHeight: { configurable: true, value: 300 },
+			scrollTop: { configurable: true, writable: true, value: 100 },
+		});
+
+		await act(async () => {
+			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
+		});
+
+		// Simulate DOM already grown by 130px (two new events rendered) before the effect
+		// fires. With a live measurement: 530 - 100 - 300 = 130 > SCROLL_BOTTOM_THRESHOLD(100)
+		// — the old code would have shown the unread bar here.
+		Object.defineProperty(feed, 'scrollHeight', { configurable: true, value: 530 });
+
+		await act(async () => {
+			root.render(
+				<EventFeed
+					chatEvents={[
+						firstChat,
+						chatEvent('chat-2', 20, 'burst-1'),
+						chatEvent('chat-3', 30, 'burst-2'),
+					]}
+					giftEvents={[]}
+				/>,
+			);
+		});
+
+		expect(container.textContent).not.toContain('new messages');
+		expect(feed.scrollTop).toBe(530);
+
+		await act(async () => {
+			root.unmount();
+		});
+	});
+
 	it('pins one event at a time and toggles between inline, top sticky, and bottom sticky states', async () => {
 		const container = document.createElement('div');
 		const root = createRoot(container);

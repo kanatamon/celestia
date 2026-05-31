@@ -111,6 +111,10 @@ export function ScrollableFeedList({
 	const internalRef = useRef<HTMLDivElement>(null);
 	const feedRef = externalScrollRef ?? internalRef;
 	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
+	// Ref mirrors isAtBottom state but is updated synchronously in the scroll handler so
+	// the events effect reads the pre-render value (not the post-render DOM measurement,
+	// which is inflated by the heights of newly-added rows and causes false "not at bottom").
+	const isAtBottomRef = useRef(initialScrollTarget === 'bottom');
 	const [isAtBottom, setIsAtBottom] = useState(initialScrollTarget === 'bottom');
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [latestUnreadEvent, setLatestUnreadEvent] = useState<FeedLiveEvent | undefined>();
@@ -159,10 +163,17 @@ export function ScrollableFeedList({
 			return;
 		}
 
-		// Decide from the live scroll position rather than a cached flag: a short,
-		// non-scrollable feed is always at the bottom yet never fires a scroll event to
-		// refresh a cached flag, which would otherwise surface the bar with nothing hidden.
-		if (isScrolledToBottom(feedRef.current)) {
+		// Prefer the pre-render ref value over a live DOM measurement: the DOM is already
+		// committed with new rows when this effect runs, so a live scrollHeight read is
+		// inflated by the heights of newly-added rows and falsely reports "not at bottom"
+		// under high-frequency bursts. The ref is written synchronously by the scroll handler
+		// before any React re-render, so it reflects the user's position before the burst.
+		//
+		// Fall back to a live measurement when the ref is false: a non-scrollable feed
+		// (e.g. IndividualChatFeed on first open) never fires a scroll event so the ref
+		// stays at its initialised value, yet all events are always visible and no bar
+		// should appear.
+		if (isAtBottomRef.current || isScrolledToBottom(feedRef.current)) {
 			scrollToBottom(feedRef.current, 'instant');
 			setIsAtBottom(true);
 			setUnreadCount(0);
@@ -176,6 +187,7 @@ export function ScrollableFeedList({
 
 	const handleScroll = () => {
 		const atBottom = isScrolledToBottom(feedRef.current);
+		isAtBottomRef.current = atBottom;
 		setIsAtBottom(atBottom);
 
 		if (atBottom) {
@@ -188,6 +200,7 @@ export function ScrollableFeedList({
 
 	const handleNewMessagesClick = () => {
 		scrollToBottom(feedRef.current, 'instant');
+		isAtBottomRef.current = true;
 		setIsAtBottom(true);
 		setUnreadCount(0);
 		setLatestUnreadEvent(undefined);
