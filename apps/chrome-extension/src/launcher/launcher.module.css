@@ -85,8 +85,12 @@
 }
 
 @keyframes rainbow-sweep {
-	0%   { background-position: 0% 50%; }
-	100% { background-position: 200% 50%; }
+	0% {
+		background-position: 0% 50%;
+	}
+	100% {
+		background-position: 200% 50%;
+	}
 }
 
 .submit {
@@ -95,7 +99,16 @@
 	padding: 0 16px;
 	border: none;
 	border-radius: 999px;
-	background: linear-gradient(110deg, #ff6eb4, #ff9a3c, #ffe04b, #7ef9b4, #5bc8f5, #c084fc, #ff6eb4);
+	background: linear-gradient(
+		110deg,
+		#ff6eb4,
+		#ff9a3c,
+		#ffe04b,
+		#7ef9b4,
+		#5bc8f5,
+		#c084fc,
+		#ff6eb4
+	);
 	background-size: 200% auto;
 	animation: rainbow-sweep 2.4s linear infinite;
 	color: #fff;

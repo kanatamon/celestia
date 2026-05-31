@@ -5,38 +5,42 @@
 	flex: 1 1 auto;
 }
 
+/*
+ * Aurora backlight: a soft "candy" glow that rises from the bottom of the feed
+ * (where the newest messages sit when caught up). It is an absolutely positioned,
+ * pointer-events:none layer — it never affects feed layout and is never interactable.
+ */
 .aurora {
 	position: absolute;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	height: 80px;
+	height: 120px;
 	pointer-events: none;
-	overflow: hidden;
+	background:
+		radial-gradient(
+			120% 80% at 28% 100%,
+			color-mix(in srgb, #22d3ee 46%, transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			120% 90% at 82% 100%,
+			color-mix(in srgb, #f472b6 44%, transparent),
+			transparent 72%
+		),
+		linear-gradient(0deg, color-mix(in srgb, #a78bfa 30%, transparent), transparent 72%);
+	filter: blur(11px);
+	animation: auroraBreathe 3s ease-in-out infinite;
+	will-change: opacity;
 }
 
-.auroraParticle {
-	position: absolute;
-	bottom: -6px;
-	width: var(--aurora-size);
-	height: var(--aurora-size);
-	border-radius: 50%;
-	background: var(--aurora-color);
-	animation: auroraRise 2.5s ease-out infinite;
-	animation-delay: var(--aurora-delay);
-}
-
-@keyframes auroraRise {
-	0% {
-		opacity: 0;
-		transform: translateY(0) scale(0.6);
-	}
-	20% {
-		opacity: 0.9;
-	}
+@keyframes auroraBreathe {
+	0%,
 	100% {
-		opacity: 0;
-		transform: translateY(-80px) scale(1);
+		opacity: 0.72;
+	}
+	50% {
+		opacity: 1;
 	}
 }
 
