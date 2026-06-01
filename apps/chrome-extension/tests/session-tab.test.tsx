@@ -1,3 +1,7 @@
+import {
+	GIFT_ANIMATION_ASSET_CAPTURED,
+	type GiftAnimationAssetCapturedMessage,
+} from '@celestia/tiktok-live-chrome-extension';
 import type {
 	ConnectionState,
 	LiveEvent,
@@ -175,6 +179,97 @@ describe('Session Tab', () => {
 		expect(revokeObjectURL).toHaveBeenCalledWith('blob:sample-gift-animation');
 	});
 
+	it('celebrates a real captured Gift Animation Asset, minting its URL in the Session Tab and revoking it on teardown', async () => {
+		const provider = new FakeProvider();
+		const feed = new FakeAssetFeed();
+		const createObjectURL = vi.fn(() => 'blob:captured-gift');
+		const revokeObjectURL = vi.fn();
+		withMockedObjectUrl(createObjectURL, revokeObjectURL);
+		mockCelebrationMedia();
+
+		const mount = await renderSessionTab({
+			tiktokTabId: 101,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@captured/live',
+			subscribeAssets: feed.subscribe,
+		});
+
+		try {
+			await act(async () => {
+				feed.emit(capturedAsset(ftypMp4Bytes()));
+			});
+
+			const celebration = mount.container.querySelector('[aria-label="Gift Celebration"]');
+			expect(celebration).toBeInstanceOf(HTMLElement);
+			// The object URL is minted in the Session Tab context from the bytes.
+			expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+		} finally {
+			await mount.unmount();
+			restoreObjectUrl();
+		}
+
+		// No URLs leak across the Live Session: the stage revokes the owned URL.
+		expect(revokeObjectURL).toHaveBeenCalledWith('blob:captured-gift');
+	});
+
+	it('coalesces a burst of the byte-identical gift into a single celebration', async () => {
+		const provider = new FakeProvider();
+		const feed = new FakeAssetFeed();
+		const createObjectURL = vi.fn(
+			(_blob: Blob) => `blob:gift-${createObjectURL.mock.calls.length}`,
+		);
+		const revokeObjectURL = vi.fn();
+		withMockedObjectUrl(createObjectURL, revokeObjectURL);
+		mockCelebrationMedia();
+
+		const mount = await renderSessionTab({
+			tiktokTabId: 103,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@burst/live',
+			subscribeAssets: feed.subscribe,
+		});
+
+		try {
+			await act(async () => {
+				feed.emit(capturedAsset(ftypMp4Bytes()));
+				feed.emit(capturedAsset(ftypMp4Bytes()));
+				feed.emit(capturedAsset(ftypMp4Bytes()));
+			});
+
+			// One celebration plays; the byte-identical repeats coalesce away and
+			// their freshly minted URLs are reclaimed immediately.
+			expect(mount.container.querySelectorAll('[aria-label="Gift Celebration"]')).toHaveLength(1);
+			expect(createObjectURL).toHaveBeenCalledTimes(3);
+			expect(revokeObjectURL).toHaveBeenCalledWith('blob:gift-2');
+			expect(revokeObjectURL).toHaveBeenCalledWith('blob:gift-3');
+			expect(revokeObjectURL).not.toHaveBeenCalledWith('blob:gift-1');
+		} finally {
+			await mount.unmount();
+			restoreObjectUrl();
+		}
+	});
+
+	it('does not celebrate when no Gift Animation Asset is captured', async () => {
+		const provider = new FakeProvider();
+		const feed = new FakeAssetFeed();
+		const mount = await renderSessionTab({
+			tiktokTabId: 102,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@silent/live',
+			subscribeAssets: feed.subscribe,
+		});
+
+		// A gift with no animation arrives in the feed but delivers no asset bytes.
+		await act(async () => {
+			provider.emitEvent(chatEvent('chat-1', 'no animation gift'));
+		});
+
+		expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
+		expect(mount.container.textContent).toContain('no animation gift');
+
+		await mount.unmount();
+	});
+
 	it('does not expose the sample Gift Animation Asset trigger in production builds', async () => {
 		vi.stubEnv('DEV', false);
 		const provider = new FakeProvider();
@@ -202,6 +297,7 @@ interface RenderSessionTabOptions {
 	provider: FakeProvider;
 	tabUrl?: string;
 	watchTabClosed?: (tabId: number, listener: () => void) => () => void;
+	subscribeAssets?: (onAsset: (asset: GiftAnimationAssetCapturedMessage) => void) => () => void;
 }
 
 interface MountedSessionTab {
@@ -222,6 +318,7 @@ async function renderSessionTab(options: RenderSessionTabOptions): Promise<Mount
 				providerFactory={() => options.provider}
 				resolveTab={async () => ({ url: options.tabUrl })}
 				watchTabClosed={options.watchTabClosed}
+				subscribeAssets={options.subscribeAssets}
 			/>,
 		);
 		await Promise.resolve();
@@ -262,6 +359,55 @@ function viewerCountEvent(viewerCount: number): LiveEvent {
 		source: 'test',
 		viewerCount,
 	};
+}
+
+function ftypMp4Bytes(): ArrayBuffer {
+	return new Uint8Array([0, 0, 0, 16, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32]).buffer;
+}
+
+function capturedAsset(bytes: ArrayBuffer): GiftAnimationAssetCapturedMessage {
+	return { type: GIFT_ANIMATION_ASSET_CAPTURED, mimeType: 'video/mp4', bytes };
+}
+
+class FakeAssetFeed {
+	#listener: ((asset: GiftAnimationAssetCapturedMessage) => void) | undefined;
+
+	subscribe = (onAsset: (asset: GiftAnimationAssetCapturedMessage) => void): (() => void) => {
+		this.#listener = onAsset;
+		return () => {
+			this.#listener = undefined;
+		};
+	};
+
+	emit(asset: GiftAnimationAssetCapturedMessage): void {
+		this.#listener?.(asset);
+	}
+}
+
+const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
+
+function withMockedObjectUrl(createObjectURL: () => string, revokeObjectURL: () => void): void {
+	Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+	Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
+}
+
+function restoreObjectUrl(): void {
+	Object.defineProperty(URL, 'createObjectURL', {
+		configurable: true,
+		value: originalCreateObjectURL,
+	});
+	Object.defineProperty(URL, 'revokeObjectURL', {
+		configurable: true,
+		value: originalRevokeObjectURL,
+	});
+}
+
+function mockCelebrationMedia(): void {
+	vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+	vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+	vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+	vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
 }
 
 class FakeTabCloseWatcher {

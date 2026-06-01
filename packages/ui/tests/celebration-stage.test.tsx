@@ -124,6 +124,41 @@ describe('CelebrationStage', () => {
 		});
 	});
 
+	it('notifies onCaptureIngested once per distinct capture so a feeder can advance', () => {
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+		vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+		const onCaptureIngested = vi.fn();
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		act(() => {
+			root.render(
+				<CelebrationStage
+					capture={{ assetId: 'a', assetUrl: 'blob:a' }}
+					onCaptureIngested={onCaptureIngested}
+				/>,
+			);
+		});
+		expect(onCaptureIngested).toHaveBeenCalledTimes(1);
+
+		// A new distinct capture is ingested -> one more notification.
+		const captureB = { assetId: 'b', assetUrl: 'blob:b' };
+		act(() => {
+			root.render(<CelebrationStage capture={captureB} onCaptureIngested={onCaptureIngested} />);
+		});
+		expect(onCaptureIngested).toHaveBeenCalledTimes(2);
+
+		// Re-rendering with the same capture reference ingests nothing.
+		act(() => {
+			root.render(<CelebrationStage capture={captureB} onCaptureIngested={onCaptureIngested} />);
+		});
+		expect(onCaptureIngested).toHaveBeenCalledTimes(2);
+
+		act(() => {
+			root.unmount();
+		});
+	});
+
 	it('revokes a coalesced duplicate object URL without interrupting playback', () => {
 		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 		const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});

@@ -2,11 +2,20 @@ import {
 	GIFT_ANIMATION_ASSET_CAPTURED,
 	type GiftAnimationAssetCapturedMessage,
 } from '@celestia/tiktok-live-chrome-extension';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	isFtypValidMp4,
 	subscribeGiftAnimationAssets,
+	toCapturedCelebration,
 } from '../src/session-tab/gift-animation-asset-receiver.js';
+
+function assetWithBytes(bytes: ArrayBuffer): GiftAnimationAssetCapturedMessage {
+	return { type: GIFT_ANIMATION_ASSET_CAPTURED, mimeType: 'video/mp4', bytes };
+}
+
+function bytesOf(...values: number[]): ArrayBuffer {
+	return new Uint8Array(values).buffer;
+}
 
 function ftypMp4(): ArrayBuffer {
 	// size (4 bytes) + 'ftyp' + brand
@@ -72,5 +81,60 @@ describe('gift animation asset receiver', () => {
 	it('rejects buffers without an ftyp box', () => {
 		expect(isFtypValidMp4(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer)).toBe(false);
 		expect(isFtypValidMp4(new Uint8Array([0, 0]).buffer)).toBe(false);
+	});
+});
+
+describe('toCapturedCelebration', () => {
+	const originalCreateObjectURL = URL.createObjectURL;
+
+	afterEach(() => {
+		Object.defineProperty(URL, 'createObjectURL', {
+			configurable: true,
+			value: originalCreateObjectURL,
+		});
+		vi.restoreAllMocks();
+	});
+
+	it('mints a Session-Tab object URL from the delivered bytes', () => {
+		let mintedFrom: Blob | undefined;
+		Object.defineProperty(URL, 'createObjectURL', {
+			configurable: true,
+			value: vi.fn((blob: Blob) => {
+				mintedFrom = blob;
+				return 'blob:minted';
+			}),
+		});
+
+		const capture = toCapturedCelebration(assetWithBytes(bytesOf(1, 2, 3, 4)));
+
+		expect(capture.assetUrl).toBe('blob:minted');
+		expect(mintedFrom).toBeInstanceOf(Blob);
+		expect(mintedFrom?.type).toBe('video/mp4');
+	});
+
+	it('gives byte-identical assets the same assetId so a burst coalesces', () => {
+		Object.defineProperty(URL, 'createObjectURL', {
+			configurable: true,
+			value: () => 'blob:x',
+		});
+
+		const a = toCapturedCelebration(assetWithBytes(bytesOf(9, 8, 7, 6, 5)));
+		const b = toCapturedCelebration(assetWithBytes(bytesOf(9, 8, 7, 6, 5)));
+
+		expect(a.assetId).toBe(b.assetId);
+	});
+
+	it('gives distinct assets distinct assetIds', () => {
+		Object.defineProperty(URL, 'createObjectURL', {
+			configurable: true,
+			value: () => 'blob:x',
+		});
+
+		const a = toCapturedCelebration(assetWithBytes(bytesOf(1, 2, 3, 4)));
+		const b = toCapturedCelebration(assetWithBytes(bytesOf(4, 3, 2, 1)));
+		const c = toCapturedCelebration(assetWithBytes(bytesOf(1, 2, 3, 4, 5)));
+
+		expect(a.assetId).not.toBe(b.assetId);
+		expect(a.assetId).not.toBe(c.assetId);
 	});
 });

@@ -1,5 +1,6 @@
 /// <reference types="chrome" />
 
+import type { GiftAnimationAssetCapturedMessage } from '@celestia/tiktok-live-chrome-extension';
 import { ChromeExtensionTikTokLiveProvider } from '@celestia/tiktok-live-chrome-extension';
 import type {
 	ConnectionState,
@@ -15,11 +16,16 @@ import {
 	StatusBar,
 	useSoundEffects,
 } from '@celestia/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { userPreferences } from '../user-preferences/user-preferences.js';
-import { isFtypValidMp4, subscribeGiftAnimationAssets } from './gift-animation-asset-receiver.js';
+import {
+	subscribeGiftAnimationAssets,
+	toCapturedCelebration,
+} from './gift-animation-asset-receiver.js';
 import { createLiveEventStore, type LiveEventStore } from './live-event-store.js';
 import styles from './session-tab.module.css';
+
+type SubscribeAssets = (onAsset: (asset: GiftAnimationAssetCapturedMessage) => void) => () => void;
 
 interface AttachableTikTokLiveProvider extends TikTokLiveProvider {
 	attach(tabId: number, username: string, tabUrl?: string): Promise<ConnectionState>;
@@ -40,6 +46,7 @@ interface SessionTabProps {
 	providerFactory?: () => AttachableTikTokLiveProvider;
 	resolveTab?: (tabId: number) => Promise<ResolvedTab | undefined>;
 	watchTabClosed?: (tabId: number, listener: () => void) => () => void;
+	subscribeAssets?: SubscribeAssets;
 }
 
 const defaultProviderFactory = (): AttachableTikTokLiveProvider => {
@@ -55,6 +62,7 @@ export function SessionTab({
 	providerFactory = defaultProviderFactory,
 	resolveTab = defaultResolveTab,
 	watchTabClosed = defaultWatchTabClosed,
+	subscribeAssets = subscribeGiftAnimationAssets,
 }: SessionTabProps) {
 	const store = useMemo(
 		() => createLiveEventStore({ name: `celestia-live-event-store-${tiktokTabId}` }),
@@ -80,6 +88,7 @@ export function SessionTab({
 			providerFactory={providerFactory}
 			resolveTab={resolveTab}
 			watchTabClosed={watchTabClosed}
+			subscribeAssets={subscribeAssets}
 		/>
 	);
 }
@@ -90,17 +99,19 @@ function LiveFeed({
 	providerFactory,
 	resolveTab,
 	watchTabClosed,
+	subscribeAssets,
 }: {
 	store: LiveEventStoreApi;
 	tiktokTabId: number;
 	providerFactory: () => AttachableTikTokLiveProvider;
 	resolveTab: (tabId: number) => Promise<ResolvedTab | undefined>;
 	watchTabClosed: (tabId: number, listener: () => void) => () => void;
+	subscribeAssets: SubscribeAssets;
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
-	const [celebrationCapture, setCelebrationCapture] = useState<CapturedCelebration | undefined>();
-	useDevGiftCelebrationTrigger(setCelebrationCapture);
+	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
+	useDevGiftCelebrationTrigger(enqueueCapture);
 	const soundEffectEvents = useMemo(
 		() => [...state.chatEvents, ...state.giftEvents].sort((a, b) => a.ts - b.ts),
 		[state.chatEvents, state.giftEvents],
@@ -122,18 +133,17 @@ function LiveFeed({
 		return unsubscribe;
 	}, [store, tiktokTabId, watchTabClosed]);
 
-	// Subscribe to routed Gift Animation Assets (ADR-0006). This slice proves the
-	// capture pipe end-to-end; bytes are kept in-memory and verified by logging
-	// size + ftyp validity. Rendering the Gift Celebration is a later slice.
+	// Subscribe to routed Gift Animation Assets (ADR-0006) and celebrate them
+	// (ADR-0005). Each captured asset mints an object URL in this Session Tab's
+	// context from the delivered bytes and is enqueued into the celebration
+	// queue via `CelebrationStage`, which owns the URL lifecycle (revoking on
+	// clip end or drop). A gift with no animation never delivers bytes, so it
+	// simply does not celebrate. Nothing is retained after playback.
 	useEffect(() => {
-		return subscribeGiftAnimationAssets((asset) => {
-			console.info('[Celestia Gift Animation Tap] received asset', {
-				mimeType: asset.mimeType,
-				byteLength: asset.bytes.byteLength,
-				ftypValid: isFtypValidMp4(asset.bytes),
-			});
+		return subscribeAssets((asset) => {
+			enqueueCapture(toCapturedCelebration(asset));
 		});
-	}, []);
+	}, [subscribeAssets, enqueueCapture]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -210,7 +220,7 @@ function LiveFeed({
 				/>
 			) : null}
 			<section aria-label="Live feed" className={styles.liveFeed}>
-				<CelebrationStage capture={celebrationCapture} />
+				<CelebrationStage capture={celebrationCapture} onCaptureIngested={onCaptureIngested} />
 				<div className={styles.liveFeedContent}>
 					<StatusBar
 						connectionState={state.connectionState}
@@ -251,8 +261,39 @@ declare global {
 	}
 }
 
+/**
+ * Buffers captured assets and hands `CelebrationStage` exactly one at a time.
+ * A real burst delivers several captures in quick succession (and tests fire
+ * them synchronously); React would otherwise collapse them into a single state
+ * value and the queue would never see the intermediate captures — leaking their
+ * object URLs and breaking coalesce/drop. `capture` is a single-slot pulse the
+ * stage ingests once; `onCaptureIngested` (fired by the stage once per capture)
+ * releases the next buffered item into that slot, so every capture reaches the
+ * queue on its own render.
+ */
+function useCelebrationFeed(): {
+	capture: CapturedCelebration | undefined;
+	enqueueCapture: (capture: CapturedCelebration) => void;
+	onCaptureIngested: () => void;
+} {
+	const pending = useRef<CapturedCelebration[]>([]);
+	const [capture, setCapture] = useState<CapturedCelebration | undefined>();
+
+	const enqueueCapture = useCallback((next: CapturedCelebration) => {
+		pending.current.push(next);
+		// Start draining only when idle; otherwise the in-flight head advances it.
+		setCapture((current) => current ?? pending.current.shift());
+	}, []);
+
+	const onCaptureIngested = useCallback(() => {
+		setCapture(pending.current.shift());
+	}, []);
+
+	return { capture, enqueueCapture, onCaptureIngested };
+}
+
 function useDevGiftCelebrationTrigger(
-	setCapture: (capture: CapturedCelebration | undefined) => void,
+	enqueueCapture: (capture: CapturedCelebration) => void,
 ): void {
 	useEffect(() => {
 		if (!isDevBuild()) {
@@ -274,14 +315,14 @@ function useDevGiftCelebrationTrigger(
 			// the clip ends, is dropped past the cap, or coalesces into a running clip.
 			const assetUrl = URL.createObjectURL(blob);
 			sequence += 1;
-			setCapture({ assetId: assetId ?? `dev-${sequence}`, assetUrl });
+			enqueueCapture({ assetId: assetId ?? `dev-${sequence}`, assetUrl });
 		};
 
 		return () => {
 			active = false;
 			delete window.__celestiaPlayCelebration;
 		};
-	}, [setCapture]);
+	}, [enqueueCapture]);
 }
 
 function isDevBuild(): boolean {

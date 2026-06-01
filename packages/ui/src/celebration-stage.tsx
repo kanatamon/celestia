@@ -24,6 +24,13 @@ export interface CelebrationStageProps {
 	/** Called whenever a celebration finishes playing (after its URL is revoked). */
 	onClipEnded?: () => void;
 	/**
+	 * Called once after each distinct `capture` has been ingested into the queue
+	 * (whether it started, was enqueued, coalesced, or dropped). Lets the feeder
+	 * release the next buffered capture so a synchronous burst is not collapsed
+	 * into a single render.
+	 */
+	onCaptureIngested?: () => void;
+	/**
 	 * Test seam: wires the playing clip's natural end. Receives the `onEnded`
 	 * callback and the playing `assetId`. Defaults to driving the rendered
 	 * `GiftCelebration`'s `onEnded`.
@@ -35,7 +42,12 @@ const defaultOnPlay = (onEnded: () => void, assetUrl: string): ReactNode => (
 	<GiftCelebration key={assetUrl} assetUrl={assetUrl} onEnded={onEnded} />
 );
 
-export function CelebrationStage({ capture, onClipEnded, onPlay }: CelebrationStageProps) {
+export function CelebrationStage({
+	capture,
+	onClipEnded,
+	onCaptureIngested,
+	onPlay,
+}: CelebrationStageProps) {
 	const [queue, setQueue] = useState<CelebrationQueueState>(initialCelebrationQueueState);
 
 	// assetId -> object URL for every asset currently in the queue (playing/waiting).
@@ -77,7 +89,9 @@ export function CelebrationStage({ capture, onClipEnded, onPlay }: CelebrationSt
 
 			return next;
 		});
-	}, [capture]);
+
+		onCaptureIngested?.();
+	}, [capture, onCaptureIngested]);
 
 	const handleClipEnded = useCallback(() => {
 		setQueue((current) => {
