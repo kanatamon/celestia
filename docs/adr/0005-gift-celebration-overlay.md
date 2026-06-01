@@ -1,12 +1,12 @@
 # 0005 — Gift Celebration Overlay
 
-**Status:** Accepted
+**Status:** Accepted (revised 2026-06-01 — see Revision history)
 
 ## Context
 
 High-value TikTok gifts ship as short animations. TikTok delivers them as side-by-side (SBS) alpha-packed MP4s: a 1440×1280 frame where the left 720×1280 half is RGB colour and the right 720×1280 half is a luminance alpha matte (white = opaque, black = transparent). The keyed result is a 720×1280 **portrait** with the subject, light beams, and sparkles on transparency.
 
-We want the Session Tab to play a celebration when a `GiftLiveEvent` arrives, attributed to the giver, without disrupting the live feed. This required deciding four things: how to key the asset with correct transparency, how a portrait asset should occupy a **wide desktop** browser tab, how to attribute the giver, and how to handle several gifts arriving at once.
+We want the Session Tab to play a **Gift Celebration** when a **Gift Animation Asset** is captured, without disrupting the live feed. How that asset is captured is a separate decision — see **ADR-0006 (Gift Animation Tap)**. This ADR decides the *celebration* itself: how to key the asset with correct transparency, how a portrait asset should occupy a **wide desktop** browser tab, whether/how to attribute the giver, and how to handle several animations arriving at once.
 
 ## Decision
 
@@ -34,31 +34,32 @@ A single 720×1280 portrait centred on a wide tab leaves large empty side gutter
 
 The blurred mirrored copies make the gutters read as ambient stage-light spill, so the lit stage appears to span the full width while the feed still shows through the transparent centre. This plays full-bleed over the sharp feed.
 
-### 3. Attribution — giver card reusing GiftEventCard, as a gold pill at mid-⅓
+### 3. Attribution — none; the Gift Celebration is anonymous
 
-Show who sent the gift by reusing the existing event-feed `GiftEventCard` layout — `[avatar] "<sender> sent a <gift>" [gift image] ×<count>` — with two changes:
+**The celebration shows only the keyed animation. There is no giver card, name, label, or other chrome composited on top.**
 
-- **No timestamp** (the in-feed card's trailing timestamp is dropped).
-- **Shinier gold pill:** a fully-rounded capsule (`border-radius: 999px`) with a stronger gold gradient, gold border, gold glow, an inset top highlight, and a slow travelling sheen; tighter padding and a slightly smaller avatar than the in-feed card.
+A Gift Animation Asset carries **no giver identity**: the captured payload is the decrypted pixels (plus an opaque asset URL), and the asset is content-addressed — **the same file plays for every giver of that gift**. Giver identity exists only in the protobuf `GiftLiveEvent` stream, which the Tap never touches. Attributing a giver would require correlating the asset stream with the `GiftLiveEvent` stream by timing or `giftId` — unvalidated, and unreliable during bursts, where it would **mis-attribute** (a worse, trust-destroying failure than showing nothing). We choose robustness over attribution.
 
-It is pinned to roughly **38% down (the "mid-third")** of the centre portrait frame — within the natural reading path, above the subject's face, off the bright top beams, and over a lit-but-not-busy backdrop for contrast. (Top placement was rejected: it sits outside the reading path and the spotlight beams hurt legibility.)
+### 4. Bursts — one celebration at a time, bounded queue, freshness over completeness
 
-### 4. Bursts — one celebration at a time, driven by a single queue
+Celebrations never overlap. A single ordered queue, fed by **Gift Animation Asset captures** (not gift events), is the source of truth for playback:
 
-Every detected gift animation plays; there is **no value threshold for now**. Celebrations never overlap. A single ordered queue is the source of truth for both playback and the on-screen stack:
+- A captured asset is appended to the queue; if nothing is playing, the front item starts immediately.
+- The front item plays for the clip's natural duration (read from the video's `duration`), then is removed and the next starts; when the queue empties, the stage is hidden and the feed is fully clear.
+- **Backpressure:** because Celestia is real-time, freshness beats completeness. Keep the currently-playing clip plus a small bounded queue (current + ~1 waiting). **Coalesce identical consecutive assets** — the same gift yields a byte-identical asset, so a run of the same animation collapses to a single play. **Drop** anything beyond the cap rather than let the overlay lag behind the live moment. Some celebrations will therefore never play — accepted.
 
-- A new gift is appended to the queue. If nothing is playing, the front item starts immediately.
-- The front item plays for the clip's natural duration (read from the video's `duration`), then is removed and the next item starts; when the queue empties, the stage is hidden and the feed is fully clear.
-- The giver cards render as a stack at the mid-⅓ position: the **playing card is the readable anchor**; waiting cards stack offset behind it, each slightly smaller and dimmer. New cards **fade in**; the finished card **fades up and out** as the queue advances.
+There are no on-screen waiting/stacked elements (the giver-card stack is gone with §3); a burst is simply a fresh sequence of full-bleed animations.
 
 ## Consequences
 
-- The celebration overlay lives in the `ui` package. Like every `ui` component it takes `GiftLiveEvent`s (which carry the giver `UserInfo` and gift detail) as input and stays platform-agnostic — no Chrome API dependency.
-- It reuses, not forks, the `GiftEventCard` layout from the event feed; the gold pill is a styling variant, so giver attribution stays visually consistent with the feed.
+- The celebration overlay lives in the `ui` package. Like every `ui` component it is platform-agnostic — no Chrome API dependency. Its input is a **Gift Animation Asset** (renderable bytes / a Session-Tab-minted object URL), **not** a `GiftLiveEvent`.
+- It does **not** reuse `GiftEventCard` and shares nothing with the event feed's gift rendering (no card is shown).
 - Consistent with v1.0.0: real-time only. Nothing about a celebration is persisted across a Live Session.
 - The triptych uses three WebGL contexts. Only on-screen canvases draw, and the stage renders only while a celebration is playing, so an idle feed costs nothing.
-- **Deferred to integration:**
-  - Sourcing the keyed MP4 per gift (which gifts have assets, and how those assets are fetched and decoded) is a separate concern; "every detected gift animation" means every gift for which we have an asset.
-  - Whether to (re)introduce a value threshold for which gifts celebrate.
-  - A maximum visible stack depth and a "+N more" affordance, and whether to cap or fast-forward very deep bursts so the overlay does not lag far behind the live moment.
-  - Tuning the gutter-echo blur/opacity at production tab widths, and fading the gutter echoes near the end of each clip.
+- Sourcing the asset (which gifts have assets, how they are captured and decoded, and how bytes reach the Session Tab) is decided in **ADR-0006 (Gift Animation Tap)**.
+- Because the asset path carries no value/identity, there is **no value threshold** for which gifts celebrate; the de-facto threshold is "TikTok shipped an animation for this gift."
+- **Deferred to integration:** tuning the gutter-echo blur/opacity at production tab widths, and fading the gutter echoes near the end of each clip.
+
+## Revision history
+
+- **2026-06-01 — Asset-driven, anonymous.** Capture research (ADR-0006) showed the animation is obtained from an identity-less, content-addressed asset stream, not from the gift-event stream. Trigger changed from event-driven to **asset-driven**; §3 changed from a giver card to **no attribution**; §4's giver-card stack removed and a bounded-queue/coalesce/drop backpressure policy added; the deferred "reintroduce a value threshold" item is closed (not possible without correlation). §1 and §2 are unchanged from the original.

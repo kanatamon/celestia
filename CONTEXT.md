@@ -30,6 +30,10 @@ _Avoid_: Side panel, overlay, popup, extension UI, new tab
 The map of `tiktokTabId → sessionTabId` maintained by the service worker in `chrome.storage.session`. Consulted by the Launcher to determine whether a TikTok Live tab already has a Session Tab. Cleared automatically when the browser closes, since Chrome tab IDs do not survive restarts.
 _Avoid_: Pairing map, session map, tab registry
 
+**Gift Celebration**:
+The full-bleed, anonymous playback of a Gift Animation Asset over the Session Tab feed. Triggered by the arrival of a Gift Animation Asset — not by a GiftLiveEvent — and carries no giver identity (the asset stream has none). Rendered by a platform-agnostic `ui` component.
+_Avoid_: The overlay, gift card, animation, gift popup
+
 ### Data layer
 
 **Provider**:
@@ -47,6 +51,14 @@ _Avoid_: Event (too generic), WebSocket message, TikTok event
 **ConnectionState**:
 The externally observable state of a Provider at any point in time: `idle | connecting | connected | disconnecting | disconnected | error`.
 _Avoid_: Status, connection status
+
+**Gift Animation Asset**:
+The decrypted, side-by-side alpha-packed MP4 captured from the TikTok page for an animated gift — left half RGB colour, right half luminance alpha matte. Identity-less and shared by every giver of that gift. Distinct from `giftImageUrl`, the static gift icon carried on a GiftLiveEvent.
+_Avoid_: Gift video, the blob, the mp4, gift image
+
+**Gift Animation Tap**:
+The capture mechanism that produces Gift Animation Assets: a content-script main-world tap injected into the paired TikTok Live tab that intercepts the decrypted animation as the page creates it, then relays it to the Session Tab. Distinct from a Provider — it emits Gift Animation Assets, not LiveEvents, and carries no identity. Lives in `tiktok-live-chrome-extension`.
+_Avoid_: Gift sniffer, asset scraper, gift hook, content script (too generic)
 
 ### Monorepo packages
 
@@ -69,6 +81,8 @@ _Avoid_: Component library, design system
 - The **Session Tab** (in `apps/chrome-extension`) subscribes to **LiveEvents** via a **Provider**
 - A **Live Session** produces **LiveEvents**; all **LiveEvents** are discarded when the **Live Session** ends (v1.0.0 — real-time only, no persistence)
 - **ui** components receive **LiveEvents** as props; they have no direct dependency on any **Provider**
+- The **Gift Animation Tap** (in **tiktok-live-chrome-extension**) captures **Gift Animation Assets** from the paired TikTok Live tab, independently of any **Provider**
+- A **Gift Celebration** plays a **Gift Animation Asset** in the **Session Tab**; it is anonymous and is *not* derived from a **GiftLiveEvent**
 
 ## Monorepo structure
 
