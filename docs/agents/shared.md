@@ -52,3 +52,5 @@ All ADRs live in `docs/adr/`. Read them before proposing architectural changes:
 - `0001` — Chrome extension over Electron
 - `0002` — No backend in v1.0.0; Google OAuth for v2
 - `0003` — tiktok-live-core as a separate package
+- `0004` — User Preferences in chrome.storage.local
+- `0005` — Gift celebration overlay (triptych + giver pill + burst queue)
