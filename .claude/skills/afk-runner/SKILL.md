@@ -107,7 +107,8 @@ Then loop back to Phase 1 to pick up issues unblocked by this round.
 ## Notes
 
 - The phase prompts are shared with the sandcastle/Codex workflow. They were
-  de-sandcastled (the `` !`cmd` `` preprocessor lines are now plain "run this
+  de-sandcastled (the bang-prefixed backtick preprocessor lines — a bang
+  character followed by a backtick-wrapped command — are now plain "run this
   command" steps), which works for both runners — the agent executes them.
 - `merge-prompt.md`'s cleanup targets `.sandcastle/worktrees/`, which matches
   the worktree paths created in Phase 2, so cleanup is correct as written.
