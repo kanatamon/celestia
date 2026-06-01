@@ -1,5 +1,13 @@
 export type { ActivitySwitcherProps, ActivitySwitcherView } from './activity-switcher.js';
 export { ActivitySwitcher } from './activity-switcher.js';
+export type { CelebrationEvent, CelebrationQueueState } from './celebration-queue.js';
+export {
+	CELEBRATION_QUEUE_WAITING_CAP,
+	initialCelebrationQueueState,
+	reduceCelebrationQueue,
+} from './celebration-queue.js';
+export type { CapturedCelebration, CelebrationStageProps } from './celebration-stage.js';
+export { CelebrationStage } from './celebration-stage.js';
 export type {
 	ChatEventCardProps,
 	EventFeedProps,

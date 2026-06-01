@@ -9,12 +9,13 @@ import type {
 } from '@celestia/tiktok-live-core';
 import {
 	ActivitySwitcher,
-	GiftCelebration,
+	type CapturedCelebration,
+	CelebrationStage,
 	SplitFeedLayout,
 	StatusBar,
 	useSoundEffects,
 } from '@celestia/ui';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { userPreferences } from '../user-preferences/user-preferences.js';
 import { isFtypValidMp4, subscribeGiftAnimationAssets } from './gift-animation-asset-receiver.js';
 import { createLiveEventStore, type LiveEventStore } from './live-event-store.js';
@@ -98,8 +99,8 @@ function LiveFeed({
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
-	const [celebrationAssetUrl, setCelebrationAssetUrl] = useState<string | undefined>();
-	const clearDevGiftCelebration = useDevGiftCelebrationTrigger(setCelebrationAssetUrl);
+	const [celebrationCapture, setCelebrationCapture] = useState<CapturedCelebration | undefined>();
+	useDevGiftCelebrationTrigger(setCelebrationCapture);
 	const soundEffectEvents = useMemo(
 		() => [...state.chatEvents, ...state.giftEvents].sort((a, b) => a.ts - b.ts),
 		[state.chatEvents, state.giftEvents],
@@ -209,7 +210,7 @@ function LiveFeed({
 				/>
 			) : null}
 			<section aria-label="Live feed" className={styles.liveFeed}>
-				<GiftCelebration assetUrl={celebrationAssetUrl} onEnded={clearDevGiftCelebration} />
+				<CelebrationStage capture={celebrationCapture} />
 				<div className={styles.liveFeedContent}>
 					<StatusBar
 						connectionState={state.connectionState}
@@ -231,7 +232,14 @@ function LiveFeed({
 
 declare global {
 	interface Window {
-		__celestiaPlayCelebration?: () => Promise<void>;
+		/**
+		 * Dev self-trigger: captures the sample Gift Animation Asset and feeds it
+		 * into the celebration queue. Call repeatedly in quick succession to watch
+		 * one-at-a-time playback and bounded-queue dropping. Pass a shared `assetId`
+		 * across calls to watch identical-asset coalescing; omit it to mint a fresh
+		 * id per call (the byte-identical sample would otherwise always coalesce).
+		 */
+		__celestiaPlayCelebration?: (assetId?: string) => Promise<void>;
 	}
 
 	interface ImportMetaEnv {
@@ -244,17 +252,8 @@ declare global {
 }
 
 function useDevGiftCelebrationTrigger(
-	setAssetUrl: (assetUrl: string | undefined) => void,
-): () => void {
-	const lastAssetUrlRef = useRef<string | undefined>(undefined);
-	const clearAssetUrl = useCallback(() => {
-		if (lastAssetUrlRef.current) {
-			URL.revokeObjectURL(lastAssetUrlRef.current);
-			lastAssetUrlRef.current = undefined;
-		}
-		setAssetUrl(undefined);
-	}, [setAssetUrl]);
-
+	setCapture: (capture: CapturedCelebration | undefined) => void,
+): void {
 	useEffect(() => {
 		if (!isDevBuild()) {
 			delete window.__celestiaPlayCelebration;
@@ -262,29 +261,27 @@ function useDevGiftCelebrationTrigger(
 		}
 
 		let active = true;
+		let sequence = 0;
 
-		window.__celestiaPlayCelebration = async () => {
-			clearAssetUrl();
-
+		window.__celestiaPlayCelebration = async (assetId?: string) => {
 			const response = await fetch(SAMPLE_GIFT_ANIMATION_URL);
 			const blob = await response.blob();
 			if (!active) {
 				return;
 			}
 
+			// Each capture mints its own object URL; CelebrationStage revokes it when
+			// the clip ends, is dropped past the cap, or coalesces into a running clip.
 			const assetUrl = URL.createObjectURL(blob);
-			lastAssetUrlRef.current = assetUrl;
-			setAssetUrl(assetUrl);
+			sequence += 1;
+			setCapture({ assetId: assetId ?? `dev-${sequence}`, assetUrl });
 		};
 
 		return () => {
 			active = false;
 			delete window.__celestiaPlayCelebration;
-			clearAssetUrl();
 		};
-	}, [clearAssetUrl, setAssetUrl]);
-
-	return clearAssetUrl;
+	}, [setCapture]);
 }
 
 function isDevBuild(): boolean {

@@ -193,7 +193,7 @@ describe('Session Tab', () => {
 
 declare global {
 	interface Window {
-		__celestiaPlayCelebration?: () => Promise<void>;
+		__celestiaPlayCelebration?: (assetId?: string) => Promise<void>;
 	}
 }
 
