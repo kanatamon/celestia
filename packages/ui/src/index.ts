@@ -19,6 +19,18 @@ export {
 	ScrollableFeedList,
 	SplitFeedLayout,
 } from './event-feed.js';
+export type { GiftCelebrationProps } from './gift-celebration.js';
+export { GiftCelebration } from './gift-celebration.js';
+export type {
+	GiftCelebrationFit,
+	GiftCelebrationPaneLayout,
+	GiftCelebrationTriptychLayout,
+	GiftCelebrationViewport,
+} from './gift-celebration-layout.js';
+export {
+	computeGiftCelebrationTriptychLayout,
+	getGiftCelebrationSourceAspectRatio,
+} from './gift-celebration-layout.js';
 export { CelestiaProvider } from './provider.js';
 export type { SettingsPopoverProps } from './settings-popover.js';
 export { SettingsPopover } from './settings-popover.js';

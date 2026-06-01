@@ -8,7 +8,7 @@ import type {
 import { soundManager } from '@celestia/ui';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionTab } from '../src/session-tab/session-tab.js';
 
 declare global {
@@ -27,8 +27,14 @@ if (!HTMLElement.prototype.scrollTo) {
 }
 
 describe('Session Tab', () => {
+	beforeEach(() => {
+		delete window.__celestiaPlayCelebration;
+	});
+
 	afterEach(() => {
 		vi.restoreAllMocks();
+		vi.unstubAllEnvs();
+		delete window.__celestiaPlayCelebration;
 	});
 
 	it('attaches the Provider to the paired tiktokTabId and dispatches LiveEvents to the feed', async () => {
@@ -114,7 +120,82 @@ describe('Session Tab', () => {
 		await mountA.unmount();
 		await mountB.unmount();
 	});
+
+	it('exposes a dev-only console trigger that plays the sample Gift Animation Asset', async () => {
+		const provider = new FakeProvider();
+		const createObjectURL = vi.fn(() => 'blob:sample-gift-animation');
+		const revokeObjectURL = vi.fn();
+		const originalCreateObjectURL = URL.createObjectURL;
+		const originalRevokeObjectURL = URL.revokeObjectURL;
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+			blob: async () => new Blob(['sample'], { type: 'video/mp4' }),
+		} as Response);
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+		vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+		vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+		vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+		Object.defineProperty(URL, 'createObjectURL', {
+			configurable: true,
+			value: createObjectURL,
+		});
+		Object.defineProperty(URL, 'revokeObjectURL', {
+			configurable: true,
+			value: revokeObjectURL,
+		});
+		const mount = await renderSessionTab({
+			tiktokTabId: 91,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@sample/live',
+		});
+
+		try {
+			expect(window.__celestiaPlayCelebration).toEqual(expect.any(Function));
+
+			await act(async () => {
+				await window.__celestiaPlayCelebration?.();
+			});
+
+			expect(fetch).toHaveBeenCalledWith('/src/session-tab/assets/sample-gift-animation.mp4');
+			expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+			expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeInstanceOf(
+				HTMLElement,
+			);
+		} finally {
+			await mount.unmount();
+			Object.defineProperty(URL, 'createObjectURL', {
+				configurable: true,
+				value: originalCreateObjectURL,
+			});
+			Object.defineProperty(URL, 'revokeObjectURL', {
+				configurable: true,
+				value: originalRevokeObjectURL,
+			});
+		}
+
+		expect(revokeObjectURL).toHaveBeenCalledWith('blob:sample-gift-animation');
+	});
+
+	it('does not expose the sample Gift Animation Asset trigger in production builds', async () => {
+		vi.stubEnv('DEV', false);
+		const provider = new FakeProvider();
+		const mount = await renderSessionTab({
+			tiktokTabId: 92,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@production/live',
+		});
+
+		expect(window.__celestiaPlayCelebration).toBeUndefined();
+		expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
+
+		await mount.unmount();
+	});
 });
+
+declare global {
+	interface Window {
+		__celestiaPlayCelebration?: () => Promise<void>;
+	}
+}
 
 interface RenderSessionTabOptions {
 	tiktokTabId: number;

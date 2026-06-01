@@ -134,7 +134,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 					name: 'implementer',
 					maxIterations: 100,
 					agent: sandcastle.codex('gpt-5.5', {
-						effort: 'low',
+						effort: 'medium',
 					}),
 					promptFile: './.sandcastle/implement-prompt.md',
 					promptArgs: {

@@ -7,8 +7,14 @@ import type {
 	ProviderLog,
 	TikTokLiveProvider,
 } from '@celestia/tiktok-live-core';
-import { ActivitySwitcher, SplitFeedLayout, StatusBar, useSoundEffects } from '@celestia/ui';
-import { useEffect, useMemo, useState } from 'react';
+import {
+	ActivitySwitcher,
+	GiftCelebration,
+	SplitFeedLayout,
+	StatusBar,
+	useSoundEffects,
+} from '@celestia/ui';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { userPreferences } from '../user-preferences/user-preferences.js';
 import { createLiveEventStore, type LiveEventStore } from './live-event-store.js';
 import styles from './session-tab.module.css';
@@ -23,6 +29,8 @@ interface ResolvedTab {
 }
 
 type LiveEventStoreApi = ReturnType<typeof createLiveEventStore>;
+
+const SAMPLE_GIFT_ANIMATION_URL = '/src/session-tab/assets/sample-gift-animation.mp4';
 
 interface SessionTabProps {
 	/** The TikTok Live tab this Session Tab is paired to, from `?tiktokTabId=<id>`. */
@@ -89,6 +97,8 @@ function LiveFeed({
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
+	const [celebrationAssetUrl, setCelebrationAssetUrl] = useState<string | undefined>();
+	const clearDevGiftCelebration = useDevGiftCelebrationTrigger(setCelebrationAssetUrl);
 	const soundEffectEvents = useMemo(
 		() => [...state.chatEvents, ...state.giftEvents].sort((a, b) => a.ts - b.ts),
 		[state.chatEvents, state.giftEvents],
@@ -185,6 +195,7 @@ function LiveFeed({
 				/>
 			) : null}
 			<section aria-label="Live feed" className={styles.liveFeed}>
+				<GiftCelebration assetUrl={celebrationAssetUrl} onEnded={clearDevGiftCelebration} />
 				<div className={styles.liveFeedContent}>
 					<StatusBar
 						connectionState={state.connectionState}
@@ -202,6 +213,68 @@ function LiveFeed({
 			</section>
 		</main>
 	);
+}
+
+declare global {
+	interface Window {
+		__celestiaPlayCelebration?: () => Promise<void>;
+	}
+
+	interface ImportMetaEnv {
+		readonly DEV: boolean;
+	}
+
+	interface ImportMeta {
+		readonly env: ImportMetaEnv;
+	}
+}
+
+function useDevGiftCelebrationTrigger(
+	setAssetUrl: (assetUrl: string | undefined) => void,
+): () => void {
+	const lastAssetUrlRef = useRef<string | undefined>(undefined);
+	const clearAssetUrl = useCallback(() => {
+		if (lastAssetUrlRef.current) {
+			URL.revokeObjectURL(lastAssetUrlRef.current);
+			lastAssetUrlRef.current = undefined;
+		}
+		setAssetUrl(undefined);
+	}, [setAssetUrl]);
+
+	useEffect(() => {
+		if (!isDevBuild()) {
+			delete window.__celestiaPlayCelebration;
+			return undefined;
+		}
+
+		let active = true;
+
+		window.__celestiaPlayCelebration = async () => {
+			clearAssetUrl();
+
+			const response = await fetch(SAMPLE_GIFT_ANIMATION_URL);
+			const blob = await response.blob();
+			if (!active) {
+				return;
+			}
+
+			const assetUrl = URL.createObjectURL(blob);
+			lastAssetUrlRef.current = assetUrl;
+			setAssetUrl(assetUrl);
+		};
+
+		return () => {
+			active = false;
+			delete window.__celestiaPlayCelebration;
+			clearAssetUrl();
+		};
+	}, [clearAssetUrl, setAssetUrl]);
+
+	return clearAssetUrl;
+}
+
+function isDevBuild(): boolean {
+	return import.meta.env.DEV;
 }
 
 function DisconnectedBanner({ title, message }: { title: string; message: string }) {

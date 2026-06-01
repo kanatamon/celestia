@@ -1,0 +1,13 @@
+.stage {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.canvas {
+	position: absolute;
+	display: block;
+	background: transparent;
+}

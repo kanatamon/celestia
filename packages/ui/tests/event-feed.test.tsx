@@ -909,6 +909,7 @@ function giftEvent(
 		giftImageUrl: `https://example.test/${giftName}.png`,
 		diamondCount,
 		repeatCount,
+		repeatEnd: true,
 		user: {
 			userId: 'user-1',
 			uniqueId: 'viewer',
