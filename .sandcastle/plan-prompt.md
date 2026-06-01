@@ -1,14 +1,12 @@
 # ISSUES
 
-Here are the open issues in the repo:
+Run this command and treat its JSON output as the open issues to plan. The
+`--label ready-for-agent` filter already restricts the list to issues ready for
+work:
 
-<issues-json>
-
-!`gh issue list --state open --label ready-for-agent --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`
-
-</issues-json>
-
-The list above has already been filtered to issues ready for work.
+```sh
+gh issue list --state open --label ready-for-agent --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'
+```
 
 # TASK
 

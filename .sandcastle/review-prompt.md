@@ -6,11 +6,11 @@ Review the code changes on branch `{{BRANCH}}` and improve code clarity, consist
 
 ## Branch diff
 
-!`git diff {{SOURCE_BRANCH}}...{{BRANCH}}`
+Run: `git diff {{SOURCE_BRANCH}}...{{BRANCH}}`
 
 ## Commits on this branch
 
-!`git log {{SOURCE_BRANCH}}..{{BRANCH}} --oneline`
+Run: `git log {{SOURCE_BRANCH}}..{{BRANCH}} --oneline`
 
 # REVIEW PROCESS
 

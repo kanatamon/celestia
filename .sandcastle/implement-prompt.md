@@ -23,13 +23,11 @@ Preserve the v1.0.0 constraints:
 
 # CONTEXT
 
-Here are the last 10 commits:
+Review recent history for context by running:
 
-<recent-commits>
-
-!`git log -n 10 --format="%H%n%ad%n%B---" --date=short`
-
-</recent-commits>
+```sh
+git log -n 10 --format="%H%n%ad%n%B---" --date=short
+```
 
 # EXPLORATION
 
