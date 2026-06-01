@@ -3,6 +3,26 @@ export {
 	ChromeExtensionTikTokLiveProvider,
 	createChromeExtensionTikTokLiveProvider,
 } from './chrome-extension/chrome-extension-tiktok-live-provider.js';
+export { installGiftAnimationTapRelay } from './chrome-extension/gift-animation-tap-isolated.js';
+export { installGiftAnimationTap } from './chrome-extension/gift-animation-tap-main.js';
+export {
+	GIFT_ANIMATION_ASSET_CAPTURED,
+	GIFT_ANIMATION_TAP_SOURCE,
+	type GiftAnimationAssetCapturedMessage,
+	type GiftAnimationTapBridgeMessage,
+	isGiftAnimationAssetCapturedMessage,
+	isGiftAnimationTapBridgeMessage,
+} from './chrome-extension/gift-animation-tap-messages.js';
+export {
+	GIFT_ANIMATION_DECRYPT_KEY,
+	GIFT_ANIMATION_MIME_TYPE,
+	type GiftAssetArmState,
+	type GiftAssetDecision,
+	type GiftAssetFilterResult,
+	type GiftAssetObservation,
+	initialArmState,
+	reduceGiftAssetFilter,
+} from './chrome-extension/gift-asset-arm-filter.js';
 export {
 	type LiveIngestionTraceDocument,
 	type LiveIngestionTraceEvent,

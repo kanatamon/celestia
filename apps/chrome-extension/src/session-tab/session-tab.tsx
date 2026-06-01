@@ -16,6 +16,7 @@ import {
 } from '@celestia/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { userPreferences } from '../user-preferences/user-preferences.js';
+import { isFtypValidMp4, subscribeGiftAnimationAssets } from './gift-animation-asset-receiver.js';
 import { createLiveEventStore, type LiveEventStore } from './live-event-store.js';
 import styles from './session-tab.module.css';
 
@@ -119,6 +120,19 @@ function LiveFeed({
 
 		return unsubscribe;
 	}, [store, tiktokTabId, watchTabClosed]);
+
+	// Subscribe to routed Gift Animation Assets (ADR-0006). This slice proves the
+	// capture pipe end-to-end; bytes are kept in-memory and verified by logging
+	// size + ftyp validity. Rendering the Gift Celebration is a later slice.
+	useEffect(() => {
+		return subscribeGiftAnimationAssets((asset) => {
+			console.info('[Celestia Gift Animation Tap] received asset', {
+				mimeType: asset.mimeType,
+				byteLength: asset.bytes.byteLength,
+				ftypValid: isFtypValidMp4(asset.bytes),
+			});
+		});
+	}, []);
 
 	useEffect(() => {
 		let cancelled = false;

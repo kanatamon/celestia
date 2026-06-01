@@ -46,6 +46,7 @@ declare const chrome: {
 			queryInfo: { active: boolean; currentWindow: boolean } | { url: string },
 		): Promise<ChromeApi.Tab[]>;
 		create(createProperties: { url: string }): Promise<ChromeApi.Tab>;
+		sendMessage(tabId: number, message: unknown): Promise<unknown>;
 		update(
 			tabId: number,
 			updateProperties: { active: boolean } | { url: string },

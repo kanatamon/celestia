@@ -26,6 +26,26 @@ export const manifestDefinition = {
 		type: 'module',
 	},
 	permissions: ['debugger', 'storage', 'tabs'],
+	host_permissions: ['https://*.tiktok.com/*'],
+	content_scripts: [
+		{
+			// Gift Animation Tap (ADR-0006): MAIN-world tap injected before TikTok's
+			// code runs so it can patch `Worker.prototype.postMessage` and
+			// `URL.createObjectURL` to capture the decrypted gift animation.
+			matches: ['https://*.tiktok.com/*'],
+			js: ['src/gift-animation-tap/tap-main.ts'],
+			run_at: 'document_start' as const,
+			world: 'MAIN' as const,
+		},
+		{
+			// Isolated-world relay: bridges captured bytes from the MAIN-world tap
+			// (which has no `chrome.*`) to the service worker.
+			matches: ['https://*.tiktok.com/*'],
+			js: ['src/gift-animation-tap/tap-isolated.ts'],
+			run_at: 'document_start' as const,
+			world: 'ISOLATED' as const,
+		},
+	],
 	web_accessible_resources: [
 		{
 			resources: ['src/session-tab/index.html'],

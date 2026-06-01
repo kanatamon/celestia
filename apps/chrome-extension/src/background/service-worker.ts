@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
 import { userPreferences } from '../user-preferences/user-preferences.js';
+import { createGiftAssetRouter } from './gift-asset-router.js';
 import { createSessionCoordinator, type OpenLiveSessionRequest } from './session-coordinator.js';
 import { createTabPairingRegistry } from './tab-pairing-registry.js';
 
@@ -8,24 +9,36 @@ type OpenLiveSessionMessage =
 	| { type: 'OPEN_LIVE_SESSION'; username: string; tiktokTabId?: undefined }
 	| { type: 'OPEN_LIVE_SESSION'; username?: string; tiktokTabId: number };
 
+const registry = createTabPairingRegistry();
+
 const coordinator = createSessionCoordinator({
-	registry: createTabPairingRegistry(),
+	registry,
 	tabs: chrome.tabs,
 	debugger: chrome.debugger,
 	preferences: userPreferences,
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-	if (!isOpenLiveSessionMessage(message)) {
-		return false;
+// Routes captured Gift Animation Assets (ADR-0006) to the paired Session Tab,
+// resolved from the originating TikTok tab via the Tab Pairing Registry.
+const giftAssetRouter = createGiftAssetRouter({
+	registry,
+	tabs: { sendMessage: (tabId, message) => chrome.tabs.sendMessage(tabId, message) },
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (isOpenLiveSessionMessage(message)) {
+		coordinator
+			.openLiveSession(toOpenLiveSessionRequest(message))
+			.then((pair) => sendResponse({ ok: true, pair }))
+			.catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));
+
+		return true;
 	}
 
-	coordinator
-		.openLiveSession(toOpenLiveSessionRequest(message))
-		.then((pair) => sendResponse({ ok: true, pair }))
-		.catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));
-
-	return true;
+	// Gift Animation Asset bytes from the Tap's isolated content script. Route by
+	// `sender.tab.id` → Session Tab; in-memory only, never persisted.
+	void giftAssetRouter.route(message, sender.tab?.id);
+	return false;
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
