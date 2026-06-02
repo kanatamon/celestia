@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CelebrationStage } from '../src/index.js';
@@ -153,6 +153,43 @@ describe('CelebrationStage', () => {
 			root.render(<CelebrationStage capture={captureB} onCaptureIngested={onCaptureIngested} />);
 		});
 		expect(onCaptureIngested).toHaveBeenCalledTimes(2);
+
+		act(() => {
+			root.unmount();
+		});
+	});
+
+	it('does not revoke the playing URL under StrictMode (pure updater)', () => {
+		// Regression: the stage performed URL.revokeObjectURL / map mutations inside
+		// the setQueue updater. React double-invokes updaters under StrictMode, so the
+		// second pass saw the URL already stored and revoked it — the <video> then
+		// loaded a dead blob (net::ERR_FILE_NOT_FOUND) and nothing played.
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+		const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+		const driver = makeClipEndDriver();
+		const container = document.createElement('div');
+		const root = createRoot(container);
+
+		// Mount idle (as the real Session Tab does), then deliver the capture as an
+		// update — that update's setQueue is the one StrictMode double-invokes.
+		act(() => {
+			root.render(
+				<StrictMode>
+					<CelebrationStage capture={undefined} onPlay={driver.onPlay} />
+				</StrictMode>,
+			);
+		});
+		act(() => {
+			root.render(
+				<StrictMode>
+					<CelebrationStage capture={{ assetId: 'a', assetUrl: 'blob:a' }} onPlay={driver.onPlay} />
+				</StrictMode>,
+			);
+		});
+
+		expect(driver.onPlay).toHaveBeenLastCalledWith(expect.any(Function), 'a');
+		// The URL that is actually playing must survive StrictMode's double-invoke.
+		expect(revoke).not.toHaveBeenCalledWith('blob:a');
 
 		act(() => {
 			root.unmount();

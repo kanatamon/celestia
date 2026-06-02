@@ -50,6 +50,14 @@ export function CelebrationStage({
 }: CelebrationStageProps) {
 	const [queue, setQueue] = useState<CelebrationQueueState>(initialCelebrationQueueState);
 
+	// Latest committed queue, mirrored into a ref so the ingest effect and the
+	// clip-end handler can compute the next state and perform their object-URL
+	// side effects OUTSIDE the `setQueue` updater. State updaters must be pure:
+	// React double-invokes them under StrictMode, which would otherwise revoke an
+	// object URL twice (once for the URL we just stored) and kill playback.
+	const queueRef = useRef(queue);
+	queueRef.current = queue;
+
 	// assetId -> object URL for every asset currently in the queue (playing/waiting).
 	const urlByAssetId = useRef(new Map<string, string>());
 	// The last capture reference we ingested, to dedupe re-renders.
@@ -72,39 +80,34 @@ export function CelebrationStage({
 		}
 		lastIngestedRef.current = capture;
 
-		setQueue((current) => {
-			const next = reduceCelebrationQueue(current, {
-				kind: 'assetCaptured',
-				assetId: capture.assetId,
-			});
-
-			if (assetIsRetained(next, capture.assetId) && !urlByAssetId.current.has(capture.assetId)) {
-				// Accepted into the queue (started or enqueued): remember its URL.
-				urlByAssetId.current.set(capture.assetId, capture.assetUrl);
-			} else {
-				// Coalesced into an existing run, or dropped past the cap: this URL
-				// will never play, so reclaim it now.
-				URL.revokeObjectURL(capture.assetUrl);
-			}
-
-			return next;
+		const next = reduceCelebrationQueue(queueRef.current, {
+			kind: 'assetCaptured',
+			assetId: capture.assetId,
 		});
 
+		if (assetIsRetained(next, capture.assetId) && !urlByAssetId.current.has(capture.assetId)) {
+			// Accepted into the queue (started or enqueued): remember its URL.
+			urlByAssetId.current.set(capture.assetId, capture.assetUrl);
+		} else {
+			// Coalesced into an existing run, or dropped past the cap: this URL will
+			// never play, so reclaim it now.
+			URL.revokeObjectURL(capture.assetUrl);
+		}
+
+		setQueue(next);
 		onCaptureIngested?.();
 	}, [capture, onCaptureIngested]);
 
 	const handleClipEnded = useCallback(() => {
-		setQueue((current) => {
-			const finished = current.playing?.assetId;
-			if (finished) {
-				const finishedUrl = urlByAssetId.current.get(finished);
-				if (finishedUrl) {
-					URL.revokeObjectURL(finishedUrl);
-					urlByAssetId.current.delete(finished);
-				}
+		const finished = queueRef.current.playing?.assetId;
+		if (finished) {
+			const finishedUrl = urlByAssetId.current.get(finished);
+			if (finishedUrl) {
+				URL.revokeObjectURL(finishedUrl);
+				urlByAssetId.current.delete(finished);
 			}
-			return reduceCelebrationQueue(current, { kind: 'clipEnded' });
-		});
+		}
+		setQueue(reduceCelebrationQueue(queueRef.current, { kind: 'clipEnded' }));
 		onClipEnded?.();
 	}, [onClipEnded]);
 
