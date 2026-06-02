@@ -8,7 +8,10 @@ import {
 } from './gift-celebration-layout.js';
 
 export interface GiftCelebrationProps {
+	/** Animated path: a Gift Animation Asset object URL (SBS-alpha MP4, WebGL). */
 	assetUrl?: string;
+	/** Synthesized path: a remote Gift Icon URL (RGBA PNG, no video/WebGL). */
+	giftImageUrl?: string;
 	onEnded?: () => void;
 }
 
@@ -16,6 +19,14 @@ interface GiftCelebrationStageProps {
 	assetUrl: string;
 	onEnded?: () => void;
 }
+
+interface SynthesizedGiftCelebrationStageProps {
+	giftImageUrl: string;
+	onEnded?: () => void;
+}
+
+/** One ~2.8s pop-in + burst beat, after which a synthesized celebration ends. */
+const SYNTHESIZED_CYCLE_MS = 2800;
 
 const VERTEX_SHADER_SOURCE = `
 attribute vec2 position;
@@ -52,12 +63,111 @@ void main() {
 
 const FULLSCREEN_QUAD_VERTICES = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
 
-export function GiftCelebration({ assetUrl, onEnded }: GiftCelebrationProps) {
+export function GiftCelebration({ assetUrl, giftImageUrl, onEnded }: GiftCelebrationProps) {
+	// Synthesized path (ADR-0007): a static Gift Icon, no Gift Animation Asset.
+	if (giftImageUrl) {
+		return <SynthesizedGiftCelebrationStage giftImageUrl={giftImageUrl} onEnded={onEnded} />;
+	}
+
 	if (!assetUrl) {
 		return null;
 	}
 
 	return <GiftCelebrationStage assetUrl={assetUrl} onEnded={onEnded} />;
+}
+
+/**
+ * Renders a **Synthesized Gift Celebration** (ADR-0007 §3): the Gift Icon drawn
+ * full-bleed into the same triptych geometry as the animated path, but with no
+ * `<video>` and no WebGL — the icon is already RGBA, so each pane is a plain
+ * `<img>`. Centre + both gutters share the pop-in keyframes ("Match") on the
+ * 2.8s beat, with a glow flash behind the icon. After exactly one ~2.8s cycle a
+ * synthetic timer fires `onEnded` (standing in for `video.ended`).
+ */
+function SynthesizedGiftCelebrationStage({
+	giftImageUrl,
+	onEnded,
+}: SynthesizedGiftCelebrationStageProps) {
+	const stageRef = useRef<HTMLDivElement>(null);
+	const viewport = useMeasuredViewport(stageRef);
+	const layout = useMemo(
+		() =>
+			computeGiftCelebrationTriptychLayout({
+				width: viewport.width,
+				height: viewport.height,
+			}),
+		[viewport.width, viewport.height],
+	);
+
+	const onEndedRef = useRef(onEnded);
+	onEndedRef.current = onEnded;
+	useEffect(() => {
+		const timer = setTimeout(() => onEndedRef.current?.(), SYNTHESIZED_CYCLE_MS);
+		return () => clearTimeout(timer);
+	}, []);
+
+	const glowSize = Math.min(layout.center.width, layout.center.height);
+
+	return (
+		<div aria-label="Gift Celebration" className={styles.stage} ref={stageRef} role="img">
+			<IconPane giftImageUrl={giftImageUrl} layout={layout.leftGutter} paneName="left gutter" />
+			<IconPane giftImageUrl={giftImageUrl} layout={layout.rightGutter} paneName="right gutter" />
+			{glowSize > 0 ? (
+				<div
+					aria-hidden="true"
+					className={styles.glowFlash}
+					style={{
+						left: `${layout.center.x + (layout.center.width - glowSize) / 2}px`,
+						top: `${layout.center.y + (layout.center.height - glowSize) / 2}px`,
+						width: `${glowSize}px`,
+						height: `${glowSize}px`,
+						zIndex: layout.center.zIndex,
+					}}
+				/>
+			) : null}
+			<IconPane giftImageUrl={giftImageUrl} layout={layout.center} paneName="center" />
+		</div>
+	);
+}
+
+interface IconPaneProps {
+	giftImageUrl: string;
+	layout: GiftCelebrationPaneLayout;
+	paneName: string;
+}
+
+function IconPane({ giftImageUrl, layout, paneName }: IconPaneProps) {
+	// The wrapper carries the pop-in animation (a CSS `transform: scale`); the
+	// inner <img> carries the static mirror. Keeping them on separate elements
+	// stops the keyframes' transform from clobbering a gutter's `scaleX(-1)`.
+	return (
+		<div className={styles.iconPane} style={toIconPaneStyle(layout)}>
+			<img
+				alt=""
+				aria-label={`Gift Celebration ${paneName}`}
+				draggable={false}
+				src={giftImageUrl}
+				style={{
+					width: '100%',
+					height: '100%',
+					objectFit: layout.fit,
+					transform: layout.mirrored ? 'scaleX(-1)' : undefined,
+				}}
+			/>
+		</div>
+	);
+}
+
+function toIconPaneStyle(layout: GiftCelebrationPaneLayout): CSSProperties {
+	return {
+		left: `${layout.x}px`,
+		top: `${layout.y}px`,
+		width: `${layout.width}px`,
+		height: `${layout.height}px`,
+		zIndex: layout.zIndex,
+		opacity: layout.opacity,
+		filter: `blur(${layout.blurPx}px) brightness(${layout.brightness})`,
+	};
 }
 
 function GiftCelebrationStage({ assetUrl, onEnded }: GiftCelebrationStageProps) {

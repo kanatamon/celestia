@@ -250,6 +250,13 @@ declare global {
 		 * id per call (the byte-identical sample would otherwise always coalesce).
 		 */
 		__celestiaPlayCelebration?: (assetId?: string) => Promise<void>;
+		/**
+		 * Dev self-trigger for a **Synthesized Gift Celebration** (ADR-0007): feeds
+		 * a remote Gift Icon URL into the celebration queue, so the synthesized
+		 * render path is demoable without the real event trigger. The URL is remote
+		 * and shared, so `CelebrationStage` never revokes it.
+		 */
+		__celestiaPlaySynthesizedCelebration?: (giftImageUrl: string, assetId?: string) => void;
 	}
 
 	interface ImportMetaEnv {
@@ -315,12 +322,27 @@ function useDevGiftCelebrationTrigger(
 			// the clip ends, is dropped past the cap, or coalesces into a running clip.
 			const assetUrl = URL.createObjectURL(blob);
 			sequence += 1;
-			enqueueCapture({ assetId: assetId ?? `dev-${sequence}`, assetUrl });
+			enqueueCapture({ kind: 'animated', assetId: assetId ?? `dev-${sequence}`, assetUrl });
+		};
+
+		// Synthesized path: the Gift Icon URL is remote — no object URL is minted,
+		// and CelebrationStage never revokes it.
+		window.__celestiaPlaySynthesizedCelebration = (giftImageUrl: string, assetId?: string) => {
+			if (!active) {
+				return;
+			}
+			sequence += 1;
+			enqueueCapture({
+				kind: 'synthesized',
+				assetId: assetId ?? `dev-synth-${sequence}`,
+				giftImageUrl,
+			});
 		};
 
 		return () => {
 			active = false;
 			delete window.__celestiaPlayCelebration;
+			delete window.__celestiaPlaySynthesizedCelebration;
 		};
 	}, [enqueueCapture]);
 }

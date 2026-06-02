@@ -56,14 +56,20 @@ describe('CelebrationStage', () => {
 		// would otherwise reclaim a URL stored during the mount-time effect.
 		render(<CelebrationStage capture={undefined} onPlay={driver.onPlay} />);
 		render(
-			<CelebrationStage capture={{ assetId: 'a', assetUrl: 'blob:a' }} onPlay={driver.onPlay} />,
+			<CelebrationStage
+				capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a' }}
+				onPlay={driver.onPlay}
+			/>,
 		);
 
 		expect(driver.onPlay).toHaveBeenLastCalledWith(expect.any(Function), 'a');
 
 		// A distinct asset arrives while 'a' is playing -> it waits, 'a' keeps playing.
 		render(
-			<CelebrationStage capture={{ assetId: 'b', assetUrl: 'blob:b' }} onPlay={driver.onPlay} />,
+			<CelebrationStage
+				capture={{ kind: 'animated', assetId: 'b', assetUrl: 'blob:b' }}
+				onPlay={driver.onPlay}
+			/>,
 		);
 		expect(revoke).not.toHaveBeenCalled();
 
@@ -94,11 +100,11 @@ describe('CelebrationStage', () => {
 		// Mount idle, then feed captures as updates (see note above).
 		render(<CelebrationStage capture={undefined} />);
 		// 'a' plays, 'b' waits.
-		render(<CelebrationStage capture={{ assetId: 'a', assetUrl: 'blob:a' }} />);
-		render(<CelebrationStage capture={{ assetId: 'b', assetUrl: 'blob:b' }} />);
+		render(<CelebrationStage capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a' }} />);
+		render(<CelebrationStage capture={{ kind: 'animated', assetId: 'b', assetUrl: 'blob:b' }} />);
 
 		// 'c' exceeds the cap -> dropped -> its URL is revoked immediately.
-		render(<CelebrationStage capture={{ assetId: 'c', assetUrl: 'blob:c' }} />);
+		render(<CelebrationStage capture={{ kind: 'animated', assetId: 'c', assetUrl: 'blob:c' }} />);
 
 		expect(revoke).toHaveBeenCalledWith('blob:c');
 		expect(revoke).not.toHaveBeenCalledWith('blob:a');
@@ -117,14 +123,14 @@ describe('CelebrationStage', () => {
 		render(<CelebrationStage capture={undefined} onCaptureIngested={onCaptureIngested} />);
 		render(
 			<CelebrationStage
-				capture={{ assetId: 'a', assetUrl: 'blob:a' }}
+				capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a' }}
 				onCaptureIngested={onCaptureIngested}
 			/>,
 		);
 		expect(onCaptureIngested).toHaveBeenCalledTimes(1);
 
 		// A new distinct capture is ingested -> one more notification.
-		const captureB = { assetId: 'b', assetUrl: 'blob:b' };
+		const captureB = { kind: 'animated', assetId: 'b', assetUrl: 'blob:b' } as const;
 		render(<CelebrationStage capture={captureB} onCaptureIngested={onCaptureIngested} />);
 		expect(onCaptureIngested).toHaveBeenCalledTimes(2);
 
@@ -149,7 +155,10 @@ describe('CelebrationStage', () => {
 		// update — that update's setQueue is the one StrictMode double-invokes.
 		render(<CelebrationStage capture={undefined} onPlay={driver.onPlay} />);
 		render(
-			<CelebrationStage capture={{ assetId: 'a', assetUrl: 'blob:a' }} onPlay={driver.onPlay} />,
+			<CelebrationStage
+				capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a' }}
+				onPlay={driver.onPlay}
+			/>,
 		);
 
 		expect(driver.onPlay).toHaveBeenLastCalledWith(expect.any(Function), 'a');
@@ -166,14 +175,58 @@ describe('CelebrationStage', () => {
 
 		// Mount idle, then feed captures as updates (see note above).
 		render(<CelebrationStage capture={undefined} />);
-		render(<CelebrationStage capture={{ assetId: 'a', assetUrl: 'blob:a' }} />);
+		render(<CelebrationStage capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a' }} />);
 		// Same gift captured again -> byte-identical asset, distinct object URL.
-		render(<CelebrationStage capture={{ assetId: 'a', assetUrl: 'blob:a2' }} />);
+		render(<CelebrationStage capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a2' }} />);
 
 		// The duplicate URL is revoked; the original keeps playing.
 		expect(revoke).toHaveBeenCalledWith('blob:a2');
 		expect(revoke).not.toHaveBeenCalledWith('blob:a');
 
 		unmount();
+	});
+
+	it('never revokes a synthesized capture URL while still revoking an animated one', () => {
+		// A synthesized capture carries a remote, shared Gift Icon URL the stage
+		// does not own; an animated capture owns a minted object URL. The stage must
+		// revoke the latter on end/drop/coalesce but never touch the former.
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+		const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+		const driver = makeClipEndDriver();
+		const { render, unmount } = createStrictRoot();
+
+		render(<CelebrationStage capture={undefined} onPlay={driver.onPlay} />);
+		// Synthesized plays; an animated capture waits behind it.
+		render(
+			<CelebrationStage
+				capture={{ kind: 'synthesized', assetId: 'icon', giftImageUrl: 'https://cdn/icon.png' }}
+				onPlay={driver.onPlay}
+			/>,
+		);
+		render(
+			<CelebrationStage
+				capture={{ kind: 'animated', assetId: 'a', assetUrl: 'blob:a' }}
+				onPlay={driver.onPlay}
+			/>,
+		);
+
+		expect(driver.onPlay).toHaveBeenLastCalledWith(expect.any(Function), 'icon');
+
+		// Synthesized ends -> its remote URL is never revoked; animated 'a' promoted.
+		act(() => {
+			driver.endClip();
+		});
+		expect(revoke).not.toHaveBeenCalledWith('https://cdn/icon.png');
+		expect(driver.onPlay).toHaveBeenLastCalledWith(expect.any(Function), 'a');
+
+		// Animated ends -> its object URL is revoked as before.
+		act(() => {
+			driver.endClip();
+		});
+		expect(revoke).toHaveBeenCalledWith('blob:a');
+
+		// Unmount must not revoke the remote icon URL either.
+		unmount();
+		expect(revoke).not.toHaveBeenCalledWith('https://cdn/icon.png');
 	});
 });

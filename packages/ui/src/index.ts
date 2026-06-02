@@ -6,7 +6,12 @@ export {
 	initialCelebrationQueueState,
 	reduceCelebrationQueue,
 } from './celebration-queue.js';
-export type { CapturedCelebration, CelebrationStageProps } from './celebration-stage.js';
+export type {
+	AnimatedCapturedCelebration,
+	CapturedCelebration,
+	CelebrationStageProps,
+	SynthesizedCapturedCelebration,
+} from './celebration-stage.js';
 export { CelebrationStage } from './celebration-stage.js';
 export type {
 	ChatEventCardProps,

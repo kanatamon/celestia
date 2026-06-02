@@ -5,7 +5,7 @@ import {
 	type GiftAnimationAssetCapturedMessage,
 	isGiftAnimationAssetCapturedMessage,
 } from '@celestia/tiktok-live-chrome-extension';
-import type { CapturedCelebration } from '@celestia/ui';
+import type { AnimatedCapturedCelebration } from '@celestia/ui';
 
 /**
  * Subscribes the Session Tab to routed Gift Animation Assets (ADR-0006). The
@@ -45,12 +45,13 @@ export function subscribeGiftAnimationAssets(
  */
 export function toCapturedCelebration(
 	asset: GiftAnimationAssetCapturedMessage,
-): CapturedCelebration {
+): AnimatedCapturedCelebration {
 	// The bytes crossed the chrome messaging hops as base64; decode them back here,
 	// in the Session Tab context, before minting the object URL.
 	const bytes = base64ToArrayBuffer(asset.bytesBase64);
 	const blob = new Blob([bytes], { type: asset.mimeType || 'video/mp4' });
 	return {
+		kind: 'animated',
 		assetId: fingerprintBytes(bytes),
 		assetUrl: URL.createObjectURL(blob),
 	};
