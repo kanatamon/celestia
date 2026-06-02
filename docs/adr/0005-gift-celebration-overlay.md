@@ -57,7 +57,7 @@ There are no on-screen waiting/stacked elements (the giver-card stack is gone wi
 - Consistent with v1.0.0: real-time only. Nothing about a celebration is persisted across a Live Session.
 - The triptych uses three WebGL contexts. Only on-screen canvases draw, and the stage renders only while a celebration is playing, so an idle feed costs nothing.
 - Sourcing the asset (which gifts have assets, how they are captured and decoded, and how bytes reach the Session Tab) is decided in **ADR-0006 (Gift Animation Tap)**.
-- Because the asset path carries no value/identity, there is **no value threshold** for which gifts celebrate; the de-facto threshold is "TikTok shipped an animation for this gift."
+- Because the asset path carries no value/identity, there is **no value threshold** for which gifts celebrate; the de-facto threshold is "TikTok shipped an animation for this gift." Gifts *without* an animation no longer go uncelebrated — they get a **Synthesized Gift Celebration** built from the Gift Icon; see **ADR-0007**. This ADR's celebration is the **Animated Gift Celebration**.
 - **Deferred to integration:** tuning the gutter-echo blur/opacity at production tab widths, and fading the gutter echoes near the end of each clip.
 
 ## Revision history

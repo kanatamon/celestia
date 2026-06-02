@@ -19,7 +19,7 @@ The period from when the user starts observing a TikTok Live stream to when the 
 _Avoid_: Room, broadcast, stream (ambiguous with WebSocket stream)
 
 **User Preferences**:
-Persistent user configuration that survives across Live Sessions and browser restarts. Stored exclusively in `chrome.storage.local`. Examples: recent streamer username, sound effect volumes. Distinct from Live Session event data, which is never persisted.
+Persistent user configuration that survives across Live Sessions and browser restarts. Stored exclusively in `chrome.storage.local`. Examples: recent streamer username, sound effect volumes, the **Celebration Threshold**. Distinct from Live Session event data, which is never persisted.
 _Avoid_: Settings, config, localStorage
 
 **Session Tab**:
@@ -31,8 +31,24 @@ The map of `tiktokTabId → sessionTabId` maintained by the service worker in `c
 _Avoid_: Pairing map, session map, tab registry
 
 **Gift Celebration**:
-The full-bleed, anonymous playback of a Gift Animation Asset over the Session Tab feed. Triggered by the arrival of a Gift Animation Asset — not by a GiftLiveEvent — and carries no giver identity (the asset stream has none). Rendered by a platform-agnostic `ui` component.
+The full-bleed, **anonymous** celebration played over the Session Tab feed when a celebration-worthy gift arrives. Always one-at-a-time through a bounded queue and never shows a giver name, card, or other chrome. Comes in two kinds — an **Animated Gift Celebration** (from a **Gift Animation Asset**) and a **Synthesized Gift Celebration** (from a **Gift Icon** when no asset exists). Rendered by a platform-agnostic `ui` component.
 _Avoid_: The overlay, gift card, animation, gift popup
+
+**Animated Gift Celebration**:
+The kind of **Gift Celebration** that plays a **Gift Animation Asset** (the keyed SBS-alpha MP4) through the WebGL split-alpha triptych. **Asset-driven**: triggered by asset capture, not by a GiftLiveEvent. Plays for the clip's natural video duration.
+_Avoid_: MP4 celebration, video celebration
+
+**Synthesized Gift Celebration**:
+The kind of **Gift Celebration** built from a static **Gift Icon** for a gift that ships **no** **Gift Animation Asset**. **Event-driven**: triggered by a **GiftLiveEvent** whose unit `diamondCount` meets the **Celebration Threshold**, when no asset is captured within a short grace window. Reuses the triptych geometry but animates the icon (a pop-in synced with the gutters, plus a canvas particle burst) for a fixed ~2.8s cycle, then ends. Remains **anonymous** even though its trigger carries identity — the giver is deliberately not shown.
+_Avoid_: PNG celebration, fallback animation, image celebration
+
+**Celebration Threshold**:
+A **User Preference** — the minimum unit `diamondCount` a gift must be worth for it to earn a **Synthesized Gift Celebration**. Default 99; user-adjustable (slider, range 30–50000). Gates *only* the Synthesized kind, never an **Animated Gift Celebration**. Compares the gift's per-unit value, not its streak total.
+_Avoid_: Gift threshold, diamond cutoff, min value
+
+**Gift Icon**:
+The static gift image carried on a **GiftLiveEvent** as `giftImageUrl` — the small icon TikTok shows for a gift. Identity of the *gift*, not the *giver*. Distinct from a **Gift Animation Asset** (the animated MP4). The source image for a **Synthesized Gift Celebration**.
+_Avoid_: Gift image, gift png, gift thumbnail
 
 ### Data layer
 
@@ -82,7 +98,9 @@ _Avoid_: Component library, design system
 - A **Live Session** produces **LiveEvents**; all **LiveEvents** are discarded when the **Live Session** ends (v1.0.0 — real-time only, no persistence)
 - **ui** components receive **LiveEvents** as props; they have no direct dependency on any **Provider**
 - The **Gift Animation Tap** (in **tiktok-live-chrome-extension**) captures **Gift Animation Assets** from the paired TikTok Live tab, independently of any **Provider**
-- A **Gift Celebration** plays a **Gift Animation Asset** in the **Session Tab**; it is anonymous and is *not* derived from a **GiftLiveEvent**
+- A **Gift Celebration** in the **Session Tab** is always anonymous and takes one of two forms:
+  - an **Animated Gift Celebration** plays a **Gift Animation Asset** (asset-driven; *not* derived from a **GiftLiveEvent**)
+  - a **Synthesized Gift Celebration** animates a **Gift Icon** from a **GiftLiveEvent** when no **Gift Animation Asset** is captured within a short grace window (event-driven, but still shows no giver)
 
 ## Monorepo structure
 
