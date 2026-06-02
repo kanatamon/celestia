@@ -271,6 +271,108 @@ describe('Session Tab', () => {
 		await mount.unmount();
 	});
 
+	it('synthesizes a celebration for an above-threshold gift that gets no asset within the grace window', async () => {
+		vi.useFakeTimers();
+		const provider = new FakeProvider();
+		mockCelebrationMedia();
+		const mount = await renderSessionTab({
+			tiktokTabId: 110,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@synth/live',
+		});
+
+		try {
+			await act(async () => {
+				provider.emitEvent(giftEvent('gift-1', { diamondCount: 99, giftImageUrl: 'icon-a' }));
+			});
+
+			// Before the grace window elapses, no celebration synthesizes.
+			expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
+
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1500);
+			});
+
+			const celebration = mount.container.querySelector('[aria-label="Gift Celebration"]');
+			expect(celebration).toBeInstanceOf(HTMLElement);
+			// Synthesized path renders the icon triptych, not a <video>.
+			expect(celebration?.querySelector('video')).toBeNull();
+			expect(celebration?.querySelector(`img[src="icon-a"]`)).toBeInstanceOf(HTMLElement);
+			expect(
+				celebration?.querySelector('img[aria-label="Gift Celebration center"]'),
+			).toBeInstanceOf(HTMLImageElement);
+		} finally {
+			await mount.unmount();
+			vi.useRealTimers();
+		}
+	});
+
+	it('does not synthesize when an asset arrives within the grace window (animated path owns it)', async () => {
+		vi.useFakeTimers();
+		const provider = new FakeProvider();
+		const feed = new FakeAssetFeed();
+		withMockedObjectUrl(
+			vi.fn(() => 'blob:animated-gift'),
+			vi.fn(),
+		);
+		mockCelebrationMedia();
+		const mount = await renderSessionTab({
+			tiktokTabId: 111,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@mixed/live',
+			subscribeAssets: feed.subscribe,
+		});
+
+		try {
+			await act(async () => {
+				provider.emitEvent(giftEvent('gift-1', { diamondCount: 200, giftImageUrl: 'icon-a' }));
+			});
+			await act(async () => {
+				feed.emit(capturedAsset(ftypMp4Bytes()));
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1500);
+			});
+
+			// Exactly one celebration — the Animated one (a <canvas> centre pane), not
+			// a synthesized icon triptych (whose centre pane is an <img>).
+			const celebrations = mount.container.querySelectorAll('[aria-label="Gift Celebration"]');
+			expect(celebrations).toHaveLength(1);
+			expect(mount.container.querySelector('img[aria-label="Gift Celebration center"]')).toBeNull();
+		} finally {
+			await mount.unmount();
+			restoreObjectUrl();
+			vi.useRealTimers();
+		}
+	});
+
+	it('never synthesizes for a sub-threshold, zero-diamond, or icon-less gift', async () => {
+		vi.useFakeTimers();
+		const provider = new FakeProvider();
+		mockCelebrationMedia();
+		const mount = await renderSessionTab({
+			tiktokTabId: 112,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@quiet/live',
+		});
+
+		try {
+			await act(async () => {
+				provider.emitEvent(giftEvent('g1', { diamondCount: 98, giftImageUrl: 'cheap' }));
+				provider.emitEvent(giftEvent('g2', { diamondCount: 0, giftImageUrl: 'free' }));
+				provider.emitEvent(giftEvent('g3', { diamondCount: 500, giftImageUrl: undefined }));
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1500);
+			});
+
+			expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
+		} finally {
+			await mount.unmount();
+			vi.useRealTimers();
+		}
+	});
+
 	it('does not expose the sample Gift Animation Asset trigger in production builds', async () => {
 		vi.stubEnv('DEV', false);
 		const provider = new FakeProvider();
@@ -349,6 +451,20 @@ function chatEvent(id: string, text: string): LiveEvent {
 			uniqueId: `user.${id}`,
 			nickname: `User ${id}`,
 		},
+	};
+}
+
+function giftEvent(
+	id: string,
+	fields: { diamondCount?: number; giftImageUrl?: string },
+): LiveEvent {
+	return {
+		id,
+		ts: Date.now(),
+		type: 'gift',
+		source: 'test',
+		diamondCount: fields.diamondCount,
+		giftImageUrl: fields.giftImageUrl,
 	};
 }
 

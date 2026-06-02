@@ -24,6 +24,15 @@ import {
 } from './gift-animation-asset-receiver.js';
 import { createLiveEventStore, type LiveEventStore } from './live-event-store.js';
 import styles from './session-tab.module.css';
+import {
+	initialSynthesizedTriggerState,
+	reduceSynthesizedTrigger,
+	type SynthesizedTriggerEvent,
+	type SynthesizedTriggerState,
+} from './synthesized-celebration-trigger.js';
+
+/** Tick cadence that expires grace windows; finer than the window so latency stays low. */
+const SYNTHESIZED_TICK_MS = 200;
 
 type SubscribeAssets = (onAsset: (asset: GiftAnimationAssetCapturedMessage) => void) => () => void;
 
@@ -112,6 +121,7 @@ function LiveFeed({
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
 	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
 	useDevGiftCelebrationTrigger(enqueueCapture);
+	const observeGiftForSynthesis = useSynthesizedCelebrationTrigger(enqueueCapture);
 	const soundEffectEvents = useMemo(
 		() => [...state.chatEvents, ...state.giftEvents].sort((a, b) => a.ts - b.ts),
 		[state.chatEvents, state.giftEvents],
@@ -141,9 +151,12 @@ function LiveFeed({
 	// simply does not celebrate. Nothing is retained after playback.
 	useEffect(() => {
 		return subscribeAssets((asset) => {
+			// An asset capture both plays an Animated celebration and claims the
+			// oldest pending synthesized grace window (that gift was animated).
+			observeGiftForSynthesis({ kind: 'assetCaptured', ts: Date.now() });
 			enqueueCapture(toCapturedCelebration(asset));
 		});
-	}, [subscribeAssets, enqueueCapture]);
+	}, [subscribeAssets, enqueueCapture, observeGiftForSynthesis]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -174,6 +187,16 @@ function LiveFeed({
 			const unsubscribeLogs = provider.onLog(logProviderMessage);
 			const unsubscribeEvents = provider.onEvent((event) => {
 				dispatchLiveEvent(event, store.getState(), username);
+				if (event.type === 'gift') {
+					// Read-only: feed the synthesized-celebration arbiter the gift's
+					// unit value and icon. The live event store is never mutated here.
+					observeGiftForSynthesis({
+						kind: 'giftEvent',
+						diamondCount: event.diamondCount,
+						iconUrl: event.giftImageUrl,
+						ts: event.ts,
+					});
+				}
 			});
 			const unsubscribeConnectionState = provider.onConnectionState((connectionState) => {
 				const next = connectionState.username ? connectionState : { ...connectionState, username };
@@ -209,7 +232,7 @@ function LiveFeed({
 				});
 			}
 		};
-	}, [store, tiktokTabId, providerFactory, resolveTab]);
+	}, [store, tiktokTabId, providerFactory, resolveTab, observeGiftForSynthesis]);
 
 	return (
 		<main aria-label="Celestia Session Tab" className={styles.sessionTab}>
@@ -297,6 +320,44 @@ function useCelebrationFeed(): {
 	}, []);
 
 	return { capture, enqueueCapture, onCaptureIngested };
+}
+
+/**
+ * Wires the pure Synthesized Gift Celebration arbiter (ADR-0007) into the
+ * Session Tab. Returns a single `observe` sink the caller feeds `giftEvent` and
+ * `assetCaptured` events; an internal timer supplies `tick`s that expire grace
+ * windows. Arbiter state lives in a ref so observing is allocation-light and
+ * order-preserving, and so the timer can drain windows without re-rendering.
+ * When a window expires, a synthesized capture is enqueued keyed by its icon
+ * URL (so the queue coalesces a run of the same gift). The giver never reaches
+ * here — anonymity is preserved by construction (ADR-0007 §1).
+ */
+function useSynthesizedCelebrationTrigger(
+	enqueueCapture: (capture: CapturedCelebration) => void,
+): (event: SynthesizedTriggerEvent) => void {
+	const stateRef = useRef<SynthesizedTriggerState>(initialSynthesizedTriggerState);
+	const enqueueRef = useRef(enqueueCapture);
+	enqueueRef.current = enqueueCapture;
+
+	const observe = useCallback((event: SynthesizedTriggerEvent) => {
+		const { state, emitted } = reduceSynthesizedTrigger(stateRef.current, event);
+		stateRef.current = state;
+		for (const { iconUrl } of emitted) {
+			enqueueRef.current({ kind: 'synthesized', assetId: iconUrl, giftImageUrl: iconUrl });
+		}
+	}, []);
+
+	// Drive grace-window expiry. A tick finer than the window keeps the synthesized
+	// celebration close behind the gift while still being best-effort (ADR-0005 §4).
+	useEffect(() => {
+		const interval = setInterval(
+			() => observe({ kind: 'tick', now: Date.now() }),
+			SYNTHESIZED_TICK_MS,
+		);
+		return () => clearInterval(interval);
+	}, [observe]);
+
+	return observe;
 }
 
 function useDevGiftCelebrationTrigger(
