@@ -1,0 +1,460 @@
+<!doctype html>
+<!--
+	PROTOTYPE - wipe me.
+
+	Question (round 6): Fireworks won. Explore Fireworks variants. LOCKED: gutter = Match,
+	position = Center, colour = Rainbow. Two axes:
+	  - blast  ... ?blast=small|medium|big|mega     (count + speed + size + lifetime)
+	  - height ... ?height=atgift|above|overhead     (where the burst originates vertically)
+
+	  ← / →  blast      [ / ]  height
+
+	Still cheap: glow pre-rendered into 36 hue sprites (no per-frame shadowBlur/gradient),
+	additive 'lighter', fx canvas at 1x, idle frames skip drawing. Live fps readout in bar.
+
+	Renders in the REAL Session Tab desktop context. Triptych geometry from
+	packages/ui/src/gift-celebration-layout.ts (0.42 / 0.06, 720x1280, blur10/br.85/op.6).
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Gift Fallback — Fireworks explorer (blast × height)</title>
+		<style>
+			* { box-sizing: border-box; }
+			html, body { height: 100%; }
+			:root { color-scheme: dark; }
+			body {
+				margin: 0;
+				overflow: hidden;
+				font-family:
+					Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+				color: rgba(255, 255, 255, 0.92);
+			}
+
+			.liveFeed {
+				position: relative;
+				width: 100vw;
+				height: 100vh;
+				overflow: hidden;
+				background: url("./assets/live-feed-background.webp") center / cover no-repeat #04102a;
+			}
+
+			.feedContent {
+				position: absolute;
+				inset: 0;
+				z-index: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding-top: 14px;
+				gap: 10px;
+				opacity: 0.85;
+			}
+			.statusBar {
+				width: min(960px, 92vw);
+				display: flex;
+				justify-content: space-between;
+				padding: 10px 16px;
+				border-radius: 12px;
+				background: rgba(10, 16, 30, 0.55);
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				font-size: 13px;
+				backdrop-filter: blur(4px);
+			}
+			.statusBar b { color: #54edff; }
+			.feedCols {
+				width: min(960px, 92vw);
+				flex: 1;
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+				min-height: 0;
+				padding-bottom: 120px;
+			}
+			.feedCol {
+				border-radius: 12px;
+				background: rgba(10, 16, 30, 0.4);
+				border: 1px solid rgba(255, 255, 255, 0.08);
+				padding: 10px;
+				overflow: hidden;
+				font-size: 12px;
+				line-height: 1.9;
+				color: rgba(255, 255, 255, 0.66);
+			}
+
+			.stage {
+				position: absolute;
+				inset: 0;
+				z-index: 1;
+				overflow: hidden;
+				pointer-events: none;
+				--g0: rgba(255, 255, 255, 0.6);
+				--g1: rgba(255, 220, 240, 0.4);
+			}
+			.pane { position: absolute; background-position: center; background-repeat: no-repeat; }
+			.gutter { background-size: cover; filter: blur(10px) brightness(0.85); opacity: 0.6; }
+			.center { position: absolute; }
+
+			.giftWrap {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 78%;
+				aspect-ratio: 1;
+				transform: translate(-50%, -50%);
+				display: grid;
+				place-items: center;
+			}
+			.gift {
+				position: relative;
+				z-index: 2;
+				width: 100%;
+				height: 100%;
+				object-fit: contain;
+				display: block;
+				will-change: transform, opacity;
+				animation: b-popin 2.8s cubic-bezier(0.18, 1.5, 0.4, 1) infinite;
+			}
+			.glow {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 130%;
+				aspect-ratio: 1;
+				transform: translate(-50%, -50%);
+				border-radius: 50%;
+				background: radial-gradient(circle, var(--g0) 0%, var(--g1) 38%, transparent 70%);
+				z-index: 1;
+				opacity: 0;
+				animation: b-flash 2.8s ease-out infinite;
+			}
+
+			@keyframes b-popin {
+				0% { transform: translateY(-40%) scale(0.1) rotate(-40deg); opacity: 0; }
+				24% { transform: translateY(0) scale(1.18) rotate(8deg); opacity: 1; }
+				36% { transform: translateY(0) scale(0.92) rotate(-4deg); }
+				48% { transform: translateY(0) scale(1.04) rotate(2deg); }
+				58%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+			}
+			@keyframes b-flash {
+				0%, 16% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+				26% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.2); }
+				55% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+				100% { opacity: 0; }
+			}
+
+			.gutterR { animation: gm-r 2.8s cubic-bezier(0.18, 1.5, 0.4, 1) infinite; }
+			.gutterL { animation: gm-l 2.8s cubic-bezier(0.18, 1.5, 0.4, 1) infinite; }
+			@keyframes gm-r {
+				0% { transform: translateY(-40%) scale(0.1) rotate(-40deg); opacity: 0; }
+				24% { transform: translateY(0) scale(1.18) rotate(8deg); opacity: 0.6; }
+				36% { transform: translateY(0) scale(0.92) rotate(-4deg); }
+				48% { transform: translateY(0) scale(1.04) rotate(2deg); }
+				58%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.6; }
+			}
+			@keyframes gm-l {
+				0% { transform: scaleX(-1) translateY(-40%) scale(0.1) rotate(-40deg); opacity: 0; }
+				24% { transform: scaleX(-1) translateY(0) scale(1.18) rotate(8deg); opacity: 0.6; }
+				36% { transform: scaleX(-1) translateY(0) scale(0.92) rotate(-4deg); }
+				48% { transform: scaleX(-1) translateY(0) scale(1.04) rotate(2deg); }
+				58%, 100% { transform: scaleX(-1) translateY(0) scale(1) rotate(0deg); opacity: 0.6; }
+			}
+
+			#fx { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+
+			.switcher {
+				position: fixed;
+				left: 50%;
+				bottom: 16px;
+				transform: translateX(-50%);
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+				padding: 10px 12px;
+				background: rgba(8, 14, 30, 0.95);
+				border: 1px solid rgba(255, 255, 255, 0.18);
+				border-radius: 16px;
+				box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+				backdrop-filter: blur(8px);
+				z-index: 1000;
+				user-select: none;
+			}
+			.row { display: flex; align-items: center; gap: 6px; }
+			.row > .axis { width: 64px; font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
+			.locked { font-size: 11px; opacity: 0.5; padding: 2px 0 4px; }
+			.locked b { color: rgba(255, 255, 255, 0.8); font-weight: 600; }
+			.seg {
+				cursor: pointer;
+				padding: 5px 11px;
+				border-radius: 999px;
+				background: rgba(255, 255, 255, 0.07);
+				font-size: 12px;
+				font-weight: 600;
+			}
+			.seg:hover { background: rgba(255, 255, 255, 0.16); }
+			.seg.active { background: linear-gradient(135deg, #ffd24a, #ff9500); color: #1a1205; }
+			.hint { text-align: center; font-size: 10px; opacity: 0.45; margin-top: 2px; }
+			.hint b { color: #5eead4; opacity: 0.9; }
+		</style>
+	</head>
+	<body>
+		<div class="liveFeed">
+			<div class="feedContent">
+				<div class="statusBar">
+					<span>@celestia_demo · <b>LIVE</b></span>
+					<span>👁 12.4k &nbsp; ❤ 88.1k</span>
+				</div>
+				<div class="feedCols">
+					<div class="feedCol">
+						chat · alice: hi!<br />chat · bob: 🌟🌟🌟<br />chat · cara: lets goooo<br />chat ·
+						dan: gifted a Star<br />chat · ed: 💜<br />chat · fay: pog
+					</div>
+					<div class="feedCol">
+						gifts · Star ×3<br />gifts · Rose ×12<br />gifts · Galaxy ×1<br />gifts · Heart ×5
+					</div>
+				</div>
+			</div>
+
+			<div class="stage" id="stage">
+				<div class="pane gutter gutterL" id="gutterLeft"></div>
+				<div class="pane gutter gutterR" id="gutterRight"></div>
+				<div class="pane center" id="center">
+					<div class="giftWrap">
+						<div class="glow"></div>
+						<img class="gift" id="gift" alt="Star gift" src="./gift-fallback-prototype-star.png" />
+					</div>
+				</div>
+				<canvas id="fx"></canvas>
+			</div>
+		</div>
+
+		<div class="switcher" id="switcher"></div>
+
+		<script>
+			const BLASTS = [["small", "Small"], ["medium", "Medium"], ["big", "Big"], ["mega", "Mega"]];
+			// height = fraction of the centre pane where the burst originates (0 = top, 1 = bottom)
+			const HEIGHTS = [
+				["atgift", "At Gift", 0.5],
+				["above", "Above", 0.32],
+				["overhead", "Overhead", 0.16],
+			];
+
+			const PORTRAIT_W = 720, PORTRAIT_H = 1280;
+			const GUTTER_WIDTH_RATIO = 0.42, GUTTER_EDGE_OFFSET_RATIO = 0.06;
+			const BEAT = 2800;
+			const BURST_OFFSET = 690; // ~24% into the loop = the gift lands
+
+			const giftSrc = "./gift-fallback-prototype-star.png";
+			const stage = document.getElementById("stage");
+			const gutterL = document.getElementById("gutterLeft");
+			const gutterR = document.getElementById("gutterRight");
+			const center = document.getElementById("center");
+			const gift = document.getElementById("gift");
+			const glow = document.querySelector(".glow");
+			const canvas = document.getElementById("fx");
+			const ctx = canvas.getContext("2d");
+			const switcher = document.getElementById("switcher");
+
+			gutterL.style.backgroundImage = `url(${giftSrc})`;
+			gutterR.style.backgroundImage = `url(${giftSrc})`;
+
+			const state = {
+				blast: pick("blast", BLASTS, "big"),
+				height: pick("height", HEIGHTS, "above"),
+			};
+
+			function pick(param, list, fallback) {
+				const v = (new URLSearchParams(location.search).get(param) || "").toLowerCase();
+				return list.some(([k]) => k === v) ? v : fallback;
+			}
+
+			// ---- pre-rendered rainbow glow sprites (no per-frame blur) ----
+			const HUE_STEPS = 36, SPRITE = 48;
+			const sprites = [];
+			(function buildSprites() {
+				for (let i = 0; i < HUE_STEPS; i++) {
+					const h = (i * 360) / HUE_STEPS;
+					const c = document.createElement("canvas");
+					c.width = c.height = SPRITE;
+					const g = c.getContext("2d");
+					const grd = g.createRadialGradient(SPRITE / 2, SPRITE / 2, 0, SPRITE / 2, SPRITE / 2, SPRITE / 2);
+					grd.addColorStop(0.0, "rgba(255,255,255,1)");
+					grd.addColorStop(0.18, `hsla(${h},100%,76%,0.95)`);
+					grd.addColorStop(0.45, `hsla(${h},100%,55%,0.45)`);
+					grd.addColorStop(1.0, `hsla(${h},100%,50%,0)`);
+					g.fillStyle = grd;
+					g.fillRect(0, 0, SPRITE, SPRITE);
+					sprites.push(c);
+				}
+			})();
+			const spriteFor = (hue) => sprites[Math.round(hue / (360 / HUE_STEPS)) % HUE_STEPS];
+
+			// ---- layout + canvas sizing (fx at 1x) ----
+			const origin = { x: 0, y: 0 };
+			let stageW = 0, stageH = 0;
+
+			function heightFrac() {
+				return (HEIGHTS.find(([k]) => k === state.height) || HEIGHTS[0])[2];
+			}
+
+			function applyLayout() {
+				const w = stage.clientWidth, h = stage.clientHeight;
+				stageW = w; stageH = h;
+				const scale = Math.min(w / PORTRAIT_W, h / PORTRAIT_H);
+				const cw = Math.round(PORTRAIT_W * scale), ch = Math.round(PORTRAIT_H * scale);
+				const cx = Math.round((w - cw) / 2), cy = Math.round((h - ch) / 2);
+				const gw = Math.round(w * GUTTER_WIDTH_RATIO), go = Math.round(w * GUTTER_EDGE_OFFSET_RATIO);
+				Object.assign(center.style, { left: cx + "px", top: cy + "px", width: cw + "px", height: ch + "px" });
+				Object.assign(gutterL.style, { left: -go + "px", top: "0px", width: gw + "px", height: h + "px" });
+				Object.assign(gutterR.style, { left: w - gw + go + "px", top: "0px", width: gw + "px", height: h + "px" });
+				origin.x = cx + cw / 2;
+				origin.y = cy + ch * heightFrac();
+				canvas.width = w;
+				canvas.height = h;
+			}
+
+			// ---- Fireworks physics; blast presets scale count/speed/size/lifetime ----
+			const rand = (a, b) => a + Math.random() * (b - a);
+			const BLAST = {
+				small: { count: 40, grav: 360, drag: 0.5, glow: 6.5, size: [1.4, 3.2], life: [0.7, 1.3], speed: [90, 300] },
+				medium: { count: 64, grav: 340, drag: 0.5, glow: 7, size: [1.6, 4.2], life: [0.8, 1.6], speed: [120, 430] },
+				big: { count: 92, grav: 320, drag: 0.52, glow: 7.5, size: [1.8, 5], life: [0.9, 1.8], speed: [160, 560] },
+				mega: { count: 132, grav: 300, drag: 0.54, glow: 8, size: [2, 6], life: [1.0, 2.1], speed: [200, 690] },
+			};
+
+			let particles = [];
+			let canvasDirty = false;
+
+			function emitBurst() {
+				const p = BLAST[state.blast];
+				for (let i = 0; i < p.count; i++) {
+					const a = rand(0, 6.2832), s = rand(p.speed[0], p.speed[1]);
+					const life = rand(p.life[0], p.life[1]);
+					particles.push({
+						x: origin.x, y: origin.y,
+						vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+						life, maxLife: life, size: rand(p.size[0], p.size[1]), hue: rand(0, 360),
+					});
+				}
+			}
+
+			function update(dt) {
+				const p = BLAST[state.blast];
+				const dragF = Math.pow(p.drag, dt);
+				for (const q of particles) {
+					q.vy += p.grav * dt;
+					q.vx *= dragF; q.vy *= dragF;
+					q.x += q.vx * dt; q.y += q.vy * dt;
+					q.life -= dt;
+				}
+				if (particles.length) particles = particles.filter((q) => q.life > 0);
+			}
+
+			function draw() {
+				const p = BLAST[state.blast];
+				if (particles.length === 0) {
+					if (canvasDirty) { ctx.clearRect(0, 0, stageW, stageH); canvasDirty = false; }
+					return;
+				}
+				ctx.clearRect(0, 0, stageW, stageH);
+				ctx.globalCompositeOperation = "lighter";
+				for (const q of particles) {
+					const a = Math.pow(q.life / q.maxLife, 0.55);
+					const d = q.size * p.glow;
+					ctx.globalAlpha = a < 1 ? a : 1;
+					ctx.drawImage(spriteFor(q.hue), q.x - d / 2, q.y - d / 2, d, d);
+				}
+				ctx.globalAlpha = 1;
+				ctx.globalCompositeOperation = "source-over";
+				canvasDirty = true;
+			}
+
+			// ---- shared clock ----
+			let epoch = 0, nextBurstK = 0, lastFrame = 0, fpsEMA = 60, fpsEl = null;
+
+			function syncAnimations() {
+				for (const el of [gift, glow, gutterL, gutterR]) el.style.animation = "none";
+				void stage.offsetWidth;
+				for (const el of [gift, glow, gutterL, gutterR]) el.style.animation = "";
+				epoch = performance.now();
+				nextBurstK = 0;
+				particles = [];
+				ctx.clearRect(0, 0, stageW, stageH);
+				canvasDirty = false;
+				lastFrame = epoch;
+			}
+
+			function frame(t) {
+				const dt = Math.min(0.05, (t - lastFrame) / 1000);
+				if (dt > 0) fpsEMA = fpsEMA * 0.9 + (1 / dt) * 0.1;
+				lastFrame = t;
+				while (t >= epoch + BURST_OFFSET + nextBurstK * BEAT) { emitBurst(); nextBurstK++; }
+				update(dt);
+				draw();
+				if (fpsEl) fpsEl.textContent = `${Math.round(fpsEMA)} fps · ${particles.length} particles`;
+				requestAnimationFrame(frame);
+			}
+
+			function render() {
+				applyLayout();
+				buildSwitcher();
+				syncAnimations();
+				const url = new URL(location.href);
+				url.searchParams.set("blast", state.blast);
+				url.searchParams.set("height", state.height);
+				history.replaceState(null, "", url);
+			}
+
+			function buildSwitcher() {
+				switcher.innerHTML = "";
+				const locked = document.createElement("div");
+				locked.className = "locked";
+				locked.innerHTML = "🔒 Gutter <b>Match</b> · Position <b>Center</b> · Colour <b>Rainbow</b>";
+				switcher.appendChild(locked);
+
+				const rows = [["Blast", BLASTS, "blast"], ["Height", HEIGHTS, "height"]];
+				for (const [name, list, key] of rows) {
+					const row = document.createElement("div");
+					row.className = "row";
+					const axis = document.createElement("span");
+					axis.className = "axis";
+					axis.textContent = name;
+					row.appendChild(axis);
+					for (const [val, lbl] of list) {
+						const seg = document.createElement("span");
+						seg.className = "seg" + (state[key] === val ? " active" : "");
+						seg.textContent = lbl;
+						seg.onclick = () => { state[key] = val; render(); };
+						row.appendChild(seg);
+					}
+					switcher.appendChild(row);
+				}
+				const hint = document.createElement("div");
+				hint.className = "hint";
+				hint.innerHTML = '← →  blast · [ ] height &nbsp;·&nbsp; <b id="fps">–</b>';
+				switcher.appendChild(hint);
+				fpsEl = document.getElementById("fps");
+			}
+
+			function cycle(key, list, dir) {
+				const idx = list.findIndex(([k]) => k === state[key]);
+				state[key] = list[(idx + dir + list.length) % list.length][0];
+				render();
+			}
+
+			document.addEventListener("keydown", (e) => {
+				const t = e.target;
+				if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+				if (e.key === "ArrowLeft") cycle("blast", BLASTS, -1);
+				if (e.key === "ArrowRight") cycle("blast", BLASTS, 1);
+				if (e.key === "[") cycle("height", HEIGHTS, -1);
+				if (e.key === "]") cycle("height", HEIGHTS, 1);
+			});
+			window.addEventListener("resize", applyLayout);
+
+			render();
+			requestAnimationFrame(frame);
+		</script>
+	</body>
+</html>
