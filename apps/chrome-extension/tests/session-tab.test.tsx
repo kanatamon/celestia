@@ -1,4 +1,5 @@
 import {
+	arrayBufferToBase64,
 	GIFT_ANIMATION_ASSET_CAPTURED,
 	type GiftAnimationAssetCapturedMessage,
 } from '@celestia/tiktok-live-chrome-extension';
@@ -366,7 +367,11 @@ function ftypMp4Bytes(): ArrayBuffer {
 }
 
 function capturedAsset(bytes: ArrayBuffer): GiftAnimationAssetCapturedMessage {
-	return { type: GIFT_ANIMATION_ASSET_CAPTURED, mimeType: 'video/mp4', bytes };
+	return {
+		type: GIFT_ANIMATION_ASSET_CAPTURED,
+		mimeType: 'video/mp4',
+		bytesBase64: arrayBufferToBase64(bytes),
+	};
 }
 
 class FakeAssetFeed {

@@ -1,6 +1,9 @@
 import {
+	arrayBufferToBase64,
+	base64ToArrayBuffer,
 	GIFT_ANIMATION_ASSET_CAPTURED,
 	type GiftAnimationAssetCapturedMessage,
+	isGiftAnimationAssetCapturedMessage,
 } from '@celestia/tiktok-live-chrome-extension';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -10,7 +13,11 @@ import {
 } from '../src/session-tab/gift-animation-asset-receiver.js';
 
 function assetWithBytes(bytes: ArrayBuffer): GiftAnimationAssetCapturedMessage {
-	return { type: GIFT_ANIMATION_ASSET_CAPTURED, mimeType: 'video/mp4', bytes };
+	return {
+		type: GIFT_ANIMATION_ASSET_CAPTURED,
+		mimeType: 'video/mp4',
+		bytesBase64: arrayBufferToBase64(bytes),
+	};
 }
 
 function bytesOf(...values: number[]): ArrayBuffer {
@@ -23,7 +30,11 @@ function ftypMp4(): ArrayBuffer {
 }
 
 function capturedMessage(): GiftAnimationAssetCapturedMessage {
-	return { type: GIFT_ANIMATION_ASSET_CAPTURED, mimeType: 'video/mp4', bytes: ftypMp4() };
+	return {
+		type: GIFT_ANIMATION_ASSET_CAPTURED,
+		mimeType: 'video/mp4',
+		bytesBase64: arrayBufferToBase64(ftypMp4()),
+	};
 }
 
 class FakeRuntimeOnMessage {
@@ -81,6 +92,43 @@ describe('gift animation asset receiver', () => {
 	it('rejects buffers without an ftyp box', () => {
 		expect(isFtypValidMp4(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer)).toBe(false);
 		expect(isFtypValidMp4(new Uint8Array([0, 0]).buffer)).toBe(false);
+	});
+});
+
+describe('captured-asset message survives chrome.runtime/chrome.tabs JSON hops', () => {
+	// Regression for the dropped Gift Celebration: chrome.runtime/chrome.tabs
+	// messaging is JSON-serialized, NOT structured-clone. A raw ArrayBuffer flattens
+	// to `{}` and the type guard rejects it, so the asset never reaches the Session
+	// Tab. JSON.parse(JSON.stringify(...)) reproduces exactly that serialization.
+	function overTheWire(message: GiftAnimationAssetCapturedMessage): unknown {
+		return JSON.parse(JSON.stringify(message));
+	}
+
+	it('still validates after a JSON round-trip', () => {
+		const message = capturedMessage();
+		expect(isGiftAnimationAssetCapturedMessage(overTheWire(message))).toBe(true);
+	});
+
+	it('decodes back to byte-identical content after a JSON round-trip', () => {
+		const original = new Uint8Array([0, 1, 2, 250, 251, 255, 7, 42]);
+		const message: GiftAnimationAssetCapturedMessage = {
+			type: GIFT_ANIMATION_ASSET_CAPTURED,
+			mimeType: 'video/mp4',
+			bytesBase64: arrayBufferToBase64(original.buffer),
+		};
+
+		const wire = overTheWire(message) as GiftAnimationAssetCapturedMessage;
+		expect(new Uint8Array(base64ToArrayBuffer(wire.bytesBase64))).toEqual(original);
+	});
+
+	it('would have rejected a raw ArrayBuffer payload (the original bug)', () => {
+		const broken = {
+			type: GIFT_ANIMATION_ASSET_CAPTURED,
+			mimeType: 'video/mp4',
+			bytes: new Uint8Array([0, 0, 0, 24]).buffer,
+		};
+		// After JSON serialization an ArrayBuffer becomes `{}` — no longer a valid message.
+		expect(isGiftAnimationAssetCapturedMessage(JSON.parse(JSON.stringify(broken)))).toBe(false);
 	});
 });
 

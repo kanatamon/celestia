@@ -6,7 +6,12 @@
  *   isolated content script  --chrome.runtime-->  service worker
  *   service worker  --chrome.tabs.sendMessage-->  paired Session Tab
  *
- * The bytes ride as a structured-cloned `ArrayBuffer`; nothing is persisted.
+ * Only the first hop is structured-clone: `window.postMessage` carries the raw
+ * `ArrayBuffer` (transferred). The two `chrome.runtime`/`chrome.tabs` hops are
+ * **JSON-serialized** — an `ArrayBuffer` would silently flatten to `{}` and be
+ * dropped by the type guard. So across those hops the bytes ride as a base64
+ * `string` ({@link arrayBufferToBase64} / {@link base64ToArrayBuffer}). Nothing
+ * is persisted.
  */
 
 /** `window.postMessage` channel tag bridging MAIN world → isolated world. */
@@ -29,11 +34,14 @@ export interface GiftAnimationTapBridgeMessage {
 /**
  * The captured-asset message relayed over `chrome.runtime` (content script →
  * service worker) and `chrome.tabs.sendMessage` (service worker → Session Tab).
+ * Both hops are JSON-serialized, so the asset bytes travel as a base64 `string`,
+ * not an `ArrayBuffer` (which would not survive the serialization). The Session
+ * Tab decodes it back to bytes via {@link base64ToArrayBuffer}.
  */
 export interface GiftAnimationAssetCapturedMessage {
 	type: typeof GIFT_ANIMATION_ASSET_CAPTURED;
 	mimeType: string;
-	bytes: ArrayBuffer;
+	bytesBase64: string;
 }
 
 export function isGiftAnimationTapBridgeMessage(
@@ -60,6 +68,31 @@ export function isGiftAnimationAssetCapturedMessage(
 	return (
 		candidate.type === GIFT_ANIMATION_ASSET_CAPTURED &&
 		typeof candidate.mimeType === 'string' &&
-		candidate.bytes instanceof ArrayBuffer
+		typeof candidate.bytesBase64 === 'string'
 	);
+}
+
+/**
+ * Encode an `ArrayBuffer` as a base64 `string` so it survives the JSON-only
+ * `chrome.runtime`/`chrome.tabs` messaging hops. Chunked so a multi-megabyte MP4
+ * does not blow the call stack via `String.fromCharCode(...spread)`.
+ */
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+	const bytes = new Uint8Array(buffer);
+	const CHUNK = 0x8000;
+	let binary = '';
+	for (let i = 0; i < bytes.length; i += CHUNK) {
+		binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+	}
+	return btoa(binary);
+}
+
+/** Decode a base64 `string` produced by {@link arrayBufferToBase64} back to bytes. */
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+	const binary = atob(base64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i += 1) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+	return bytes.buffer;
 }

@@ -46,7 +46,7 @@ export function createGiftAssetRouter({
 			const forwarded: GiftAnimationAssetCapturedMessage = {
 				type: GIFT_ANIMATION_ASSET_CAPTURED,
 				mimeType: message.mimeType,
-				bytes: message.bytes,
+				bytesBase64: message.bytesBase64,
 			};
 
 			try {

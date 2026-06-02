@@ -8,6 +8,7 @@
  */
 
 import {
+	arrayBufferToBase64,
 	GIFT_ANIMATION_ASSET_CAPTURED,
 	type GiftAnimationAssetCapturedMessage,
 	isGiftAnimationTapBridgeMessage,
@@ -36,10 +37,12 @@ export function installGiftAnimationTapRelay(
 			return;
 		}
 
+		// chrome.runtime/chrome.tabs messaging is JSON-serialized, so the bytes must
+		// cross as a base64 string — a raw ArrayBuffer would flatten to `{}`.
 		const message: GiftAnimationAssetCapturedMessage = {
 			type: GIFT_ANIMATION_ASSET_CAPTURED,
 			mimeType: event.data.mimeType,
-			bytes: event.data.bytes,
+			bytesBase64: arrayBufferToBase64(event.data.bytes),
 		};
 
 		try {

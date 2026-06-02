@@ -13,7 +13,7 @@ function capturedMessage(): GiftAnimationAssetCapturedMessage {
 	return {
 		type: GIFT_ANIMATION_ASSET_CAPTURED,
 		mimeType: 'video/mp4',
-		bytes: new Uint8Array([0, 0, 0, 24]).buffer,
+		bytesBase64: 'AAAAGA==', // base64 of [0, 0, 0, 24]
 	};
 }
 

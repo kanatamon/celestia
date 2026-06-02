@@ -6,6 +6,8 @@ export {
 export { installGiftAnimationTapRelay } from './chrome-extension/gift-animation-tap-isolated.js';
 export { installGiftAnimationTap } from './chrome-extension/gift-animation-tap-main.js';
 export {
+	arrayBufferToBase64,
+	base64ToArrayBuffer,
 	GIFT_ANIMATION_ASSET_CAPTURED,
 	GIFT_ANIMATION_TAP_SOURCE,
 	type GiftAnimationAssetCapturedMessage,

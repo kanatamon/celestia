@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
 import {
+	base64ToArrayBuffer,
 	type GiftAnimationAssetCapturedMessage,
 	isGiftAnimationAssetCapturedMessage,
 } from '@celestia/tiktok-live-chrome-extension';
@@ -45,9 +46,12 @@ export function subscribeGiftAnimationAssets(
 export function toCapturedCelebration(
 	asset: GiftAnimationAssetCapturedMessage,
 ): CapturedCelebration {
-	const blob = new Blob([asset.bytes], { type: asset.mimeType || 'video/mp4' });
+	// The bytes crossed the chrome messaging hops as base64; decode them back here,
+	// in the Session Tab context, before minting the object URL.
+	const bytes = base64ToArrayBuffer(asset.bytesBase64);
+	const blob = new Blob([bytes], { type: asset.mimeType || 'video/mp4' });
 	return {
-		assetId: fingerprintBytes(asset.bytes),
+		assetId: fingerprintBytes(bytes),
 		assetUrl: URL.createObjectURL(blob),
 	};
 }
