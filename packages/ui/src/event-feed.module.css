@@ -545,14 +545,26 @@
 	min-width: 0;
 	padding: 9px 12px 10px;
 	border: 0;
-	border-top: 1px solid rgba(236, 72, 153, 0.45);
 	background: linear-gradient(to right, rgba(20, 12, 32, 0.94), rgba(10, 24, 40, 0.94));
 	backdrop-filter: blur(14px);
 	box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.42);
 	color: var(--ant-color-text-base);
 	cursor: pointer;
 	font: inherit;
+	isolation: isolate;
 	text-align: left;
+}
+
+.newMessagesBar::before {
+	position: absolute;
+	top: -32px;
+	right: 0;
+	left: 0;
+	z-index: -1;
+	height: 32px;
+	background: linear-gradient(0deg, rgba(20, 12, 32, 0.78), rgba(10, 24, 40, 0.3) 54%, transparent);
+	content: "";
+	pointer-events: none;
 }
 
 .newMessagesBar:hover {
