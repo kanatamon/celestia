@@ -1,9 +1,15 @@
 import type { CSSProperties, RefObject } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+	FIREWORKS_BURST_HEIGHT_FRACTION,
+	FIREWORKS_BURST_OFFSET_MS,
+	FireworksEngine,
+} from './fireworks.js';
 import styles from './gift-celebration.module.css';
 import {
 	computeGiftCelebrationTriptychLayout,
 	type GiftCelebrationPaneLayout,
+	type GiftCelebrationTriptychLayout,
 	getGiftCelebrationSourceAspectRatio,
 } from './gift-celebration-layout.js';
 
@@ -126,7 +132,85 @@ function SynthesizedGiftCelebrationStage({
 				/>
 			) : null}
 			<IconPane giftImageUrl={giftImageUrl} layout={layout.center} paneName="center" />
+			<FireworksOverlay layout={layout} />
 		</div>
+	);
+}
+
+interface FireworksOverlayProps {
+	layout: GiftCelebrationTriptychLayout;
+}
+
+/**
+ * The rainbow firework burst (PRD #66 §B, ADR-0007) that frames the Gift Icon.
+ *
+ * A 1× DPR `fx` canvas drives the {@link FireworksEngine}: it bursts once at
+ * `BURST_OFFSET` (the same beat as the Match pop, so the firework lands with the
+ * icon) and runs a `requestAnimationFrame` integrate/draw loop for the rest of
+ * the single ~2.8s cycle. The engine itself idle-skips when no particles are
+ * alive, so the loop performs no canvas work outside the live window.
+ */
+function FireworksOverlay({ layout }: FireworksOverlayProps) {
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+
+	const originX = layout.center.x + layout.center.width / 2;
+	const originY = layout.center.y + layout.center.height * FIREWORKS_BURST_HEIGHT_FRACTION;
+	const ready = layout.center.width > 0 && layout.center.height > 0;
+	// Stage extent: the fx canvas fills the stage (inset:0). Derive from the
+	// centre pane offsets, which are symmetric within the stage.
+	const stageW = layout.center.x * 2 + layout.center.width;
+	const stageH = Math.max(layout.center.y * 2 + layout.center.height, layout.leftGutter.height);
+
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas || !ready) {
+			return undefined;
+		}
+
+		// fx canvas at 1× DPR (cheap by construction; ADR-0007 §B).
+		canvas.width = Math.max(1, Math.round(stageW));
+		canvas.height = Math.max(1, Math.round(stageH));
+
+		const ctx = canvas.getContext('2d');
+		if (!ctx) {
+			return undefined;
+		}
+
+		const engine = new FireworksEngine();
+		engine.setOrigin({ x: originX, y: originY });
+
+		let animationFrame = 0;
+		let burstFired = false;
+		let lastTime = 0;
+		const startTime = performance.now();
+
+		const tick = (now: number) => {
+			const dt = lastTime === 0 ? 0 : (now - lastTime) / 1000;
+			lastTime = now;
+
+			if (!burstFired && now - startTime >= FIREWORKS_BURST_OFFSET_MS) {
+				engine.emit();
+				burstFired = true;
+			}
+
+			engine.step(dt);
+			engine.draw(ctx, canvas.width, canvas.height);
+			animationFrame = requestAnimationFrame(tick);
+		};
+
+		animationFrame = requestAnimationFrame(tick);
+
+		return () => {
+			cancelAnimationFrame(animationFrame);
+		};
+	}, [ready, stageW, stageH, originX, originY]);
+
+	if (!ready) {
+		return null;
+	}
+
+	return (
+		<canvas aria-label="Gift Celebration fireworks" className={styles.fxCanvas} ref={canvasRef} />
 	);
 }
 

@@ -55,6 +55,8 @@ describe('GiftCelebration', () => {
 
 	describe('synthesized path', () => {
 		it('renders the icon triptych with no <video> and no WebGL', () => {
+			// Stage has zero measured size here, so the fx canvas idle-skips mounting;
+			// the icon triptych itself is the only thing rendered.
 			const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 			const { container, render, unmount } = createStrictRoot();
 
@@ -68,10 +70,30 @@ describe('GiftCelebration', () => {
 			for (const image of images ?? []) {
 				expect(image.getAttribute('src')).toBe('https://cdn/icon.png');
 			}
-			// The synthesized path is canvas/WebGL-free and never mounts a <video>.
-			expect(stage?.querySelectorAll('canvas')).toHaveLength(0);
+			// The synthesized path never mounts a <video> and never asks for WebGL —
+			// the icon is already RGBA, so there is no split-alpha shader.
 			expect(stage?.querySelectorAll('video')).toHaveLength(0);
-			expect(getContext).not.toHaveBeenCalled();
+			expect(getContext).not.toHaveBeenCalledWith('webgl');
+
+			unmount();
+		});
+
+		it('mounts a 1× additive fireworks fx canvas (2d, never WebGL) when measured', () => {
+			vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+				new DOMRect(0, 0, 1200, 720),
+			);
+			const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+			const { container, render, unmount } = createStrictRoot();
+
+			render(<GiftCelebration giftImageUrl="https://cdn/icon.png" />);
+
+			const stage = container.querySelector('[aria-label="Gift Celebration"]');
+			// Exactly one canvas — the fx overlay — and it is a 2d context, no WebGL,
+			// and no <video>.
+			expect(stage?.querySelectorAll('canvas')).toHaveLength(1);
+			expect(stage?.querySelectorAll('video')).toHaveLength(0);
+			expect(getContext).toHaveBeenCalledWith('2d');
+			expect(getContext).not.toHaveBeenCalledWith('webgl');
 
 			unmount();
 		});

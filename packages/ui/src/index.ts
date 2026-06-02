@@ -32,6 +32,23 @@ export {
 	ScrollableFeedList,
 	SplitFeedLayout,
 } from './event-feed.js';
+export type {
+	BlastPreset,
+	BurstOrigin,
+	FireworksDrawContext,
+	FireworksEngineOptions,
+	FireworksParticle,
+	GlowSprite,
+	GlowSpriteSheet,
+} from './fireworks.js';
+export {
+	createGlowSpriteSheet,
+	FIREWORKS_BEAT_MS,
+	FIREWORKS_BURST_HEIGHT_FRACTION,
+	FIREWORKS_BURST_OFFSET_MS,
+	FireworksEngine,
+	MEGA_BLAST,
+} from './fireworks.js';
 export type { GiftCelebrationProps } from './gift-celebration.js';
 export { GiftCelebration } from './gift-celebration.js';
 export type {

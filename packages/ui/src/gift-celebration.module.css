@@ -25,6 +25,22 @@
 	animation: gift-celebration-pop-in 2800ms ease-out both;
 }
 
+/*
+ * The Fireworks fx canvas (ADR-0007 §B): a 1× DPR canvas filling the stage,
+ * additively blended above the icon so the rainbow burst frames and rains over
+ * the Gift Icon. Pointer-transparent; the engine idle-skips when no particles
+ * are alive.
+ */
+.fxCanvas {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 3;
+}
+
 .glowFlash {
 	position: absolute;
 	pointer-events: none;
