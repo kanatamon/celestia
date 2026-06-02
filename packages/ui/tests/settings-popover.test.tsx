@@ -1,14 +1,8 @@
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import { act, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StatusBar, soundManager, type VolumeKey } from '../src/index.js';
-
-declare global {
-	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+import { createStrictRoot } from './render-strict.js';
 
 vi.mock('antd', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('antd')>();
@@ -86,12 +80,9 @@ describe('SettingsPopover', () => {
 			return initialVolumes[key];
 		});
 
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		await act(async () => {
-			root.render(<ControlledStatusBar />);
-		});
+		render(<ControlledStatusBar />);
 
 		const gearButton = getButton(container, 'Open settings');
 		expect(container.textContent).not.toContain('SOUND SETTINGS');
@@ -141,9 +132,7 @@ describe('SettingsPopover', () => {
 		expect(container.textContent).not.toContain('SOUND SETTINGS');
 		expect(gearButton.getAttribute('aria-pressed')).toBe('false');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 

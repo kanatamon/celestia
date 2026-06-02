@@ -114,6 +114,11 @@ export function ScrollableFeedList({
 	const internalRef = useRef<HTMLDivElement>(null);
 	const feedRef = externalScrollRef ?? internalRef;
 	const previousEventIdsRef = useRef<Set<string> | undefined>(undefined);
+	// True once the mount-only effect has positioned the feed. Gates the events
+	// effect so a StrictMode remount (refs survive it, so previousEventIdsRef is
+	// already populated) doesn't treat its second run as a follow-up and yank the
+	// feed to the bottom, clobbering the initialScrollTarget positioning.
+	const hasPositionedRef = useRef(false);
 	// Ref mirrors isAtBottom state but is updated synchronously in the scroll handler so
 	// the events effect reads the pre-render value (not the post-render DOM measurement,
 	// which is inflated by the heights of newly-added rows and causes false "not at bottom").
@@ -126,9 +131,12 @@ export function ScrollableFeedList({
 	useEffect(() => {
 		const feed = feedRef.current;
 
-		if (!feed) {
+		if (!feed || hasPositionedRef.current) {
+			// Position exactly once. Guards against StrictMode's mount double-invoke
+			// re-applying a relative scroll offset (which would double it).
 			return;
 		}
+		hasPositionedRef.current = true;
 
 		if (initialScrollTarget === 'bottom') {
 			scrollToBottom(feed, 'instant');
@@ -162,7 +170,10 @@ export function ScrollableFeedList({
 
 		// The mount-only effect above already positions the feed (bottom or scroll target).
 		// Skip this run so it isn't yanked to the bottom before any new events arrive.
-		if (isInitialRun) {
+		// Also skip when the event set is unchanged (e.g. a StrictMode remount re-runs this
+		// effect with refs already populated): there are no new events to react to, and
+		// yanking to the bottom here would clobber the initialScrollTarget positioning.
+		if (isInitialRun || newEvents.count === 0) {
 			return;
 		}
 

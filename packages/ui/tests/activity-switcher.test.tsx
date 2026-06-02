@@ -1,36 +1,27 @@
 import type { GiftLiveEvent, MemberLiveEvent } from '@celestia/tiktok-live-core';
 import { act } from 'react';
-import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ActivitySwitcher } from '../src/index.js';
-
-declare global {
-	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+import { createStrictRoot } from './render-strict.js';
 
 describe('ActivitySwitcher', () => {
 	it('renders the latest join event by default and toggles to the gift parade', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		await act(async () => {
-			root.render(
-				<ActivitySwitcher
-					memberEvents={[
-						memberEvent('member-1', 10, 'First Viewer'),
-						memberEvent('member-2', 20, 'Latest Viewer'),
-					]}
-					giftEvents={[
-						giftEvent('rose-1', 'Rose', 1, 2),
-						giftEvent('galaxy-1', 'Galaxy', 1000, 1),
-						giftEvent('rose-2', 'Rose', 1, 3),
-					]}
-				/>,
-			);
-		});
+		render(
+			<ActivitySwitcher
+				memberEvents={[
+					memberEvent('member-1', 10, 'First Viewer'),
+					memberEvent('member-2', 20, 'Latest Viewer'),
+				]}
+				giftEvents={[
+					giftEvent('rose-1', 'Rose', 1, 2),
+					giftEvent('galaxy-1', 'Galaxy', 1000, 1),
+					giftEvent('rose-2', 'Rose', 1, 3),
+				]}
+			/>,
+		);
 
 		expect(container.textContent).toContain('Latest Viewer joined');
 		expect(container.textContent).not.toContain('First Viewer joined');
@@ -52,68 +43,54 @@ describe('ActivitySwitcher', () => {
 		expect(text).toContain('x1');
 		expect(text).toContain('x5');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
-	it('renders placeholders and updates the ticker signature when counts change', async () => {
+	it('renders placeholders and updates the ticker signature when counts change', () => {
 		const html = renderToString(<ActivitySwitcher memberEvents={[]} giftEvents={[]} />);
 
 		expect(html).toContain('Waiting for viewers...');
 
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		await act(async () => {
-			root.render(<ActivitySwitcher memberEvents={[]} giftEvents={[]} initialView="gifts" />);
-		});
+		render(<ActivitySwitcher memberEvents={[]} giftEvents={[]} initialView="gifts" />);
 
 		expect(container.textContent).toContain('No gifts yet...');
 
-		await act(async () => {
-			root.render(
-				<ActivitySwitcher
-					memberEvents={[]}
-					giftEvents={[giftEvent('rose-1', 'Rose', 1, 1)]}
-					initialView="gifts"
-				/>,
-			);
-		});
+		render(
+			<ActivitySwitcher
+				memberEvents={[]}
+				giftEvents={[giftEvent('rose-1', 'Rose', 1, 1)]}
+				initialView="gifts"
+			/>,
+		);
 
 		const firstSignature = getTicker(container).dataset.tickerSignature;
 
-		await act(async () => {
-			root.render(
-				<ActivitySwitcher
-					memberEvents={[]}
-					giftEvents={[giftEvent('rose-1', 'Rose', 1, 1), giftEvent('rose-2', 'Rose', 1, 4)]}
-					initialView="gifts"
-				/>,
-			);
-		});
+		render(
+			<ActivitySwitcher
+				memberEvents={[]}
+				giftEvents={[giftEvent('rose-1', 'Rose', 1, 1), giftEvent('rose-2', 'Rose', 1, 4)]}
+				initialView="gifts"
+			/>,
+		);
 
 		expect(getTicker(container).dataset.tickerSignature).not.toBe(firstSignature);
 		expect(container.textContent).toContain('x5');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('pauses the gift parade while hovered and resumes on leave', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		await act(async () => {
-			root.render(
-				<ActivitySwitcher
-					memberEvents={[]}
-					giftEvents={[giftEvent('rose-1', 'Rose', 1, 1), giftEvent('galaxy-1', 'Galaxy', 1000, 1)]}
-					initialView="gifts"
-				/>,
-			);
-		});
+		render(
+			<ActivitySwitcher
+				memberEvents={[]}
+				giftEvents={[giftEvent('rose-1', 'Rose', 1, 1), giftEvent('galaxy-1', 'Galaxy', 1000, 1)]}
+				initialView="gifts"
+			/>,
+		);
 
 		const parade = getParade(container);
 
@@ -131,9 +108,7 @@ describe('ActivitySwitcher', () => {
 
 		expect(parade.dataset.paradePaused).toBe('false');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 

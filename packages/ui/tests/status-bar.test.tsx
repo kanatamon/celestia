@@ -1,14 +1,8 @@
 import { act } from 'react';
-import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { StatusBar } from '../src/index.js';
-
-declare global {
-	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+import { createStrictRoot } from './render-strict.js';
 
 class TestResizeObserver {
 	observe() {}
@@ -118,19 +112,16 @@ describe('StatusBar', () => {
 		expect(html).not.toContain('Connection state:');
 	});
 
-	it('renders the identity first with bare signal bars and no visible signal label', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+	it('renders the identity first with bare signal bars and no visible signal label', () => {
+		const { container, render, unmount } = createStrictRoot();
 
-		await act(async () => {
-			root.render(
-				<StatusBar
-					connectionState={{ status: 'connected', username: 'celestia' }}
-					viewerCount={1200}
-					likeCount={45000}
-				/>,
-			);
-		});
+		render(
+			<StatusBar
+				connectionState={{ status: 'connected', username: 'celestia' }}
+				viewerCount={1200}
+				likeCount={45000}
+			/>,
+		);
 
 		const cluster = getStatusCluster(container);
 		const children = Array.from(cluster.children);
@@ -147,27 +138,22 @@ describe('StatusBar', () => {
 		expect(cluster.textContent).not.toContain('Connected');
 		expect(connectionSignal.textContent).toBe('');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('groups status details in one left cluster and opens settings from the right icon button', async () => {
 		const onOpenSettings = vi.fn();
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		await act(async () => {
-			root.render(
-				<StatusBar
-					connectionState={{ status: 'connected', username: 'a-very-long-celestia-host-name' }}
-					viewerCount={1200}
-					likeCount={45000}
-					onOpenSettings={onOpenSettings}
-					isSettingsOpen={true}
-				/>,
-			);
-		});
+		render(
+			<StatusBar
+				connectionState={{ status: 'connected', username: 'a-very-long-celestia-host-name' }}
+				viewerCount={1200}
+				likeCount={45000}
+				onOpenSettings={onOpenSettings}
+				isSettingsOpen={true}
+			/>,
+		);
 
 		const cluster = getStatusCluster(container);
 		const settingsButton = getSettingsButton(container);
@@ -186,9 +172,7 @@ describe('StatusBar', () => {
 
 		expect(onOpenSettings).toHaveBeenCalledTimes(1);
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 

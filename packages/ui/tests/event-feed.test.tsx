@@ -1,6 +1,5 @@
 import type { ChatLiveEvent, GiftLiveEvent } from '@celestia/tiktok-live-core';
 import { act } from 'react';
-import { createRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -12,12 +11,8 @@ import {
 	ScrollableFeedList,
 	SplitFeedLayout,
 } from '../src/index.js';
+import { createStrictRoot } from './render-strict.js';
 
-declare global {
-	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.ResizeObserver ??= class ResizeObserver {
 	observe() {}
 	unobserve() {}
@@ -65,12 +60,9 @@ describe('GiftEventCard', () => {
 	it('renders as a compact one-line gift sentence with the timestamp pinned last', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(30_000);
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		act(() => {
-			root.render(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2)} />);
-		});
+		render(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2)} />);
 
 		const avatar = getImageByAlt(container, '');
 		const giftImage = getImageByAlt(container, 'Rose');
@@ -82,19 +74,14 @@ describe('GiftEventCard', () => {
 		expect(container.textContent).toContain('\u00d72');
 		expect(container.textContent).toContain('29s');
 
-		act(() => {
-			root.unmount();
-		});
+		unmount();
 		vi.useRealTimers();
 	});
 
 	it('wraps positive-value gift images with an AntD tooltip trigger only', () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		act(() => {
-			root.render(<GiftEventCard event={giftEvent('gift-1', 20, 'Galaxy', 1_200, 3)} />);
-		});
+		render(<GiftEventCard event={giftEvent('gift-1', 20, 'Galaxy', 1_200, 3)} />);
 
 		const giftImage = getImageByAlt(container, 'Galaxy');
 		const tooltipTrigger = giftImage.parentElement;
@@ -104,9 +91,7 @@ describe('GiftEventCard', () => {
 		expect(giftImage.nextElementSibling).toBeNull();
 		expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
-		act(() => {
-			root.render(<GiftEventCard event={giftEvent('gift-2', 20, 'Rose', 0, 3)} />);
-		});
+		render(<GiftEventCard event={giftEvent('gift-2', 20, 'Rose', 0, 3)} />);
 
 		const unwrappedGiftImage = getImageByAlt(container, 'Rose');
 
@@ -115,9 +100,7 @@ describe('GiftEventCard', () => {
 		);
 		expect(unwrappedGiftImage.nextElementSibling).toBeNull();
 
-		act(() => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 
@@ -136,39 +119,31 @@ describe('FeedEventCard', () => {
 	});
 
 	it('renders a gift sentence and repeat count for a gift event', () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		act(() => {
-			root.render(
-				<FeedEventCard
-					event={giftEvent('gift-1', 10, 'Rose', 1, 5)}
-					userGiftEventsByUser={new Map()}
-				/>,
-			);
-		});
+		render(
+			<FeedEventCard
+				event={giftEvent('gift-1', 10, 'Rose', 1, 5)}
+				userGiftEventsByUser={new Map()}
+			/>,
+		);
 
 		expect(container.textContent).toContain('Rose');
 		expect(container.textContent).toContain('×5');
 		expect(container.querySelector('svg')).toBeNull();
 
-		act(() => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 
 describe('EventFeed', () => {
 	it('interleaves chat and gift events by timestamp and counts unread events while scrolled up', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 10, 'first');
 		const gift = giftEvent('gift-1', 20, 'Rose', 1, 2);
 		const latestChat = chatEvent('chat-2', 30, 'latest');
 
-		await act(async () => {
-			root.render(<EventFeed chatEvents={[latestChat, firstChat]} giftEvents={[gift]} />);
-		});
+		render(<EventFeed chatEvents={[latestChat, firstChat]} giftEvents={[gift]} />);
 
 		const text = getTextContent(container);
 
@@ -188,14 +163,12 @@ describe('EventFeed', () => {
 
 		expect(container.textContent).not.toContain('new messages');
 
-		await act(async () => {
-			root.render(
-				<EventFeed
-					chatEvents={[latestChat, firstChat, chatEvent('chat-3', 40, 'newest')]}
-					giftEvents={[gift, giftEvent('gift-2', 50, 'Galaxy', 1, 1)]}
-				/>,
-			);
-		});
+		render(
+			<EventFeed
+				chatEvents={[latestChat, firstChat, chatEvent('chat-3', 40, 'newest')]}
+				giftEvents={[gift, giftEvent('gift-2', 50, 'Galaxy', 1, 1)]}
+			/>,
+		);
 
 		const newMessagesBar = getNewMessagesBar(container);
 		expect(newMessagesBar.getAttribute('aria-label')).toBe('2 new messages, scroll down');
@@ -212,19 +185,14 @@ describe('EventFeed', () => {
 		expect(container.textContent).not.toContain('new messages');
 		expect(feed.scrollTop).toBe(1000);
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('uses scrollTo with instant behavior so smooth-scroll CSS cannot cause mid-animation scroll events to flip isAtBottom', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 10, 'first');
 
-		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
-		});
+		render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
 
 		const feed = getEventFeed(container);
 		Object.defineProperties(feed, {
@@ -238,27 +206,18 @@ describe('EventFeed', () => {
 			if (options) scrollToCalls.push(options);
 		}) as typeof feed.scrollTo;
 
-		await act(async () => {
-			root.render(
-				<EventFeed chatEvents={[firstChat, chatEvent('chat-2', 40, 'new')]} giftEvents={[]} />,
-			);
-		});
+		render(<EventFeed chatEvents={[firstChat, chatEvent('chat-2', 40, 'new')]} giftEvents={[]} />);
 
 		expect(scrollToCalls).toContainEqual(expect.objectContaining({ behavior: 'instant' }));
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('uses a 100px bottom threshold and resets unread count when manual scrolling re-engages auto-scroll', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 10, 'first');
 
-		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
-		});
+		render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
 
 		const feed = getEventFeed(container);
 		Object.defineProperties(feed, {
@@ -271,14 +230,12 @@ describe('EventFeed', () => {
 			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
 		});
 
-		await act(async () => {
-			root.render(
-				<EventFeed
-					chatEvents={[firstChat, chatEvent('chat-2', 40, 'within threshold')]}
-					giftEvents={[]}
-				/>,
-			);
-		});
+		render(
+			<EventFeed
+				chatEvents={[firstChat, chatEvent('chat-2', 40, 'within threshold')]}
+				giftEvents={[]}
+			/>,
+		);
 
 		expect(container.textContent).not.toContain('new messages');
 		expect(feed.scrollTop).toBe(1000);
@@ -288,18 +245,16 @@ describe('EventFeed', () => {
 			feed.dispatchEvent(new Event('scroll', { bubbles: true }));
 		});
 
-		await act(async () => {
-			root.render(
-				<EventFeed
-					chatEvents={[
-						firstChat,
-						chatEvent('chat-2', 40, 'within threshold'),
-						chatEvent('chat-3', 50, 'past threshold'),
-					]}
-					giftEvents={[]}
-				/>,
-			);
-		});
+		render(
+			<EventFeed
+				chatEvents={[
+					firstChat,
+					chatEvent('chat-2', 40, 'within threshold'),
+					chatEvent('chat-3', 50, 'past threshold'),
+				]}
+				giftEvents={[]}
+			/>,
+		);
 
 		const newMessagesBar = getNewMessagesBar(container);
 		expect(newMessagesBar.getAttribute('aria-label')).toBe('1 new messages, scroll down');
@@ -312,9 +267,7 @@ describe('EventFeed', () => {
 
 		expect(container.textContent).not.toContain('new messages');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('auto-scrolls when events arrive in a high-frequency burst that grows the DOM before the effect reads scroll position', async () => {
@@ -328,13 +281,10 @@ describe('EventFeed', () => {
 		//
 		// To reproduce: prime the ref via a scroll event, then update scrollHeight to
 		// simulate the DOM having already grown before the effect runs.
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 10, 'first');
 
-		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
-		});
+		render(<EventFeed chatEvents={[firstChat]} giftEvents={[]} />);
 
 		const feed = getEventFeed(container);
 		// User is exactly at bottom: scrollHeight(400) - scrollTop(100) - clientHeight(300) = 0
@@ -353,37 +303,30 @@ describe('EventFeed', () => {
 		// — the old code would have shown the unread bar here.
 		Object.defineProperty(feed, 'scrollHeight', { configurable: true, value: 530 });
 
-		await act(async () => {
-			root.render(
-				<EventFeed
-					chatEvents={[
-						firstChat,
-						chatEvent('chat-2', 20, 'burst-1'),
-						chatEvent('chat-3', 30, 'burst-2'),
-					]}
-					giftEvents={[]}
-				/>,
-			);
-		});
+		render(
+			<EventFeed
+				chatEvents={[
+					firstChat,
+					chatEvent('chat-2', 20, 'burst-1'),
+					chatEvent('chat-3', 30, 'burst-2'),
+				]}
+				giftEvents={[]}
+			/>,
+		);
 
 		expect(container.textContent).not.toContain('new messages');
 		expect(feed.scrollTop).toBe(530);
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('pins one event at a time and toggles between inline, top sticky, and bottom sticky states', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 10, 'first');
 		const gift = giftEvent('gift-1', 20, 'Rose', 1, 2);
 		const latestChat = chatEvent('chat-2', 30, 'latest');
 
-		await act(async () => {
-			root.render(<EventFeed chatEvents={[firstChat, latestChat]} giftEvents={[gift]} />);
-		});
+		render(<EventFeed chatEvents={[firstChat, latestChat]} giftEvents={[gift]} />);
 
 		const feed = getEventFeed(container);
 		Object.defineProperties(feed, {
@@ -440,45 +383,35 @@ describe('EventFeed', () => {
 		expect(giftRow.dataset.stickyStage).toBe('bottom');
 		expect(firstRow.dataset.pinned).toBeUndefined();
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 
 describe('ScrollableFeedList', () => {
 	it('renders the aurora overlay when the feed starts at the bottom', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const events = [chatEvent('chat-1', 10, 'first')];
 
-		await act(async () => {
-			root.render(
-				<ScrollableFeedList events={events}>
-					<div>content</div>
-				</ScrollableFeedList>,
-			);
-		});
+		render(
+			<ScrollableFeedList events={events}>
+				<div>content</div>
+			</ScrollableFeedList>,
+		);
 
 		expect(container.querySelector('[data-celestia-aurora]')).toBeInstanceOf(HTMLElement);
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('hides the aurora overlay as soon as the user scrolls away from the bottom', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const events = [chatEvent('chat-1', 10, 'first')];
 
-		await act(async () => {
-			root.render(
-				<ScrollableFeedList events={events}>
-					<div>content</div>
-				</ScrollableFeedList>,
-			);
-		});
+		render(
+			<ScrollableFeedList events={events}>
+				<div>content</div>
+			</ScrollableFeedList>,
+		);
 
 		const feed = container.querySelector('[data-celestia-event-feed]') as HTMLElement;
 		Object.defineProperties(feed, {
@@ -500,9 +433,7 @@ describe('ScrollableFeedList', () => {
 
 		expect(container.querySelector('[data-celestia-aurora]')).toBeInstanceOf(HTMLElement);
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('scrolls to the target event on mount when initialScrollTarget is an event ID', async () => {
@@ -535,25 +466,22 @@ describe('ScrollableFeedList', () => {
 			return originalGetBCR.call(this);
 		};
 
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const events = [
 			chatEvent('chat-1', 10, 'first'),
 			chatEvent('chat-2', 20, 'second'),
 			chatEvent('chat-3', 30, 'third'),
 		];
 
-		await act(async () => {
-			root.render(
-				<ScrollableFeedList events={events} initialScrollTarget="chat-2">
-					{events.map((e) => (
-						<div key={e.id} data-feed-event-id={e.id}>
-							{e.text}
-						</div>
-					))}
-				</ScrollableFeedList>,
-			);
-		});
+		render(
+			<ScrollableFeedList events={events} initialScrollTarget="chat-2">
+				{events.map((e) => (
+					<div key={e.id} data-feed-event-id={e.id}>
+						{e.text}
+					</div>
+				))}
+			</ScrollableFeedList>,
+		);
 
 		const feedScrollTop = getFeed(container).scrollTop;
 		HTMLElement.prototype.getBoundingClientRect = originalGetBCR;
@@ -561,9 +489,7 @@ describe('ScrollableFeedList', () => {
 
 		expect(feedScrollTop).toBe(100);
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 
@@ -610,23 +536,20 @@ describe('IndividualChatFeed', () => {
 	});
 
 	it('renders the pinned viewer as a floating dismissible pill without redundant headers', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
 		let dismissedEvent: ChatLiveEvent | GiftLiveEvent | undefined = pinnedViewerChat;
 
-		await act(async () => {
-			root.render(
-				<IndividualChatFeed
-					chatEvents={[pinnedViewerChat]}
-					giftEvents={[]}
-					pinnedEvent={pinnedViewerChat}
-					onPinnedEventChange={(event) => {
-						dismissedEvent = event;
-					}}
-				/>,
-			);
-		});
+		render(
+			<IndividualChatFeed
+				chatEvents={[pinnedViewerChat]}
+				giftEvents={[]}
+				pinnedEvent={pinnedViewerChat}
+				onPinnedEventChange={(event) => {
+					dismissedEvent = event;
+				}}
+			/>,
+		);
 
 		expect(container.querySelector('[data-celestia-individual-feed-header]')).toBeNull();
 		expect(container.textContent).not.toContain('Viewer feed');
@@ -644,9 +567,7 @@ describe('IndividualChatFeed', () => {
 
 		expect(dismissedEvent).toBeUndefined();
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('does not surface the new-messages bar when an event arrives on a short, non-scrollable feed', async () => {
@@ -654,35 +575,28 @@ describe('IndividualChatFeed', () => {
 		// fires no scroll event. Because IndividualChatFeed uses an event ID as its
 		// initialScrollTarget, a cached "at bottom" flag would stay false and never be
 		// corrected — surfacing the bar even though every event is already visible.
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
 
-		await act(async () => {
-			root.render(
-				<IndividualChatFeed
-					chatEvents={[pinnedViewerChat]}
-					giftEvents={[]}
-					pinnedEvent={pinnedViewerChat}
-				/>,
-			);
-		});
+		render(
+			<IndividualChatFeed
+				chatEvents={[pinnedViewerChat]}
+				giftEvents={[]}
+				pinnedEvent={pinnedViewerChat}
+			/>,
+		);
 
-		await act(async () => {
-			root.render(
-				<IndividualChatFeed
-					chatEvents={[pinnedViewerChat, chatEvent('chat-2', 20, 'just arrived')]}
-					giftEvents={[]}
-					pinnedEvent={pinnedViewerChat}
-				/>,
-			);
-		});
+		render(
+			<IndividualChatFeed
+				chatEvents={[pinnedViewerChat, chatEvent('chat-2', 20, 'just arrived')]}
+				giftEvents={[]}
+				pinnedEvent={pinnedViewerChat}
+			/>,
+		);
 
 		expect(container.textContent).not.toContain('new messages');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 
@@ -692,8 +606,7 @@ describe('SplitFeedLayout', () => {
 	});
 
 	it('keeps the individual feed visible with an empty state until a viewer is pinned', async () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 10, 'from pinned viewer');
 		const mention = chatEvent('chat-2', 20, 'hello @Viewer');
 		mention.user = {
@@ -702,9 +615,7 @@ describe('SplitFeedLayout', () => {
 			nickname: 'Other',
 		};
 
-		await act(async () => {
-			root.render(<SplitFeedLayout chatEvents={[firstChat, mention]} giftEvents={[]} />);
-		});
+		render(<SplitFeedLayout chatEvents={[firstChat, mention]} giftEvents={[]} />);
 
 		const layout = getSplitFeedLayout(container);
 		setElementWidth(layout, 720);
@@ -758,21 +669,16 @@ describe('SplitFeedLayout', () => {
 		expect(container.textContent).toContain("Click a message to open a viewer's feed");
 		expect(getEventRow(container, 'chat-1').dataset.pinned).toBeUndefined();
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('updates timestamp labels over time without a static now prop', async () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(30_000);
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 		const firstChat = chatEvent('chat-1', 0, 'aging message');
 
-		await act(async () => {
-			root.render(<SplitFeedLayout chatEvents={[firstChat]} giftEvents={[]} />);
-		});
+		render(<SplitFeedLayout chatEvents={[firstChat]} giftEvents={[]} />);
 
 		expect(container.textContent).toContain('30s');
 
@@ -782,9 +688,7 @@ describe('SplitFeedLayout', () => {
 
 		expect(container.textContent).toContain('1m');
 
-		await act(async () => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
 

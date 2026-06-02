@@ -1,13 +1,6 @@
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GiftCelebration } from '../src/index.js';
-
-declare global {
-	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
-}
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+import { createStrictRoot } from './render-strict.js';
 
 describe('GiftCelebration', () => {
 	afterEach(() => {
@@ -15,37 +8,27 @@ describe('GiftCelebration', () => {
 	});
 
 	it('renders nothing when no Gift Animation Asset is provided', () => {
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		act(() => {
-			root.render(<GiftCelebration />);
-		});
+		render(<GiftCelebration />);
 
 		expect(container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
 
-		act(() => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('renders a full-bleed triptych stage for a provided Gift Animation Asset', () => {
 		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		act(() => {
-			root.render(<GiftCelebration assetUrl="blob:gift-animation" />);
-		});
+		render(<GiftCelebration assetUrl="blob:gift-animation" />);
 
 		const stage = container.querySelector('[aria-label="Gift Celebration"]');
 		expect(stage).toBeInstanceOf(HTMLElement);
 		expect(stage?.querySelectorAll('canvas')).toHaveLength(3);
 		expect(stage?.textContent).toBe('');
 
-		act(() => {
-			root.unmount();
-		});
+		unmount();
 	});
 
 	it('measures the triptych stage when a Gift Animation Asset appears after idle', () => {
@@ -53,15 +36,10 @@ describe('GiftCelebration', () => {
 		vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
 			new DOMRect(0, 0, 1200, 720),
 		);
-		const container = document.createElement('div');
-		const root = createRoot(container);
+		const { container, render, unmount } = createStrictRoot();
 
-		act(() => {
-			root.render(<GiftCelebration />);
-		});
-		act(() => {
-			root.render(<GiftCelebration assetUrl="blob:gift-animation" />);
-		});
+		render(<GiftCelebration />);
+		render(<GiftCelebration assetUrl="blob:gift-animation" />);
 
 		const centerCanvas = container.querySelector('[aria-label="Gift Celebration center"]');
 		expect(centerCanvas).toBeInstanceOf(HTMLCanvasElement);
@@ -71,8 +49,6 @@ describe('GiftCelebration', () => {
 		expect(centerCanvas.style.width).toBe('405px');
 		expect(centerCanvas.style.height).toBe('720px');
 
-		act(() => {
-			root.unmount();
-		});
+		unmount();
 	});
 });
