@@ -2,10 +2,11 @@ import { fileURLToPath, URL } from 'node:url';
 import { crx } from '@crxjs/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { giftTapClassicInjection } from './gift-tap-classic-injection.js';
 import manifest from './manifest.config.js';
 
 export default defineConfig({
-	plugins: [react(), crx({ manifest })],
+	plugins: [react(), crx({ manifest }), giftTapClassicInjection()],
 	build: {
 		rollupOptions: {
 			input: {

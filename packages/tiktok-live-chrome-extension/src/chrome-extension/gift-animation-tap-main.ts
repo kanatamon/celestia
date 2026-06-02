@@ -38,6 +38,15 @@ export function installGiftAnimationTap(target: Window & typeof globalThis = win
 				payload: args[0],
 			});
 			armState = result.state;
+			// Self-check (issue #65): arming means a gift is decrypting right now and
+			// `createObjectURL` is about to mint its blob. If our wrapper is no longer
+			// the installed function, the capture choke point has been displaced and we
+			// would silently miss the asset — surface it loudly instead.
+			if (result.decision === 'arm' && urlCtor.createObjectURL !== patchedCreateObjectURL) {
+				console.error(
+					'[gift-animation-tap] armed on a gift decrypt, but URL.createObjectURL is no longer our wrapper — capture will be missed (ADR-0006 / issue #65).',
+				);
+			}
 		} catch {
 			// Never let the tap break TikTok's own worker messaging.
 		}
@@ -46,7 +55,7 @@ export function installGiftAnimationTap(target: Window & typeof globalThis = win
 	WorkerCtor.prototype.postMessage = patchedPostMessage as Worker['postMessage'];
 
 	const originalCreateObjectURL = urlCtor.createObjectURL.bind(urlCtor);
-	urlCtor.createObjectURL = (source: Blob | MediaSource): string => {
+	const patchedCreateObjectURL = (source: Blob | MediaSource): string => {
 		const objectUrl = originalCreateObjectURL(source);
 		try {
 			const mimeType = source instanceof Blob ? source.type : '';
@@ -60,6 +69,7 @@ export function installGiftAnimationTap(target: Window & typeof globalThis = win
 		}
 		return objectUrl;
 	};
+	urlCtor.createObjectURL = patchedCreateObjectURL;
 }
 
 async function forwardCapturedAsset(target: Window, blob: Blob, mimeType: string): Promise<void> {
