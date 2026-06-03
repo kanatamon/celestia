@@ -83,12 +83,11 @@ export function GiftCelebration({ assetUrl, giftImageUrl, onEnded }: GiftCelebra
 }
 
 /**
- * Renders a **Synthesized Gift Celebration** (ADR-0007 §3): the Gift Icon drawn
- * full-bleed into the same triptych geometry as the animated path, but with no
- * `<video>` and no WebGL — the icon is already RGBA, so each pane is a plain
- * `<img>`. Centre + both gutters share the pop-in keyframes ("Match") on the
- * 2.8s beat, with a glow flash behind the icon. After exactly one ~2.8s cycle a
- * synthetic timer fires `onEnded` (standing in for `video.ended`).
+ * Renders a **Synthesized Gift Celebration** (ADR-0007 §3, rev 2026-06-03):
+ * the Gift Icon centred in the stage with **no side gutters**. No `<video>`,
+ * no WebGL. A `lifeBreathe` animation (pop-in → calm pulse → release-up-and-fade)
+ * drives the icon; a rainbow fireworks burst carries the energy formerly
+ * provided by the gutters. After exactly one ~2.8s cycle `onEnded` fires.
  */
 function SynthesizedGiftCelebrationStage({
 	giftImageUrl,
@@ -116,8 +115,6 @@ function SynthesizedGiftCelebrationStage({
 
 	return (
 		<div aria-label="Gift Celebration" className={styles.stage} ref={stageRef} role="img">
-			<IconPane giftImageUrl={giftImageUrl} layout={layout.leftGutter} paneName="left gutter" />
-			<IconPane giftImageUrl={giftImageUrl} layout={layout.rightGutter} paneName="right gutter" />
 			{glowSize > 0 ? (
 				<div
 					aria-hidden="true"
@@ -159,7 +156,7 @@ function FireworksOverlay({ layout }: FireworksOverlayProps) {
 	// Stage extent: the fx canvas fills the stage (inset:0). Derive from the
 	// centre pane offsets, which are symmetric within the stage.
 	const stageW = layout.center.x * 2 + layout.center.width;
-	const stageH = Math.max(layout.center.y * 2 + layout.center.height, layout.leftGutter.height);
+	const stageH = layout.center.y * 2 + layout.center.height;
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -221,21 +218,19 @@ interface IconPaneProps {
 }
 
 function IconPane({ giftImageUrl, layout, paneName }: IconPaneProps) {
-	// The wrapper carries the pop-in animation (a CSS `transform: scale`); the
-	// inner <img> carries the static mirror. Keeping them on separate elements
-	// stops the keyframes' transform from clobbering a gutter's `scaleX(-1)`.
+	// Transform-split pattern: the wrapper positions the icon in the stage
+	// (centering only — no animation transform here); the inner element carries
+	// the `lifeBreathe` keyframe transform so the two never fight each other.
 	return (
 		<div className={styles.iconPane} style={toIconPaneStyle(layout)}>
 			<img
 				alt=""
 				aria-label={`Gift Celebration ${paneName}`}
+				className={styles.iconBreath}
 				draggable={false}
 				src={giftImageUrl}
 				style={{
-					width: '100%',
-					height: '100%',
 					objectFit: layout.fit,
-					transform: layout.mirrored ? 'scaleX(-1)' : undefined,
 				}}
 			/>
 		</div>

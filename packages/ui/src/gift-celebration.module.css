@@ -13,16 +13,23 @@
 }
 
 /*
- * Synthesized path (ADR-0007 §3): the Gift Icon is a normal RGBA PNG, so each
- * pane is a plain <img> — no <video>, no WebGL. Centre + both gutters share the
- * same pop-in keyframes ("Match") on the 2.8s beat, plus a glow flash.
+ * Synthesized path (ADR-0007 §3, rev 2026-06-03): the Gift Icon is shown centred
+ * with no side gutters — just one <img> in a wrapper. The wrapper positions the
+ * icon (centering transform lives here); the inner <img> carries the breathe
+ * lifecycle animation so the two transforms never fight (same split the old
+ * gutter used for scaleX(-1)).
  */
 .iconPane {
 	position: absolute;
 	display: block;
 	background: transparent;
+}
+
+.iconBreath {
+	width: 100%;
+	height: 100%;
+	animation: lifeBreathe 2800ms ease-out both;
 	transform-origin: center;
-	animation: gift-celebration-pop-in 2800ms ease-out both;
 }
 
 /*
@@ -55,22 +62,33 @@
 	animation: gift-celebration-glow-flash 2800ms ease-out both;
 }
 
-@keyframes gift-celebration-pop-in {
+/* lifeBreathe: pop-in overshoot → calm mid-cycle pulse → release-up-and-fade
+   exit. Locked from prototype-celebration-parity.html (variant 2, iconScale 0.6).
+   The exit releases UPWARD (scale 1.28) + fades instead of shrinking to nothing. */
+@keyframes lifeBreathe {
 	0% {
 		transform: scale(0.2);
 		opacity: 0;
 	}
-	24% {
+	18% {
 		transform: scale(1.08);
 		opacity: 1;
 	}
-	34% {
+	28% {
 		transform: scale(1);
 	}
-	90% {
+	50% {
+		transform: scale(1.05);
+	}
+	70% {
+		transform: scale(1);
+	}
+	86% {
+		transform: scale(1.06);
 		opacity: 1;
 	}
 	100% {
+		transform: scale(1.28);
 		opacity: 0;
 	}
 }

@@ -54,9 +54,9 @@ describe('GiftCelebration', () => {
 	});
 
 	describe('synthesized path', () => {
-		it('renders the icon triptych with no <video> and no WebGL', () => {
+		it('renders only the centred Gift Icon with no side gutters, no <video>, no WebGL', () => {
 			// Stage has zero measured size here, so the fx canvas idle-skips mounting;
-			// the icon triptych itself is the only thing rendered.
+			// only the single centred icon is rendered.
 			const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 			const { container, render, unmount } = createStrictRoot();
 
@@ -64,12 +64,13 @@ describe('GiftCelebration', () => {
 
 			const stage = container.querySelector('[aria-label="Gift Celebration"]');
 			expect(stage).toBeInstanceOf(HTMLElement);
-			// Centre icon + two gutters, all <img> sourcing the Gift Icon.
+			// Only one <img> — the centred icon. No left/right gutter copies.
 			const images = stage?.querySelectorAll('img');
-			expect(images).toHaveLength(3);
-			for (const image of images ?? []) {
-				expect(image.getAttribute('src')).toBe('https://cdn/icon.png');
-			}
+			expect(images).toHaveLength(1);
+			expect(images?.[0]?.getAttribute('src')).toBe('https://cdn/icon.png');
+			// No left/right gutter elements.
+			expect(stage?.querySelector('[aria-label="Gift Celebration left gutter"]')).toBeNull();
+			expect(stage?.querySelector('[aria-label="Gift Celebration right gutter"]')).toBeNull();
 			// The synthesized path never mounts a <video> and never asks for WebGL —
 			// the icon is already RGBA, so there is no split-alpha shader.
 			expect(stage?.querySelectorAll('video')).toHaveLength(0);
@@ -98,7 +99,7 @@ describe('GiftCelebration', () => {
 			unmount();
 		});
 
-		it('mirrors the left gutter and blurs/dims both gutters per the layout', () => {
+		it('centres the icon with crisp/opaque wrapper — no gutter blur or dimming', () => {
 			vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
 				new DOMRect(0, 0, 1200, 720),
 			);
@@ -106,28 +107,19 @@ describe('GiftCelebration', () => {
 
 			render(<GiftCelebration giftImageUrl="https://cdn/icon.png" />);
 
-			const left = container.querySelector('[aria-label="Gift Celebration left gutter"]');
-			const right = container.querySelector('[aria-label="Gift Celebration right gutter"]');
 			const center = container.querySelector('[aria-label="Gift Celebration center"]');
-			if (
-				!(left instanceof HTMLImageElement) ||
-				!(right instanceof HTMLImageElement) ||
-				!(center instanceof HTMLImageElement)
-			) {
-				throw new Error('Expected three Gift Celebration icon panes');
+			if (!(center instanceof HTMLImageElement)) {
+				throw new Error('Expected centred Gift Celebration icon image');
 			}
 
-			// Left gutter mirrored; right gutter and centre are not.
-			expect(left.style.transform).toBe('scaleX(-1)');
-			expect(right.style.transform).toBe('');
-			expect(center.style.transform).toBe('');
-
-			// Gutters are blurred and dimmed; the centre is crisp and bright.
-			const leftPane = left.parentElement as HTMLElement;
+			// The centre pane wrapper is crisp and fully opaque.
 			const centerPane = center.parentElement as HTMLElement;
-			expect(leftPane.style.filter).toContain('blur(10px)');
-			expect(leftPane.style.opacity).toBe('0.6');
 			expect(centerPane.style.filter).toBe('blur(0px) brightness(1)');
+			expect(centerPane.style.opacity).toBe('1');
+
+			// No gutter elements exist at all.
+			expect(container.querySelector('[aria-label="Gift Celebration left gutter"]')).toBeNull();
+			expect(container.querySelector('[aria-label="Gift Celebration right gutter"]')).toBeNull();
 
 			unmount();
 		});
