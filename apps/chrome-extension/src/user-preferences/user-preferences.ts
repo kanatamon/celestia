@@ -1,6 +1,11 @@
 /// <reference types="chrome" />
 
-import type { SoundManagerStorage, VolumeKey } from '@celestia/ui';
+import {
+	type CelebrationSettingsStorage,
+	normalizeThreshold,
+	type SoundManagerStorage,
+	type VolumeKey,
+} from '@celestia/ui';
 
 type VolumePreferenceKey = `volume.${VolumeKey}`;
 
@@ -10,13 +15,15 @@ function volumePreferenceKey(key: VolumeKey): VolumePreferenceKey {
 
 const recentStreamerUsernamePreferenceKey = 'recentStreamerUsername';
 const traceModePreferenceKey = 'celestia.trace';
+const celebrationThresholdPreferenceKey = 'celebration.diamondThreshold';
 const volumeKeys = ['master', 'chat', 'gift'] as const satisfies readonly VolumeKey[];
 const volumePreferenceKeys = volumeKeys.map(volumePreferenceKey);
 
 export type UserPreferenceKey =
 	| typeof recentStreamerUsernamePreferenceKey
 	| VolumePreferenceKey
-	| typeof traceModePreferenceKey;
+	| typeof traceModePreferenceKey
+	| typeof celebrationThresholdPreferenceKey;
 
 type UserPreferenceValues = Partial<Record<UserPreferenceKey, unknown>>;
 
@@ -24,6 +31,7 @@ const userPreferenceKeys = [
 	recentStreamerUsernamePreferenceKey,
 	...volumePreferenceKeys,
 	traceModePreferenceKey,
+	celebrationThresholdPreferenceKey,
 ] as const satisfies readonly UserPreferenceKey[];
 
 interface ChromeLocalStorageArea {
@@ -40,6 +48,8 @@ export interface UserPreferencesStore {
 	isTraceModeEnabled(): Promise<boolean>;
 	setTraceModeEnabled(enabled: boolean): Promise<void>;
 	getCachedTraceModeEnabled(): boolean;
+	getCelebrationThreshold(): Promise<number>;
+	setCelebrationThreshold(value: number): Promise<void>;
 }
 
 const defaultVolumes: Record<VolumeKey, number> = {
@@ -89,6 +99,15 @@ export function createUserPreferencesStore(
 		getCachedTraceModeEnabled() {
 			return cachedTraceModeEnabled;
 		},
+		async getCelebrationThreshold() {
+			const value = await getValue(storageArea, celebrationThresholdPreferenceKey);
+			return normalizeThreshold(value);
+		},
+		async setCelebrationThreshold(value) {
+			await storageArea.set({
+				[celebrationThresholdPreferenceKey]: normalizeThreshold(value),
+			});
+		},
 	};
 }
 
@@ -113,6 +132,28 @@ export async function createSoundManagerStorage(
 		setVolume: (key, value) => {
 			volumes.set(key, value);
 			return preferences.setVolume(key, value);
+		},
+	};
+}
+
+/**
+ * Hydrates the Celebration Settings live store from the persisted preference,
+ * mirroring `createSoundManagerStorage`. The synthesized-celebration trigger
+ * reads `getThreshold` synchronously at evaluation time, so the current value
+ * is cached here; the settings slider's writes persist through `setThreshold`
+ * and update that cache, so dragging the slider changes which gifts synthesize
+ * without a reload.
+ */
+export async function createCelebrationSettingsStorage(
+	preferences: UserPreferencesStore = userPreferences,
+): Promise<CelebrationSettingsStorage> {
+	let threshold = await preferences.getCelebrationThreshold();
+
+	return {
+		getThreshold: () => threshold,
+		setThreshold: (value) => {
+			threshold = value;
+			return preferences.setCelebrationThreshold(value);
 		},
 	};
 }

@@ -10,7 +10,7 @@ import type {
 	TikTokLiveProvider,
 	Unsubscribe,
 } from '@celestia/tiktok-live-core';
-import { soundManager } from '@celestia/ui';
+import { configureCelebrationSettingsStorage, soundManager } from '@celestia/ui';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,14 +32,32 @@ if (!HTMLElement.prototype.scrollTo) {
 }
 
 describe('Session Tab', () => {
+	let celebrationThreshold = 99;
+
 	beforeEach(() => {
 		delete window.__celestiaPlayCelebration;
+		// Reset the live Celebration Threshold the synthesized trigger reads, so a
+		// test that mutates it (below) cannot leak into the default-99 tests.
+		celebrationThreshold = 99;
+		configureCelebrationSettingsStorage({
+			getThreshold: () => celebrationThreshold,
+			setThreshold: (value) => {
+				celebrationThreshold = value;
+			},
+		});
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
 		vi.unstubAllEnvs();
 		delete window.__celestiaPlayCelebration;
+		celebrationThreshold = 99;
+		configureCelebrationSettingsStorage({
+			getThreshold: () => celebrationThreshold,
+			setThreshold: (value) => {
+				celebrationThreshold = value;
+			},
+		});
 	});
 
 	it('attaches the Provider to the paired tiktokTabId and dispatches LiveEvents to the feed', async () => {
@@ -367,6 +385,48 @@ describe('Session Tab', () => {
 			});
 
 			expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
+		} finally {
+			await mount.unmount();
+			vi.useRealTimers();
+		}
+	});
+
+	it('consults the live Celebration Threshold so a slider change takes effect without a reload', async () => {
+		vi.useFakeTimers();
+		const provider = new FakeProvider();
+		mockCelebrationMedia();
+		const mount = await renderSessionTab({
+			tiktokTabId: 113,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@live-threshold/live',
+		});
+
+		try {
+			// Raise the threshold above the gift's diamondCount mid-session (as the
+			// settings slider would). The next gift must NOT synthesize.
+			celebrationThreshold = 300;
+
+			await act(async () => {
+				provider.emitEvent(giftEvent('gift-1', { diamondCount: 200, giftImageUrl: 'icon-a' }));
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1500);
+			});
+			expect(mount.container.querySelector('[aria-label="Gift Celebration"]')).toBeNull();
+
+			// Lower it below the next gift's value; that gift now synthesizes — no remount.
+			celebrationThreshold = 150;
+
+			await act(async () => {
+				provider.emitEvent(giftEvent('gift-2', { diamondCount: 200, giftImageUrl: 'icon-b' }));
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1500);
+			});
+
+			const celebration = mount.container.querySelector('[aria-label="Gift Celebration"]');
+			expect(celebration).toBeInstanceOf(HTMLElement);
+			expect(celebration?.querySelector('img[src="icon-b"]')).toBeInstanceOf(HTMLElement);
 		} finally {
 			await mount.unmount();
 			vi.useRealTimers();

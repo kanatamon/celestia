@@ -7,6 +7,20 @@ export {
 	reduceCelebrationQueue,
 } from './celebration-queue.js';
 export type {
+	CelebrationSettings,
+	CelebrationSettingsStorage,
+	CreateCelebrationSettingsOptions,
+} from './celebration-settings.js';
+export {
+	CELEBRATION_THRESHOLD_DEFAULT,
+	CELEBRATION_THRESHOLD_MAX,
+	CELEBRATION_THRESHOLD_MIN,
+	celebrationSettings,
+	configureCelebrationSettingsStorage,
+	createCelebrationSettings,
+	normalizeThreshold,
+} from './celebration-settings.js';
+export type {
 	AnimatedCapturedCelebration,
 	CapturedCelebration,
 	CelebrationStageProps,

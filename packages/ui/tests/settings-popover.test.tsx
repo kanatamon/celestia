@@ -1,7 +1,8 @@
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import { act, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { StatusBar, soundManager, type VolumeKey } from '../src/index.js';
+import { type CelebrationSettings, StatusBar, soundManager, type VolumeKey } from '../src/index.js';
+import { SettingsPopover } from '../src/settings-popover.js';
 import { createStrictRoot } from './render-strict.js';
 
 vi.mock('antd', async (importOriginal) => {
@@ -40,18 +41,26 @@ vi.mock('antd', async (importOriginal) => {
 
 	function Slider({
 		ariaLabelForHandle,
+		max,
+		min,
 		onChange,
 		value,
 	}: {
 		ariaLabelForHandle?: string;
+		max?: number;
+		min?: number;
 		onChange?: (value: number) => void;
 		value?: number;
 	}) {
 		const handleChange = (event: ChangeEvent<HTMLInputElement>) =>
 			onChange?.(Number(event.currentTarget.value));
 
+		// Forward min/max so jsdom's range input does not clamp values (the
+		// Celebration Threshold ranges up to 50000) to the default 0–100.
 		return React.createElement('input', {
 			'aria-label': ariaLabelForHandle,
+			max,
+			min,
 			onChange: handleChange,
 			onInput: handleChange,
 			type: 'range',
@@ -103,7 +112,8 @@ describe('SettingsPopover', () => {
 		expect(container.textContent).toContain('100%');
 		expect(container.textContent).toContain('30%');
 		expect(container.textContent).toContain('50%');
-		expect(container.querySelectorAll('input[type="range"]')).toHaveLength(3);
+		// Three volume sliders plus the Celebration Threshold slider.
+		expect(container.querySelectorAll('input[type="range"]')).toHaveLength(4);
 		expect(container.querySelectorAll('button[aria-label="Play test sound"]')).toHaveLength(2);
 
 		const chatSlider = getSlider(container, 'Chat volume');
@@ -131,6 +141,40 @@ describe('SettingsPopover', () => {
 
 		expect(container.textContent).not.toContain('SOUND SETTINGS');
 		expect(gearButton.getAttribute('aria-pressed')).toBe('false');
+
+		unmount();
+	});
+
+	it('reads the stored Celebration Threshold and persists slider changes', async () => {
+		let stored = 250;
+		const celebrationSettings: CelebrationSettings = {
+			getThreshold: () => stored,
+			setThreshold: vi.fn((value) => {
+				stored = value;
+			}),
+		};
+
+		const { container, render, unmount } = createStrictRoot();
+
+		render(
+			<SettingsPopover open onOpenChange={() => {}} celebrationSettings={celebrationSettings}>
+				<button type="button">settings</button>
+			</SettingsPopover>,
+		);
+
+		// The slider reflects the stored threshold on open.
+		const thresholdSlider = getSlider(container, 'Celebration diamond threshold');
+		expect(thresholdSlider.value).toBe('250');
+		expect(container.textContent).toContain('250');
+
+		// Dragging it writes the new value back through the settings.
+		await act(async () => {
+			thresholdSlider.value = '4000';
+			thresholdSlider.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+
+		expect(celebrationSettings.setThreshold).toHaveBeenCalledWith(4000);
+		expect(container.textContent).toContain('4000');
 
 		unmount();
 	});

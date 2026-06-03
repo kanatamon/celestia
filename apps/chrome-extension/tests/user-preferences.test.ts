@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	createCelebrationSettingsStorage,
 	createSoundManagerStorage,
 	createUserPreferencesStore,
 	type UserPreferenceKey,
@@ -15,18 +16,21 @@ describe('user preferences store', () => {
 		await expect(preferences.getVolume('chat')).resolves.toBe(30);
 		await expect(preferences.getVolume('gift')).resolves.toBe(50);
 		await expect(preferences.isTraceModeEnabled()).resolves.toBe(false);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(99);
 
 		await preferences.setRecentStreamerUsername('celestia');
 		await preferences.setVolume('master', 40);
 		await preferences.setVolume('chat', 25);
 		await preferences.setVolume('gift', 75);
 		await preferences.setTraceModeEnabled(true);
+		await preferences.setCelebrationThreshold(250);
 
 		await expect(preferences.getRecentStreamerUsername()).resolves.toBe('celestia');
 		await expect(preferences.getVolume('master')).resolves.toBe(40);
 		await expect(preferences.getVolume('chat')).resolves.toBe(25);
 		await expect(preferences.getVolume('gift')).resolves.toBe(75);
 		await expect(preferences.isTraceModeEnabled()).resolves.toBe(true);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(250);
 		expect(storageArea.values).toEqual(
 			new Map<UserPreferenceKey, unknown>([
 				['recentStreamerUsername', 'celestia'],
@@ -34,6 +38,7 @@ describe('user preferences store', () => {
 				['volume.chat', 25],
 				['volume.gift', 75],
 				['celestia.trace', true],
+				['celebration.diamondThreshold', 250],
 			]),
 		);
 
@@ -42,6 +47,54 @@ describe('user preferences store', () => {
 
 		await expect(preferences.getRecentStreamerUsername()).resolves.toBeNull();
 		await expect(preferences.isTraceModeEnabled()).resolves.toBe(false);
+	});
+
+	it('clamps the celebration threshold to its valid range on read and write', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		const preferences = createUserPreferencesStore(storageArea);
+
+		await preferences.setCelebrationThreshold(10);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(30);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(30);
+
+		await preferences.setCelebrationThreshold(999999);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(50000);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(50000);
+
+		await preferences.setCelebrationThreshold(123.7);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(124);
+
+		storageArea.values.set('celebration.diamondThreshold', 'not-a-number');
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(99);
+
+		storageArea.values.set('celebration.diamondThreshold', 5);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(30);
+	});
+
+	it('hydrates Celebration Settings storage from preferences and persists threshold updates', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		storageArea.values.set('celebration.diamondThreshold', 250);
+		const preferences = createUserPreferencesStore(storageArea);
+
+		const celebrationStorage = await createCelebrationSettingsStorage(preferences);
+
+		// Hydrated synchronously from the persisted preference.
+		expect(celebrationStorage.getThreshold()).toBe(250);
+
+		await celebrationStorage.setThreshold(500);
+
+		// The cache updates immediately (so the live trigger sees it) and persists.
+		expect(celebrationStorage.getThreshold()).toBe(500);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(500);
+	});
+
+	it('defaults Celebration Settings storage to 99 when the preference is unset', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		const preferences = createUserPreferencesStore(storageArea);
+
+		const celebrationStorage = await createCelebrationSettingsStorage(preferences);
+
+		expect(celebrationStorage.getThreshold()).toBe(99);
 	});
 
 	it('hydrates SoundManager storage from preferences and persists volume updates', async () => {

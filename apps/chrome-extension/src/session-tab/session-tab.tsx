@@ -11,7 +11,9 @@ import type {
 import {
 	ActivitySwitcher,
 	type CapturedCelebration,
+	type CelebrationSettings,
 	CelebrationStage,
+	celebrationSettings,
 	SplitFeedLayout,
 	StatusBar,
 	useSoundEffects,
@@ -334,13 +336,19 @@ function useCelebrationFeed(): {
  */
 function useSynthesizedCelebrationTrigger(
 	enqueueCapture: (capture: CapturedCelebration) => void,
+	settings: CelebrationSettings = celebrationSettings,
 ): (event: SynthesizedTriggerEvent) => void {
 	const stateRef = useRef<SynthesizedTriggerState>(initialSynthesizedTriggerState);
 	const enqueueRef = useRef(enqueueCapture);
 	enqueueRef.current = enqueueCapture;
+	const settingsRef = useRef(settings);
+	settingsRef.current = settings;
 
 	const observe = useCallback((event: SynthesizedTriggerEvent) => {
-		const { state, emitted } = reduceSynthesizedTrigger(stateRef.current, event);
+		// Read the Celebration Threshold live, so a slider change takes effect on
+		// the next qualifying gift without a reload (issue #70).
+		const threshold = settingsRef.current.getThreshold();
+		const { state, emitted } = reduceSynthesizedTrigger(stateRef.current, event, threshold);
 		stateRef.current = state;
 		for (const { iconUrl } of emitted) {
 			enqueueRef.current({ kind: 'synthesized', assetId: iconUrl, giftImageUrl: iconUrl });

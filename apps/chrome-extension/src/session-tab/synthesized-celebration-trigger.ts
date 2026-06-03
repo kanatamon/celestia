@@ -21,7 +21,11 @@
  * invariant enforced in code (ADR-0007 §1).
  */
 
-/** Hardcoded Celebration Threshold for this slice. Configurable preference is #70. */
+/**
+ * Default Celebration Threshold and reducer fallback. The Session Tab now feeds
+ * the live, user-configurable threshold (issue #70) into `reduceSynthesizedTrigger`
+ * at evaluation time; this constant is the default used when none is supplied.
+ */
 export const CELEBRATION_DIAMOND_THRESHOLD = 99;
 
 /** Grace window a gift waits for an asset before it synthesizes (~1.2s, ADR-0007 §2). */
