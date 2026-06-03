@@ -39,11 +39,11 @@ The kind of **Gift Celebration** that plays a **Gift Animation Asset** (the keye
 _Avoid_: MP4 celebration, video celebration
 
 **Synthesized Gift Celebration**:
-The kind of **Gift Celebration** built from a static **Gift Icon** for a gift that ships **no** **Gift Animation Asset**. **Event-driven**: triggered by a **GiftLiveEvent** whose unit `diamondCount` meets the **Celebration Threshold**, when no asset is captured within a short grace window. Reuses the triptych geometry but animates the icon (a pop-in synced with the gutters, plus a canvas particle burst) for a fixed ~2.8s cycle, then ends. Remains **anonymous** even though its trigger carries identity — the giver is deliberately not shown.
+The kind of **Gift Celebration** built from a static **Gift Icon** for a gift that ships **no** **Gift Animation Asset**. **Event-driven**: triggered by a **GiftLiveEvent** whose unit `diamondCount` meets the **Celebration Threshold**, when no asset is captured within a short grace window. Unlike the **Animated Gift Celebration**, it does **not** use the triptych — the **Gift Icon** is shown centred with **no side gutters**. A **"breathe"** motion animates it (a pop-in, a calm mid-cycle pulse, then a release-up-and-fade exit, so it ends alive rather than vanishing), and a **full-width rainbow particle burst** carries the energy the gutters gave the animated kind. Runs a fixed ~2.8s cycle, then ends. Remains **anonymous** even though its trigger carries identity — the giver is deliberately not shown.
 _Avoid_: PNG celebration, fallback animation, image celebration
 
 **Celebration Threshold**:
-A **User Preference** — the minimum unit `diamondCount` a gift must be worth for it to earn a **Synthesized Gift Celebration**. Default 99; user-adjustable (slider, range 30–50000). Gates *only* the Synthesized kind, never an **Animated Gift Celebration**. Compares the gift's per-unit value, not its streak total.
+A **User Preference** — the minimum unit `diamondCount` a gift must be worth for it to earn a **Synthesized Gift Celebration**. Default 99. User-selectable from five discrete tiers: 1, 30, 99, 299, 999 diamonds. Gates *only* the Synthesized kind, never an **Animated Gift Celebration**. Compares the gift's per-unit value, not its streak total.
 _Avoid_: Gift threshold, diamond cutoff, min value
 
 **Gift Icon**:
