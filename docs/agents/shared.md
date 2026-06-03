@@ -46,6 +46,12 @@ ConnectionState classification must pass the live ingestion contract test gate i
 - v1.0.0 is real-time only — no persistence across Live Sessions.
 - No backend, no user accounts in v1.0.0. See `docs/adr/0002-no-backend-in-v1.md`.
 
+## Git workflow
+
+- **Merge policy: rebase-only.** `main` is linear-history-only. Integrate branches with rebase merges **exclusively**: `gh pr merge --rebase` (preferred) or a fast-forward `git rebase`/`git merge --ff-only`.
+- **Never** create a merge commit on `main`: no `gh pr merge --merge`, no `gh pr merge --squash`, no non-fast-forward `git merge`.
+- Enforced three ways: (1) this rule, (2) a `PreToolUse` hook (`.claude/hooks/enforce-rebase-merge.sh`) that blocks non-rebase merge commands in-session, (3) GitHub branch protection on `main` with `required_linear_history`. If a merge command is blocked by the hook, re-run it with `--rebase` (or `git merge --ff-only`).
+
 ## Architecture decisions
 
 All ADRs live in `docs/adr/`. Read them before proposing architectural changes:
