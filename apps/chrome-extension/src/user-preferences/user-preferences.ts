@@ -1,11 +1,10 @@
 /// <reference types="chrome" />
 
-import {
-	type CelebrationSettingsStorage,
-	normalizeThreshold,
-	type SoundManagerStorage,
-	type VolumeKey,
-} from '@celestia/ui';
+import type { CelebrationSettingsStorage, SoundManagerStorage, VolumeKey } from '@celestia/ui';
+// Import the value from the DOM-free module directly, not the barrel: this file
+// is reachable from the service worker, and the @celestia/ui barrel pulls in
+// CSS-module components whose `document`-based style injection crashes a worker.
+import { normalizeThreshold } from '@celestia/ui/celebration-settings';
 
 type VolumePreferenceKey = `volume.${VolumeKey}`;
 

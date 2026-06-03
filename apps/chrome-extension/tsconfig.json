@@ -10,7 +10,8 @@
 			"@celestia/tiktok-live-chrome-extension": [
 				"../../packages/tiktok-live-chrome-extension/src/index.ts"
 			],
-			"@celestia/ui": ["../../packages/ui/src/index.ts"]
+			"@celestia/ui": ["../../packages/ui/src/index.ts"],
+			"@celestia/ui/celebration-settings": ["../../packages/ui/src/celebration-settings.ts"]
 		}
 	},
 	"include": [

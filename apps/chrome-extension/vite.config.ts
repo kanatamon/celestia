@@ -22,6 +22,14 @@ export default defineConfig({
 			'@celestia/tiktok-live-core': fileURLToPath(
 				new URL('../../packages/tiktok-live-core/src/index.ts', import.meta.url),
 			),
+			// More specific subpath alias must precede the bare barrel alias so it
+			// wins first. The barrel re-exports DOM/CSS-module components; code
+			// reachable from the service worker (user-preferences) imports the pure
+			// threshold helper from this DOM-free module to keep the barrel — and its
+			// `document`-touching CSS side effects — out of the worker bundle.
+			'@celestia/ui/celebration-settings': fileURLToPath(
+				new URL('../../packages/ui/src/celebration-settings.ts', import.meta.url),
+			),
 			'@celestia/ui': fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)),
 		},
 	},
