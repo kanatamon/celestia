@@ -112,6 +112,7 @@ describe('SettingsPopover', () => {
 		expect(container.textContent).toContain('100%');
 		expect(container.textContent).toContain('30%');
 		expect(container.textContent).toContain('50%');
+		expect(getButton(container, 'Clear Live Session Data').disabled).toBe(true);
 		// Three volume sliders plus the Celebration Threshold slider.
 		expect(container.querySelectorAll('input[type="range"]')).toHaveLength(4);
 		expect(container.querySelectorAll('button[aria-label="Play test sound"]')).toHaveLength(2);
@@ -141,6 +142,35 @@ describe('SettingsPopover', () => {
 
 		expect(container.textContent).not.toContain('SOUND SETTINGS');
 		expect(gearButton.getAttribute('aria-pressed')).toBe('false');
+
+		unmount();
+	});
+
+	it('closes the settings popover and requests confirmation for Live Session data cleanup', async () => {
+		const onOpenChange = vi.fn();
+		const onClearLiveSessionData = vi.fn();
+		const { container, render, unmount } = createStrictRoot();
+
+		render(
+			<SettingsPopover
+				canClearLiveSessionData
+				open
+				onClearLiveSessionData={onClearLiveSessionData}
+				onOpenChange={onOpenChange}
+			>
+				<button type="button">settings</button>
+			</SettingsPopover>,
+		);
+
+		const clearButton = getButton(container, 'Clear Live Session Data');
+		expect(clearButton.disabled).toBe(false);
+
+		await act(async () => {
+			clearButton.click();
+		});
+
+		expect(onOpenChange).toHaveBeenCalledWith(false);
+		expect(onClearLiveSessionData).toHaveBeenCalledTimes(1);
 
 		unmount();
 	});

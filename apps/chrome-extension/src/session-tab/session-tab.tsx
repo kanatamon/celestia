@@ -121,6 +121,8 @@ function LiveFeed({
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
+	const [isClearDataConfirmOpen, setIsClearDataConfirmOpen] = useState(false);
+	const hasLiveSessionData = hasClearableLiveSessionData(state);
 	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
 	useDevGiftCelebrationTrigger(enqueueCapture);
 	const observeGiftForSynthesis = useSynthesizedCelebrationTrigger(enqueueCapture);
@@ -248,10 +250,20 @@ function LiveFeed({
 				<CelebrationStage capture={celebrationCapture} onCaptureIngested={onCaptureIngested} />
 				<div className={styles.liveFeedContent}>
 					<StatusBar
+						canClearLiveSessionData={hasLiveSessionData}
 						connectionState={state.connectionState}
 						viewerCount={state.viewerCount}
 						likeCount={state.likeCount}
+						onClearLiveSessionData={() => setIsClearDataConfirmOpen(true)}
 						username={state.streamerUsername ?? ''}
+					/>
+					<ClearLiveSessionDataModal
+						open={isClearDataConfirmOpen}
+						onCancel={() => setIsClearDataConfirmOpen(false)}
+						onConfirm={() => {
+							store.getState().resetSession();
+							setIsClearDataConfirmOpen(false);
+						}}
 					/>
 					<SplitFeedLayout
 						chatEvents={state.chatEvents}
@@ -262,6 +274,56 @@ function LiveFeed({
 				</div>
 			</section>
 		</main>
+	);
+}
+
+function hasClearableLiveSessionData(state: LiveEventStore): boolean {
+	return (
+		state.chatEvents.length > 0 ||
+		state.giftEvents.length > 0 ||
+		state.memberEvents.length > 0 ||
+		state.viewerCount > 0 ||
+		state.likeCount > 0
+	);
+}
+
+function ClearLiveSessionDataModal({
+	open,
+	onCancel,
+	onConfirm,
+}: {
+	open: boolean;
+	onCancel: () => void;
+	onConfirm: () => void;
+}) {
+	if (!open) return null;
+
+	return (
+		<div className={styles.modalBackdrop}>
+			<section
+				aria-labelledby="clear-live-session-data-title"
+				aria-modal="true"
+				className={styles.modalPanel}
+				role="dialog"
+			>
+				<div className={styles.modalDangerSignal} aria-hidden="true" />
+				<h2 className={styles.modalTitle} id="clear-live-session-data-title">
+					Clear Live Session data?
+				</h2>
+				<p className={styles.modalBody}>
+					This removes the visible chat, gifts, members, viewer count, and like count for this
+					Session Tab. The Live Session stays connected and new events will continue to appear.
+				</p>
+				<div className={styles.modalActions}>
+					<button className={styles.modalCancelButton} onClick={onCancel} type="button">
+						Cancel
+					</button>
+					<button className={styles.modalDangerButton} onClick={onConfirm} type="button">
+						Clear Data
+					</button>
+				</div>
+			</section>
+		</div>
 	);
 }
 
@@ -285,7 +347,7 @@ declare global {
 	}
 
 	interface ImportMetaEnv {
-		readonly DEV: boolean;
+		DEV: boolean;
 	}
 
 	interface ImportMeta {

@@ -13,6 +13,8 @@ export interface StatusBarProps {
 	onOpenSettings?: () => void;
 	onSettingsOpenChange?: (open: boolean) => void;
 	isSettingsOpen?: boolean;
+	canClearLiveSessionData?: boolean;
+	onClearLiveSessionData?: () => void;
 }
 
 type ConnectionSignalKind = 'discovering' | 'connected' | 'offline' | 'reconnecting' | 'ended';
@@ -46,6 +48,8 @@ export function StatusBar({
 	onOpenSettings,
 	onSettingsOpenChange,
 	isSettingsOpen,
+	canClearLiveSessionData,
+	onClearLiveSessionData,
 }: StatusBarProps) {
 	const [uncontrolledSettingsOpen, setUncontrolledSettingsOpen] = useState(false);
 	const isSettingsPopoverOpen = isSettingsOpen ?? uncontrolledSettingsOpen;
@@ -59,7 +63,12 @@ export function StatusBar({
 		onOpenSettings?.();
 	};
 	const settingsControl = (
-		<SettingsPopover open={isSettingsPopoverOpen} onOpenChange={handleSettingsPopoverOpenChange}>
+		<SettingsPopover
+			canClearLiveSessionData={canClearLiveSessionData}
+			onClearLiveSessionData={onClearLiveSessionData}
+			open={isSettingsPopoverOpen}
+			onOpenChange={handleSettingsPopoverOpenChange}
+		>
 			<SettingsButton isOpen={isSettingsPopoverOpen} />
 		</SettingsPopover>
 	);

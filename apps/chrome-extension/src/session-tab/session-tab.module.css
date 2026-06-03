@@ -48,3 +48,120 @@
 	font-size: 13px;
 	line-height: 1.45;
 }
+
+.modalBackdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	display: grid;
+	place-items: center;
+	padding: 20px;
+	background: rgba(2, 6, 23, 0.46);
+	backdrop-filter: blur(14px);
+}
+
+.modalPanel {
+	position: relative;
+	width: min(100%, 390px);
+	padding: 22px;
+	overflow: hidden;
+	border: 1px solid rgba(251, 113, 133, 0.28);
+	border-radius: 8px;
+	background:
+		linear-gradient(180deg, rgba(127, 29, 29, 0.2), rgba(10, 14, 28, 0.94) 42%),
+		rgba(10, 14, 28, 0.92);
+	box-shadow:
+		0 24px 72px rgba(0, 0, 0, 0.54),
+		0 0 54px rgba(127, 29, 29, 0.24),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	color: #f8fafc;
+}
+
+.modalDangerSignal {
+	width: 34px;
+	height: 3px;
+	margin-bottom: 16px;
+	border-radius: 99px;
+	background: #fb7185;
+	box-shadow: 0 0 18px rgba(251, 113, 133, 0.72);
+}
+
+.modalTitle {
+	margin: 0;
+	color: #fff1f2;
+	font-size: 19px;
+	font-weight: 850;
+	line-height: 1.2;
+}
+
+.modalBody {
+	margin: 10px 0 0;
+	color: rgba(248, 250, 252, 0.72);
+	font-size: 13px;
+	line-height: 1.55;
+}
+
+.modalActions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 22px;
+}
+
+.modalCancelButton,
+.modalDangerButton {
+	min-height: 34px;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 800;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		border-color 160ms ease,
+		background 160ms ease,
+		color 160ms ease,
+		box-shadow 160ms ease;
+}
+
+.modalCancelButton {
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	background: rgba(255, 255, 255, 0.06);
+	color: rgba(248, 250, 252, 0.76);
+}
+
+.modalCancelButton:hover,
+.modalCancelButton:focus-visible {
+	border-color: rgba(84, 237, 255, 0.34);
+	background: rgba(84, 237, 255, 0.1);
+	color: #ecfeff;
+}
+
+.modalDangerButton {
+	border: 1px solid rgba(251, 113, 133, 0.58);
+	background:
+		linear-gradient(180deg, rgba(251, 113, 133, 0.25), rgba(127, 29, 29, 0.28)),
+		rgba(255, 255, 255, 0.05);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.09),
+		0 12px 28px rgba(127, 29, 29, 0.28);
+	color: #fff1f2;
+}
+
+.modalDangerButton:hover,
+.modalDangerButton:focus-visible {
+	border-color: rgba(251, 113, 133, 0.86);
+	background:
+		linear-gradient(180deg, rgba(251, 113, 133, 0.32), rgba(127, 29, 29, 0.34)),
+		rgba(255, 255, 255, 0.07);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.12),
+		0 16px 34px rgba(127, 29, 29, 0.36);
+}
+
+.modalCancelButton:focus-visible,
+.modalDangerButton:focus-visible {
+	outline: 2px solid rgba(251, 113, 133, 0.52);
+	outline-offset: 2px;
+}

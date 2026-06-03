@@ -31,6 +31,14 @@ if (!HTMLElement.prototype.scrollTo) {
 	};
 }
 
+if (!globalThis.ResizeObserver) {
+	globalThis.ResizeObserver = class ResizeObserver {
+		observe(): void {}
+		unobserve(): void {}
+		disconnect(): void {}
+	};
+}
+
 describe('Session Tab', () => {
 	let celebrationThreshold = 99;
 
@@ -142,6 +150,73 @@ describe('Session Tab', () => {
 
 		await mountA.unmount();
 		await mountB.unmount();
+	});
+
+	it('confirms before clearing current Live Session data without disconnecting the Provider', async () => {
+		const provider = new FakeProvider();
+		const mount = await renderSessionTab({
+			tiktokTabId: 89,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@cleanup/live',
+		});
+
+		await act(async () => {
+			provider.emitState({ status: 'connected', username: 'cleanup' });
+			provider.emitEvent(viewerCountEvent(25));
+			provider.emitEvent(likeEvent('likes-1', 10));
+			provider.emitEvent(chatEvent('chat-1', 'clear me'));
+			provider.emitEvent(giftEvent('gift-1', { diamondCount: 99, giftImageUrl: 'icon-a' }));
+			provider.emitEvent(memberEvent('member-1'));
+		});
+
+		expect(mount.container.textContent).toContain('clear me');
+		expect(mount.container.textContent).toContain('25');
+		expect(mount.container.textContent).toContain('10');
+
+		await act(async () => {
+			getButton(mount.container, 'Open settings').click();
+		});
+
+		const clearAction = getButton(document.body, 'Clear Live Session Data');
+		expect(clearAction.disabled).toBe(false);
+
+		await act(async () => {
+			clearAction.click();
+		});
+
+		expect(getButton(mount.container, 'Open settings').getAttribute('aria-pressed')).toBe('false');
+		expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain(
+			'Clear Live Session data?',
+		);
+
+		await act(async () => {
+			getButton(document.body, 'Cancel').click();
+		});
+
+		expect(mount.container.textContent).toContain('clear me');
+
+		await act(async () => {
+			getButton(mount.container, 'Open settings').click();
+			getButton(document.body, 'Clear Live Session Data').click();
+		});
+
+		await act(async () => {
+			getButton(document.body, 'Clear Data').click();
+		});
+
+		expect(mount.container.textContent).not.toContain('clear me');
+		expect(mount.container.textContent).not.toContain('25');
+		expect(mount.container.textContent).not.toContain('10');
+		expect(provider.disconnectCount).toBe(0);
+		expect(provider.getConnectionState()).toEqual({ status: 'connected', username: 'cleanup' });
+
+		await act(async () => {
+			provider.emitEvent(chatEvent('chat-2', 'after clear'));
+		});
+
+		expect(mount.container.textContent).toContain('after clear');
+
+		await mount.unmount();
 	});
 
 	it('exposes a dev-only console trigger that plays the sample Gift Animation Asset', async () => {
@@ -499,6 +574,20 @@ async function renderSessionTab(options: RenderSessionTabOptions): Promise<Mount
 	};
 }
 
+function getButton(container: Element, label: string): HTMLButtonElement {
+	const element =
+		container.querySelector(`button[aria-label="${label}"]`) ??
+		Array.from(container.querySelectorAll('button')).find(
+			(button) => button.textContent?.trim() === label,
+		);
+
+	if (!(element instanceof HTMLButtonElement)) {
+		throw new Error(`Expected button with label "${label}".`);
+	}
+
+	return element;
+}
+
 function chatEvent(id: string, text: string): LiveEvent {
 	return {
 		id,
@@ -538,6 +627,30 @@ function viewerCountEvent(viewerCount: number): LiveEvent {
 	};
 }
 
+function likeEvent(id: string, likeCount: number): LiveEvent {
+	return {
+		id,
+		ts: Date.now(),
+		type: 'like',
+		source: 'test',
+		likeCount,
+	};
+}
+
+function memberEvent(id: string): LiveEvent {
+	return {
+		id,
+		ts: Date.now(),
+		type: 'member',
+		source: 'test',
+		user: {
+			userId: `member-${id}`,
+			uniqueId: `member.${id}`,
+			nickname: `Member ${id}`,
+		},
+	};
+}
+
 function ftypMp4Bytes(): ArrayBuffer {
 	return new Uint8Array([0, 0, 0, 16, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32]).buffer;
 }
@@ -568,7 +681,10 @@ class FakeAssetFeed {
 const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
 
-function withMockedObjectUrl(createObjectURL: () => string, revokeObjectURL: () => void): void {
+function withMockedObjectUrl(
+	createObjectURL: (blob: Blob) => string,
+	revokeObjectURL: () => void,
+): void {
 	Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL });
 	Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
 }

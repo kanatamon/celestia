@@ -16,6 +16,8 @@ export interface SettingsPopoverProps {
 	onOpenChange: (open: boolean) => void;
 	soundManager?: SoundManager;
 	celebrationSettings?: CelebrationSettings;
+	canClearLiveSessionData?: boolean;
+	onClearLiveSessionData?: () => void;
 }
 
 type VolumeValues = Record<VolumeKey, number>;
@@ -52,6 +54,8 @@ export function SettingsPopover({
 	onOpenChange,
 	soundManager: manager = soundManager,
 	celebrationSettings: celebration = celebrationSettings,
+	canClearLiveSessionData = false,
+	onClearLiveSessionData,
 }: SettingsPopoverProps) {
 	const [volumes, setVolumes] = useState<VolumeValues>(() => readVolumes(manager));
 	const [threshold, setThreshold] = useState<number>(() => celebration.getThreshold());
@@ -73,8 +77,15 @@ export function SettingsPopover({
 		setThreshold(value);
 	};
 
+	const handleClearLiveSessionData = () => {
+		if (!canClearLiveSessionData) return;
+		onOpenChange(false);
+		onClearLiveSessionData?.();
+	};
+
 	return (
 		<Dropdown
+			destroyOnHidden
 			open={open}
 			onOpenChange={onOpenChange}
 			placement="bottomRight"
@@ -96,6 +107,16 @@ export function SettingsPopover({
 					<div className={styles.rows}>
 						<ThresholdSliderRow onThresholdChange={handleThresholdChange} value={threshold} />
 					</div>
+					<div className={`${styles.title} ${styles.liveSessionTitle}`}>LIVE SESSION</div>
+					<button
+						aria-label="Clear Live Session Data"
+						className={styles.dangerButton}
+						disabled={!canClearLiveSessionData}
+						onClick={handleClearLiveSessionData}
+						type="button"
+					>
+						Clear Live Session Data
+					</button>
 				</div>
 			)}
 			trigger={['click']}
