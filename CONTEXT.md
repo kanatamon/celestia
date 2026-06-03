@@ -19,7 +19,7 @@ The period from when the user starts observing a TikTok Live stream to when the 
 _Avoid_: Room, broadcast, stream (ambiguous with WebSocket stream)
 
 **User Preferences**:
-Persistent user configuration that survives across Live Sessions and browser restarts. Stored exclusively in `chrome.storage.local`. Examples: recent streamer username, sound effect volumes, the **Celebration Threshold**. Distinct from Live Session event data, which is never persisted.
+Persistent user configuration that survives across Live Sessions and browser restarts. Stored exclusively in `chrome.storage.local`. Examples: recent streamer username, sound effect volumes, the **Celebration Threshold**, **Reduced Like Motion**. Distinct from Live Session event data, which is never persisted.
 _Avoid_: Settings, config, localStorage
 
 **Session Tab**:
@@ -50,6 +50,34 @@ _Avoid_: Gift threshold, diamond cutoff, min value
 The static gift image carried on a **GiftLiveEvent** as `giftImageUrl` — the small icon TikTok shows for a gift. Identity of the *gift*, not the *giver*. Distinct from a **Gift Animation Asset** (the animated MP4). The source image for a **Synthesized Gift Celebration**.
 _Avoid_: Gift image, gift png, gift thumbnail
 
+**Like Layer**:
+The canvas overlay on the Session Tab feed that visualizes **LikeLiveEvents**. Unlike a **Gift Celebration**, it deliberately **shows the liker's identity** — here identity *is* the payload, not decoration: the purpose is to let the user notice **who is in the room and who is loyal**. This is not in tension with gift anonymity — a gift's "who sent it" already has a home in the **GiftEventCard** (the source of truth for attribution), so the **Gift Celebration** stays pure spectacle; a Like has no such card, so identity must live in the Like Layer or be lost. Composed of the **Heart Float** and the **Heartbeat Conveyor**, and it triggers the **Like Counter pop**.
+_Avoid_: Like overlay, heart canvas, likes animation, like celebration
+
+**Heart Float**:
+The glossy pink heart particle of the **Like Layer**. One spawns per like at the right edge of the Activity Bar, balloons vertically upward with a calm sway, then peels off toward the top-left like counter while fading, nudging the counter on arrival. The heart carries only a fixed heart-coloured glow — it does **not** encode the sender (no per-sender hue, no face). "Who liked" is conveyed solely by the **Heartbeat Conveyor**; the heart is pure ambient motion.
+_Avoid_: Heart particle, comet, floating heart, like heart
+
+**Heartbeat Conveyor**:
+The avatar-only row of recent likers in the **Like Layer**, pinned to the right of the Activity Bar. It advances only on a slow ~1.2s **metronome** (a "heartbeat"): each beat commits the latest unique liker, slides existing avatars left, and fades a newcomer in at the right; the oldest fades off the left. Identity is the **face only** — no nickname text. Its calm comes from **decoupling the visible update rate from the like rate**: it dedupes repeat likers and caps updates to the beat, so it stays restful under a like storm while the **Like Counter** still races.
+_Avoid_: Avatar row, liker rail, sender row, conveyor belt
+
+**Like Counter pop**:
+The scale-bump of the heart icon + count in the Session Tab **StatusBar** on each like / **Heart Float** arrival. A **StatusBar** behavior the **Like Layer** *triggers* — not part of the canvas overlay. The like *count* is the racing, real-time tally; the pop is its liveness cue.
+_Avoid_: Counter bump, like pulse, heart bump
+
+**Reduced Like Motion**:
+A **User Preference** (toggle in the settings popover, **default off**) that calms the **Like Layer**. When on: the **Heart Float** and **Like Counter pop** are dropped entirely, and the **Heartbeat Conveyor** swaps faces with a cross-fade instead of the sliding metronome. The like *count* still updates and the liker *faces* still show — only decorative motion is removed, never information. The toggle is the **sole source of truth**; the OS `prefers-reduced-motion` setting is **not** consulted.
+_Avoid_: Reduce motion, calm mode, low-motion, accessibility toggle
+
+**ConnectionSignal**:
+The three animated signal bars shown beside the streamer username in the Session Tab StatusBar. A purely visual read-out of the current **ConnectionState**, collapsed into five **signal kinds**: `discovering | connected | offline | reconnecting | ended`. Each kind drives the bar colour/motion *and* the username gradient. Distinct from the underlying **ConnectionState** — the signal is the UI projection, not the source of truth.
+_Avoid_: Signal bars, status dot, connection indicator
+
+**Connection Advisory**:
+The popover that auto-opens over the **ConnectionSignal** when the connection enters a fault the user should be aware of (the `offline` and `reconnecting` signal kinds). Explains *why* it happened and offers a workaround, branching on the **ConnectionState** `reason` (`offline | interrupted | stale`) — three distinct messages. Where the extension can perform the fix itself (`interrupted`, `stale`), it shows a **Reconnect** action; `offline` is informational only and auto-recovers. Anchored on the bars, it auto-opens once per fault episode, is dismissible, can be reopened by clicking the bars, and self-closes on recovery.
+_Avoid_: Connection alert, error toast, reconnect dialog, notification
+
 ### Data layer
 
 **Provider**:
@@ -65,7 +93,7 @@ A normalized, typed event emitted by a Provider during a Live Session. Covers ch
 _Avoid_: Event (too generic), WebSocket message, TikTok event
 
 **ConnectionState**:
-The externally observable state of a Provider at any point in time: `idle | connecting | connected | disconnecting | disconnected | error`.
+The externally observable state of a Provider at any point in time. `status` is one of `idle | attaching | attached | connecting | connected | detaching | disconnecting | detached | disconnected | error`. An `error` status carries a `reason`: `offline` (device lost network), `interrupted` (Chrome Debugger detached — usually the "Celestia is debugging this browser" banner was dismissed), or `stale` (debugger attached but no LiveEvents past the stale threshold). The **ConnectionSignal** projects this onto five UI kinds; the **Connection Advisory** branches on `reason`.
 _Avoid_: Status, connection status
 
 **Gift Animation Asset**:
@@ -101,6 +129,7 @@ _Avoid_: Component library, design system
 - A **Gift Celebration** in the **Session Tab** is always anonymous and takes one of two forms:
   - an **Animated Gift Celebration** plays a **Gift Animation Asset** (asset-driven; *not* derived from a **GiftLiveEvent**)
   - a **Synthesized Gift Celebration** animates a **Gift Icon** from a **GiftLiveEvent** when no **Gift Animation Asset** is captured within a short grace window (event-driven, but still shows no giver)
+- The **Like Layer** in the **Session Tab** visualizes **LikeLiveEvents** and **shows the liker** (avatar + sender-coloured aura) — the opposite identity contract from a **Gift Celebration**, because for a Like identity *is* the payload while a gift's identity lives in its **GiftEventCard**
 
 ## Monorepo structure
 
