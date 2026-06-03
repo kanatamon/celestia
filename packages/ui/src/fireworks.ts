@@ -11,9 +11,8 @@
  *     draw loop performs **no** canvas work beyond a single clear of a dirty
  *     canvas (idle-skip).
  *
- * Locked params come from the converged prototype
- * (`apps/chrome-extension/src/session-tab/gift-fallback-animation-prototype.html`,
- * "mega" blast + "Above" height).
+ * Locked params come from the converged prototype (the "mega" blast + "Above" height
+ * exploration that preceded this implementation).
  */
 
 /** ~2.8s celebration beat. */

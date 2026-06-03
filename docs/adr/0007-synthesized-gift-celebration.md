@@ -74,4 +74,4 @@ ADR-0005 §60 declared **no value threshold** — but that was because the *asse
 ## Revision history
 
 - **2026-06-03 — Centred icon, no triptych; breathe motion.** Validated by `prototype-celebration-parity.html`. §3 reworked: dropped the triptych gutters for the Synthesized kind (a transparent ~square icon can't fill them; an opaque plate/ambient-fill backdrop was prototyped and rejected as artificial), made the rainbow burst **load-bearing** to carry the width, and replaced the centre icon's pop-in/fade-to-nothing with the **"breathe"** lifecycle (pop-in → mid-cycle pulse → release-up-and-fade) so it ends alive. Removed the "Match" gutter-sync clause. §1, §2, §4, §5 unchanged.
-- **2026-06-02 — Initial.** Created after the `gift-fallback-animation-prototype.html` exploration converged on the Match / Center / Mega / Above / Rainbow canvas-particle treatment.
+- **2026-06-02 — Initial.** Created after the prototype exploration converged on the Match / Center / Mega / Above / Rainbow canvas-particle treatment.
