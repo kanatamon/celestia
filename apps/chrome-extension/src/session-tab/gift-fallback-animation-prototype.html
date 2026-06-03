@@ -341,7 +341,7 @@
 
 			function update(dt) {
 				const p = BLAST[state.blast];
-				const dragF = Math.pow(p.drag, dt);
+				const dragF = p.drag ** dt;
 				for (const q of particles) {
 					q.vy += p.grav * dt;
 					q.vx *= dragF; q.vy *= dragF;
@@ -360,7 +360,7 @@
 				ctx.clearRect(0, 0, stageW, stageH);
 				ctx.globalCompositeOperation = "lighter";
 				for (const q of particles) {
-					const a = Math.pow(q.life / q.maxLife, 0.55);
+					const a = (q.life / q.maxLife) ** 0.55;
 					const d = q.size * p.glow;
 					ctx.globalAlpha = a < 1 ? a : 1;
 					ctx.drawImage(spriteFor(q.hue), q.x - d / 2, q.y - d / 2, d, d);

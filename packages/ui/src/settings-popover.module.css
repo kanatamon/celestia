@@ -20,6 +20,12 @@
 	letter-spacing: 0.08em;
 }
 
+.giftCelebrationTitle {
+	margin-top: 18px;
+	padding-top: 16px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .rows {
 	display: grid;
 	gap: 10px;
@@ -28,6 +34,15 @@
 .row {
 	display: grid;
 	grid-template-columns: 44px 1fr 34px auto;
+	align-items: center;
+	gap: 8px;
+	min-height: 24px;
+}
+
+/* Two-column row for the threshold control: label + slider only */
+.thresholdRow {
+	display: grid;
+	grid-template-columns: 44px 1fr;
 	align-items: center;
 	gap: 8px;
 	min-height: 24px;
@@ -55,6 +70,12 @@
 
 .slider :global(.ant-slider-handle::after) {
 	box-shadow: 0 0 0 2px #54edff;
+}
+
+/* Threshold slider: same colours as .slider + extra bottom clearance for mark labels */
+.thresholdSlider {
+	composes: slider;
+	margin-bottom: 18px;
 }
 
 .percentage {

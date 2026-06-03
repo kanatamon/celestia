@@ -151,7 +151,7 @@ export async function createCelebrationSettingsStorage(
 	return {
 		getThreshold: () => threshold,
 		setThreshold: (value) => {
-			threshold = value;
+			threshold = normalizeThreshold(value);
 			return preferences.setCelebrationThreshold(value);
 		},
 	};

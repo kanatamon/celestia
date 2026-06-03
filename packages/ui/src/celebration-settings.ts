@@ -8,13 +8,23 @@
  *
  * Storage is injectable (mirroring `SoundManagerStorage`): the Session Tab wires
  * a `chrome.storage.local`-backed storage so the threshold persists across
- * reloads and browser restarts. Reads and writes are clamped/normalised here so
- * every consumer sees a value within the valid range.
+ * reloads and browser restarts. Reads and writes snap to the nearest discrete
+ * tier so every consumer sees a valid tier value.
  */
 
+/** The five discrete tiers the Celebration Threshold can be set to. */
+export const CELEBRATION_THRESHOLD_TIERS = [1, 30, 99, 299, 999] as const;
+
+export type CelebrationThresholdTier = (typeof CELEBRATION_THRESHOLD_TIERS)[number];
+
 export const CELEBRATION_THRESHOLD_DEFAULT = 99;
-export const CELEBRATION_THRESHOLD_MIN = 30;
-export const CELEBRATION_THRESHOLD_MAX = 50000;
+
+/** @deprecated Use CELEBRATION_THRESHOLD_TIERS. Kept for import compatibility. */
+export const CELEBRATION_THRESHOLD_MIN = CELEBRATION_THRESHOLD_TIERS[0];
+
+/** @deprecated Use CELEBRATION_THRESHOLD_TIERS. Kept for import compatibility. */
+export const CELEBRATION_THRESHOLD_MAX =
+	CELEBRATION_THRESHOLD_TIERS[CELEBRATION_THRESHOLD_TIERS.length - 1];
 
 export interface CelebrationSettingsStorage {
 	getThreshold(): number | null | undefined;
@@ -53,17 +63,33 @@ class StorageCelebrationSettings implements CelebrationSettings {
 	}
 }
 
+/**
+ * Snap `value` to the nearest discrete tier. Returns the default tier when
+ * `value` is null, undefined, or not a finite number.
+ */
 export function normalizeThreshold(value: unknown): number {
+	if (value === null || value === undefined) {
+		return CELEBRATION_THRESHOLD_DEFAULT;
+	}
+
 	const parsedValue = Number(value);
 
 	if (!Number.isFinite(parsedValue)) {
 		return CELEBRATION_THRESHOLD_DEFAULT;
 	}
 
-	return Math.min(
-		CELEBRATION_THRESHOLD_MAX,
-		Math.max(CELEBRATION_THRESHOLD_MIN, Math.round(parsedValue)),
-	);
+	let nearest: number = CELEBRATION_THRESHOLD_TIERS[0];
+	let nearestDist = Math.abs(parsedValue - nearest);
+
+	for (const tier of CELEBRATION_THRESHOLD_TIERS) {
+		const dist = Math.abs(parsedValue - tier);
+		if (dist < nearestDist) {
+			nearest = tier;
+			nearestDist = dist;
+		}
+	}
+
+	return nearest;
 }
 
 function createMemoryCelebrationSettingsStorage(): CelebrationSettingsStorage {

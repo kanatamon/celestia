@@ -146,7 +146,8 @@ describe('SettingsPopover', () => {
 	});
 
 	it('reads the stored Celebration Threshold and persists slider changes', async () => {
-		let stored = 250;
+		// stored = 299 (tier index 3); the slider reflects the index on open.
+		let stored = 299;
 		const celebrationSettings: CelebrationSettings = {
 			getThreshold: () => stored,
 			setThreshold: vi.fn((value) => {
@@ -162,19 +163,18 @@ describe('SettingsPopover', () => {
 			</SettingsPopover>,
 		);
 
-		// The slider reflects the stored threshold on open.
+		// The slider value is the tier index (0–4), not the raw diamond count.
+		// 299 is tier index 3.
 		const thresholdSlider = getSlider(container, 'Celebration diamond threshold');
-		expect(thresholdSlider.value).toBe('250');
-		expect(container.textContent).toContain('250');
+		expect(thresholdSlider.value).toBe('3');
 
-		// Dragging it writes the new value back through the settings.
+		// Dragging to index 4 maps to tier 999.
 		await act(async () => {
-			thresholdSlider.value = '4000';
+			thresholdSlider.value = '4';
 			thresholdSlider.dispatchEvent(new Event('input', { bubbles: true }));
 		});
 
-		expect(celebrationSettings.setThreshold).toHaveBeenCalledWith(4000);
-		expect(container.textContent).toContain('4000');
+		expect(celebrationSettings.setThreshold).toHaveBeenCalledWith(999);
 
 		unmount();
 	});

@@ -9,12 +9,14 @@ export {
 export type {
 	CelebrationSettings,
 	CelebrationSettingsStorage,
+	CelebrationThresholdTier,
 	CreateCelebrationSettingsOptions,
 } from './celebration-settings.js';
 export {
 	CELEBRATION_THRESHOLD_DEFAULT,
 	CELEBRATION_THRESHOLD_MAX,
 	CELEBRATION_THRESHOLD_MIN,
+	CELEBRATION_THRESHOLD_TIERS,
 	celebrationSettings,
 	configureCelebrationSettingsStorage,
 	createCelebrationSettings,

@@ -3,8 +3,7 @@ import { Dropdown, Slider } from 'antd';
 import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 import {
-	CELEBRATION_THRESHOLD_MAX,
-	CELEBRATION_THRESHOLD_MIN,
+	CELEBRATION_THRESHOLD_TIERS,
 	type CelebrationSettings,
 	celebrationSettings,
 } from './celebration-settings.js';
@@ -32,6 +31,20 @@ const volumeRows: VolumeRow[] = [
 	{ key: 'chat', label: 'Chat', previewChannel: 'chat' },
 	{ key: 'gift', label: 'Gift', previewChannel: 'gift' },
 ];
+
+/**
+ * antd Slider with step={null} snaps the handle to the nearest mark key.
+ * The keys are 0–4 (equidistant); tier values are stored separately so the
+ * slider always moves in equal visual steps regardless of numeric gaps between
+ * tiers (1, 30, 99, 299, 999).
+ */
+const TIER_INDEX_TO_VALUE: Record<number, number> = Object.fromEntries(
+	CELEBRATION_THRESHOLD_TIERS.map((tier, i) => [i, tier]),
+);
+const TIER_VALUE_TO_INDEX: Record<number, number> = Object.fromEntries(
+	CELEBRATION_THRESHOLD_TIERS.map((tier, i) => [tier, i]),
+);
+const SLIDER_MAX = CELEBRATION_THRESHOLD_TIERS.length - 1;
 
 export function SettingsPopover({
 	children,
@@ -79,7 +92,7 @@ export function SettingsPopover({
 							/>
 						))}
 					</div>
-					<div className={styles.title}>CELEBRATION</div>
+					<div className={`${styles.title} ${styles.giftCelebrationTitle}`}>GIFT CELEBRATION</div>
 					<div className={styles.rows}>
 						<ThresholdSliderRow onThresholdChange={handleThresholdChange} value={threshold} />
 					</div>
@@ -134,21 +147,55 @@ interface ThresholdSliderRowProps {
 	value: number;
 }
 
+/** Build antd Slider marks; the active tier is highlighted cyan. */
+function buildThresholdMarks(activeValue: number) {
+	return Object.fromEntries(
+		[...CELEBRATION_THRESHOLD_TIERS.entries()].map(([i, tier]) => {
+			const isActive = tier === activeValue;
+			return [
+				i,
+				{
+					label: (
+						<span
+							style={{
+								color: isActive ? '#54edff' : 'rgba(248,250,252,0.55)',
+								fontWeight: isActive ? 700 : 400,
+								fontSize: 10,
+							}}
+						>
+							{tier}
+						</span>
+					),
+				},
+			];
+		}),
+	);
+}
+
 function ThresholdSliderRow({ onThresholdChange, value }: ThresholdSliderRowProps) {
+	const sliderIndex = TIER_VALUE_TO_INDEX[value] ?? 2; // default to middle (99)
+
+	const handleChange = (index: number) => {
+		const tier = TIER_INDEX_TO_VALUE[index];
+		if (tier !== undefined) {
+			onThresholdChange(tier);
+		}
+	};
+
 	return (
-		<div className={styles.row}>
-			<span className={styles.label}>Threshold</span>
+		<div className={styles.thresholdRow}>
+			<span className={styles.label}>Min</span>
 			<Slider
 				ariaLabelForHandle="Celebration diamond threshold"
-				className={styles.slider}
-				max={CELEBRATION_THRESHOLD_MAX}
-				min={CELEBRATION_THRESHOLD_MIN}
-				onChange={onThresholdChange}
-				step={1}
+				className={styles.thresholdSlider}
+				max={SLIDER_MAX}
+				min={0}
+				marks={buildThresholdMarks(value)}
+				onChange={handleChange}
+				step={null}
 				tooltip={{ formatter: null }}
-				value={value}
+				value={sliderIndex}
 			/>
-			<span className={styles.percentage}>{Math.round(value)}</span>
 		</div>
 	);
 }
