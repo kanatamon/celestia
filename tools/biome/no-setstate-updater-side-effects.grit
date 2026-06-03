@@ -1,0 +1,36 @@
+// Flags impure React setState updaters: a `setX(...)` call whose updater
+// FUNCTION contains a mutating side effect (array mutation or a `.current`
+// assignment). React StrictMode double-invokes updaters in dev, so any side
+// effect inside them runs twice — which silently dropped Gift Celebration
+// captures in issue #66 (`useCelebrationFeed` shifted a ref buffer inside the
+// updater). Compute the next value BEFORE calling the setter, then pass it in.
+//
+// It deliberately does NOT flag the eager form `setX(buffer.shift())`, where the
+// mutation happens outside the updater — that pattern is correct.
+language js
+
+`$setter($arg)` where {
+	$setter <: r"set[A-Z][A-Za-z0-9]*",
+	$arg <: or {
+		`($params) => $body`,
+		`$single => $body`,
+		`($params) => { $statements }`,
+		`function ($params) { $statements }`,
+		`function $name($params) { $statements }`
+	},
+	$arg <: contains or {
+		`$o.push($args)`,
+		`$o.unshift($args)`,
+		`$o.shift()`,
+		`$o.pop()`,
+		`$o.splice($args)`,
+		`$o.sort($args)`,
+		`$o.reverse()`,
+		`$ref.current = $value`
+	},
+	register_diagnostic(
+		span = $arg,
+		message = "Side effect inside a setState updater: React StrictMode double-invokes updaters in dev, so this runs twice and can corrupt state (issue #66). Compute the value before calling the setter and pass it in.",
+		severity = "error"
+	)
+}

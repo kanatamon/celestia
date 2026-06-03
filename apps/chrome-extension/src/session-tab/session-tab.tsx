@@ -194,11 +194,20 @@ function LiveFeed({
 				if (event.type === 'gift') {
 					// Read-only: feed the synthesized-celebration arbiter the gift's
 					// unit value and icon. The live event store is never mutated here.
+					//
+					// The grace window is stamped with the LOCAL clock (`Date.now()`),
+					// NOT the gift's `event.ts`. `event.ts` is TikTok's server
+					// `createTime`, but the arbiter's `tick` and `assetCaptured` events
+					// are local-clock; mixing the two made the window deadline depend on
+					// server↔client skew + ingestion latency, so a late local clock could
+					// expire the window before the real asset arrived to claim it — the
+					// .mp4 then lost its window and an icon synthesized instead (issue #66).
+					// Single-clock by construction here.
 					observeGiftForSynthesis({
 						kind: 'giftEvent',
 						diamondCount: event.diamondCount,
 						iconUrl: event.giftImageUrl,
-						ts: event.ts,
+						ts: Date.now(),
 					});
 				}
 			});
@@ -365,25 +374,39 @@ declare global {
  * releases the next buffered item into that slot, so every capture reaches the
  * queue on its own render.
  */
-function useCelebrationFeed(): {
+export function useCelebrationFeed(): {
 	capture: CapturedCelebration | undefined;
 	enqueueCapture: (capture: CapturedCelebration) => void;
 	onCaptureIngested: () => void;
 } {
 	const pending = useRef<CapturedCelebration[]>([]);
 	const [capture, setCapture] = useState<CapturedCelebration | undefined>();
+	// Whether the single slot currently holds a not-yet-ingested capture. Tracked
+	// in a ref so the drain decision happens OUTSIDE the `setCapture` updater:
+	// shifting the buffer inside the updater is an impure side effect that React
+	// StrictMode double-invokes, which drained the buffer twice and silently
+	// dropped captures (issue #66). The updater below is now a pure value-set.
+	const slotFilled = useRef(false);
 
-	const enqueueCapture = useCallback((next: CapturedCelebration) => {
-		pending.current.push(next);
-		// Start draining only when idle; otherwise the in-flight head advances it.
-		setCapture((current) => current ?? pending.current.shift());
+	const releaseNext = useCallback(() => {
+		const next = pending.current.shift();
+		slotFilled.current = next !== undefined;
+		setCapture(next);
 	}, []);
 
-	const onCaptureIngested = useCallback(() => {
-		setCapture(pending.current.shift());
-	}, []);
+	const enqueueCapture = useCallback(
+		(next: CapturedCelebration) => {
+			pending.current.push(next);
+			// Start draining only when idle; a busy slot is advanced by the stage via
+			// `onCaptureIngested` once it ingests the in-flight capture.
+			if (!slotFilled.current) {
+				releaseNext();
+			}
+		},
+		[releaseNext],
+	);
 
-	return { capture, enqueueCapture, onCaptureIngested };
+	return { capture, enqueueCapture, onCaptureIngested: releaseNext };
 }
 
 /**

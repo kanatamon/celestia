@@ -10,11 +10,15 @@ import type {
 	TikTokLiveProvider,
 	Unsubscribe,
 } from '@celestia/tiktok-live-core';
-import { configureCelebrationSettingsStorage, soundManager } from '@celestia/ui';
-import { act } from 'react';
+import {
+	type CapturedCelebration,
+	configureCelebrationSettingsStorage,
+	soundManager,
+} from '@celestia/ui';
+import { act, StrictMode, useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SessionTab } from '../src/session-tab/session-tab.js';
+import { SessionTab, useCelebrationFeed } from '../src/session-tab/session-tab.js';
 
 declare global {
 	var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
@@ -439,6 +443,62 @@ describe('Session Tab', () => {
 		}
 	});
 
+	it('claims the grace window even when the gift timestamp is on the server clock, not local (issue #66)', async () => {
+		vi.useFakeTimers();
+		const provider = new FakeProvider();
+		const feed = new FakeAssetFeed();
+		withMockedObjectUrl(
+			vi.fn(() => 'blob:animated-gift'),
+			vi.fn(),
+		);
+		mockCelebrationMedia();
+		const mount = await renderSessionTab({
+			tiktokTabId: 114,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@skew/live',
+			subscribeAssets: feed.subscribe,
+		});
+
+		try {
+			// A premium animated gift whose server `createTime` lags the local clock by
+			// far more than the grace window (network + chrome-messaging latency / skew).
+			// If the window were armed from `event.ts`, its deadline is already in the
+			// past and the very first local tick synthesizes an icon before the real
+			// .mp4 can arrive to claim it — the regression this test guards.
+			await act(async () => {
+				provider.emitEvent(
+					giftEvent('gift-1', {
+						diamondCount: 200,
+						giftImageUrl: 'icon-a',
+						ts: Date.now() - 5000,
+					}),
+				);
+			});
+			// A local tick elapses before the asset bytes land...
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(400);
+			});
+			// ...then the real .mp4 arrives, still well within the 1.2s grace measured
+			// from the gift's local arrival.
+			await act(async () => {
+				feed.emit(capturedAsset(ftypMp4Bytes()));
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1500);
+			});
+
+			// Exactly the Animated celebration (a <canvas> centre pane); never a
+			// synthesized icon (<img> centre pane).
+			const celebrations = mount.container.querySelectorAll('[aria-label="Gift Celebration"]');
+			expect(celebrations).toHaveLength(1);
+			expect(mount.container.querySelector('img[aria-label="Gift Celebration center"]')).toBeNull();
+		} finally {
+			await mount.unmount();
+			restoreObjectUrl();
+			vi.useRealTimers();
+		}
+	});
+
 	it('never synthesizes for a sub-threshold, zero-diamond, or icon-less gift', async () => {
 		vi.useFakeTimers();
 		const provider = new FakeProvider();
@@ -524,6 +584,69 @@ describe('Session Tab', () => {
 	});
 });
 
+describe('useCelebrationFeed', () => {
+	// A real gift burst delivers several captures synchronously. The Session Tab
+	// renders under <StrictMode>, which double-invokes state updaters in dev. The
+	// feed must not perform buffer side effects inside the updater, or the second
+	// invocation drains the buffer again and silently drops captures (issue #66).
+	it('hands every capture of a synchronous burst to the stage under StrictMode', async () => {
+		const drained: string[] = [];
+		let enqueue: ((capture: CapturedCelebration) => void) | undefined;
+
+		// Stands in for CelebrationStage: ingests the current capture exactly once
+		// (deduping by reference, as the stage does) and releases the next.
+		function StageHarness() {
+			const { capture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
+			enqueue = enqueueCapture;
+			const lastIngested = useRef<CapturedCelebration | undefined>(undefined);
+			useEffect(() => {
+				if (capture && capture !== lastIngested.current) {
+					lastIngested.current = capture;
+					drained.push(capture.assetId);
+					onCaptureIngested();
+				}
+			});
+			return null;
+		}
+
+		const container = document.createElement('div');
+		document.body.append(container);
+		const root = createRoot(container);
+		try {
+			await act(async () => {
+				root.render(
+					<StrictMode>
+						<StageHarness />
+					</StrictMode>,
+				);
+			});
+
+			const burst: CapturedCelebration[] = ['a', 'b', 'c', 'd'].map((id) => ({
+				kind: 'synthesized',
+				assetId: id,
+				giftImageUrl: id,
+			}));
+			await act(async () => {
+				for (const capture of burst) {
+					enqueue?.(capture);
+				}
+			});
+			// Let the harness drain the buffered tail across follow-up renders.
+			await act(async () => {
+				await Promise.resolve();
+			});
+
+			// Every distinct capture reached the stage, in order — none dropped.
+			expect(drained).toEqual(['a', 'b', 'c', 'd']);
+		} finally {
+			await act(async () => {
+				root.unmount();
+			});
+			container.remove();
+		}
+	});
+});
+
 declare global {
 	interface Window {
 		__celestiaPlayCelebration?: (assetId?: string) => Promise<void>;
@@ -605,11 +728,13 @@ function chatEvent(id: string, text: string): LiveEvent {
 
 function giftEvent(
 	id: string,
-	fields: { diamondCount?: number; giftImageUrl?: string },
+	fields: { diamondCount?: number; giftImageUrl?: string; ts?: number },
 ): LiveEvent {
 	return {
 		id,
-		ts: Date.now(),
+		// `ts` is TikTok's server `createTime`; default to local time but allow an
+		// override to model server↔client clock skew (issue #66).
+		ts: fields.ts ?? Date.now(),
 		type: 'gift',
 		source: 'test',
 		diamondCount: fields.diamondCount,
