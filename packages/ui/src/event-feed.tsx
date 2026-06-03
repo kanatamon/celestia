@@ -557,6 +557,7 @@ export function IndividualChatFeed({
 			data-celestia-individual-chat-feed=""
 		>
 			<Tag
+				aria-label={`${toDisplayName(pinnedEvent.user)} feed controls`}
 				className={styles.individualViewerPill}
 				data-celestia-individual-viewer-pill=""
 				icon={<Avatar user={pinnedEvent.user} />}
@@ -567,9 +568,7 @@ export function IndividualChatFeed({
 					</span>
 				}
 				onClose={() => onPinnedEventChange?.(undefined)}
-			>
-				{toDisplayName(pinnedEvent.user)}
-			</Tag>
+			/>
 			<ScrollableFeedList
 				key={pinnedEvent.user?.userId}
 				events={events}

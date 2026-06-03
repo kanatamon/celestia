@@ -535,7 +535,7 @@ describe('IndividualChatFeed', () => {
 		expect(html).toContain('pinnedIndividualEventRow');
 	});
 
-	it('renders the pinned viewer as a floating dismissible pill without redundant headers', async () => {
+	it('renders the pinned viewer as a floating avatar-only dismissible pill without redundant headers', async () => {
 		const { container, render, unmount } = createStrictRoot();
 		const pinnedViewerChat = chatEvent('chat-1', 10, 'from pinned viewer');
 		let dismissedEvent: ChatLiveEvent | GiftLiveEvent | undefined = pinnedViewerChat;
@@ -555,7 +555,8 @@ describe('IndividualChatFeed', () => {
 		expect(container.textContent).not.toContain('Viewer feed');
 		const pill = container.querySelector('[data-celestia-individual-viewer-pill]');
 		expect(pill).toBeInstanceOf(HTMLElement);
-		expect(pill?.textContent).toContain('Viewer');
+		expect(pill?.textContent).not.toContain('Viewer');
+		expect(pill?.getAttribute('aria-label')).toBe('Viewer feed controls');
 
 		const dismissButton = container.querySelector('[data-celestia-viewer-pill-dismiss]');
 		expect(dismissButton).toBeInstanceOf(HTMLElement);
