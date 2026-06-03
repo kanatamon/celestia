@@ -27,6 +27,14 @@ export interface GiftCelebrationTriptychLayout {
 const PORTRAIT_WIDTH = 720;
 const PORTRAIT_HEIGHT = 1280;
 const PORTRAIT_ASPECT_RATIO = PORTRAIT_WIDTH / PORTRAIT_HEIGHT;
+
+/**
+ * Synthesized Gift Icon size as a fraction of the feed-contained portrait height
+ * (locked from prototype-celebration-feed-viewport-scale.html, 2026-06-03). The
+ * icon is a centred square — deliberately smaller than the Animated kind, which
+ * still fills the full contained portrait (mp4Scale = 1.0).
+ */
+const SYNTHESIZED_ICON_SCALE = 0.4;
 const GUTTER_WIDTH_RATIO = 0.42;
 const GUTTER_EDGE_OFFSET_RATIO = 0.06;
 const GUTTER_BLUR_PX = 10;
@@ -84,6 +92,37 @@ export function computeGiftCelebrationTriptychLayout({
 			opacity: GUTTER_OPACITY,
 			zIndex: 1,
 		},
+	};
+}
+
+/**
+ * Layout for a **Synthesized Gift Celebration** icon: a centred square sized off
+ * the feed viewport's contained-portrait height (no gutters — the synthesized
+ * path never uses them). Smaller than the Animated kind by {@link
+ * SYNTHESIZED_ICON_SCALE}. The square is what the breathing icon, its glow, and
+ * the fireworks origin are placed against.
+ */
+export function computeSynthesizedGiftIconLayout({
+	width,
+	height,
+}: GiftCelebrationViewport): GiftCelebrationPaneLayout {
+	const viewportWidth = Math.max(0, width);
+	const viewportHeight = Math.max(0, height);
+	const containScale = Math.min(viewportWidth / PORTRAIT_WIDTH, viewportHeight / PORTRAIT_HEIGHT);
+	const containHeight = PORTRAIT_HEIGHT * containScale;
+	const size = roundLayoutValue(containHeight * SYNTHESIZED_ICON_SCALE);
+
+	return {
+		x: roundLayoutValue((viewportWidth - size) / 2),
+		y: roundLayoutValue((viewportHeight - size) / 2),
+		width: size,
+		height: size,
+		fit: 'contain',
+		mirrored: false,
+		blurPx: 0,
+		brightness: 1,
+		opacity: 1,
+		zIndex: 2,
 	};
 }
 

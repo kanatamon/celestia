@@ -8,8 +8,8 @@ import {
 import styles from './gift-celebration.module.css';
 import {
 	computeGiftCelebrationTriptychLayout,
+	computeSynthesizedGiftIconLayout,
 	type GiftCelebrationPaneLayout,
-	type GiftCelebrationTriptychLayout,
 	getGiftCelebrationSourceAspectRatio,
 } from './gift-celebration-layout.js';
 
@@ -95,9 +95,9 @@ function SynthesizedGiftCelebrationStage({
 }: SynthesizedGiftCelebrationStageProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const viewport = useMeasuredViewport(stageRef);
-	const layout = useMemo(
+	const iconLayout = useMemo(
 		() =>
-			computeGiftCelebrationTriptychLayout({
+			computeSynthesizedGiftIconLayout({
 				width: viewport.width,
 				height: viewport.height,
 			}),
@@ -111,7 +111,7 @@ function SynthesizedGiftCelebrationStage({
 		return () => clearTimeout(timer);
 	}, []);
 
-	const glowSize = Math.min(layout.center.width, layout.center.height);
+	const glowSize = Math.min(iconLayout.width, iconLayout.height);
 
 	return (
 		<div aria-label="Gift Celebration" className={styles.stage} ref={stageRef} role="img">
@@ -120,22 +120,22 @@ function SynthesizedGiftCelebrationStage({
 					aria-hidden="true"
 					className={styles.glowFlash}
 					style={{
-						left: `${layout.center.x + (layout.center.width - glowSize) / 2}px`,
-						top: `${layout.center.y + (layout.center.height - glowSize) / 2}px`,
+						left: `${iconLayout.x + (iconLayout.width - glowSize) / 2}px`,
+						top: `${iconLayout.y + (iconLayout.height - glowSize) / 2}px`,
 						width: `${glowSize}px`,
 						height: `${glowSize}px`,
-						zIndex: layout.center.zIndex,
+						zIndex: iconLayout.zIndex,
 					}}
 				/>
 			) : null}
-			<IconPane giftImageUrl={giftImageUrl} layout={layout.center} paneName="center" />
-			<FireworksOverlay layout={layout} />
+			<IconPane giftImageUrl={giftImageUrl} layout={iconLayout} paneName="center" />
+			<FireworksOverlay icon={iconLayout} />
 		</div>
 	);
 }
 
 interface FireworksOverlayProps {
-	layout: GiftCelebrationTriptychLayout;
+	icon: GiftCelebrationPaneLayout;
 }
 
 /**
@@ -147,16 +147,16 @@ interface FireworksOverlayProps {
  * the single ~2.8s cycle. The engine itself idle-skips when no particles are
  * alive, so the loop performs no canvas work outside the live window.
  */
-function FireworksOverlay({ layout }: FireworksOverlayProps) {
+function FireworksOverlay({ icon }: FireworksOverlayProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
-	const originX = layout.center.x + layout.center.width / 2;
-	const originY = layout.center.y + layout.center.height * FIREWORKS_BURST_HEIGHT_FRACTION;
-	const ready = layout.center.width > 0 && layout.center.height > 0;
+	const originX = icon.x + icon.width / 2;
+	const originY = icon.y + icon.height * FIREWORKS_BURST_HEIGHT_FRACTION;
+	const ready = icon.width > 0 && icon.height > 0;
 	// Stage extent: the fx canvas fills the stage (inset:0). Derive from the
-	// centre pane offsets, which are symmetric within the stage.
-	const stageW = layout.center.x * 2 + layout.center.width;
-	const stageH = layout.center.y * 2 + layout.center.height;
+	// centred icon's offsets, which are symmetric within the stage.
+	const stageW = icon.x * 2 + icon.width;
+	const stageH = icon.y * 2 + icon.height;
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
