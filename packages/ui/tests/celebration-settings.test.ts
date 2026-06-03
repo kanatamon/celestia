@@ -32,20 +32,20 @@ describe('celebration settings', () => {
 		// Legacy stored value 99 → still 99 (exact tier).
 		expect(createCelebrationSettings({ storage: memoryStorage(99) }).getThreshold()).toBe(99);
 
-		// 437 is between 299 and 999; midpoint is 649 → 437 is nearer 299.
-		expect(createCelebrationSettings({ storage: memoryStorage(437) }).getThreshold()).toBe(299);
+		// 437 is between 299 and 499; midpoint is 399 → 437 is nearer 499.
+		expect(createCelebrationSettings({ storage: memoryStorage(437) }).getThreshold()).toBe(499);
 
-		// 60000 is above 999 → snaps to 999.
-		expect(createCelebrationSettings({ storage: memoryStorage(60000) }).getThreshold()).toBe(999);
+		// 60000 is above 899 → snaps to 899.
+		expect(createCelebrationSettings({ storage: memoryStorage(60000) }).getThreshold()).toBe(899);
 
-		// 0 is below 1 → snaps to 1.
-		expect(createCelebrationSettings({ storage: memoryStorage(0) }).getThreshold()).toBe(1);
+		// 0 is below 30 → snaps to 30.
+		expect(createCelebrationSettings({ storage: memoryStorage(0) }).getThreshold()).toBe(30);
 
-		// Midpoint between 1 and 30 is 15.5; 15 is nearer 1.
-		expect(createCelebrationSettings({ storage: memoryStorage(15) }).getThreshold()).toBe(1);
+		// Anything below the lowest tier snaps up to 30.
+		expect(createCelebrationSettings({ storage: memoryStorage(15) }).getThreshold()).toBe(30);
 
-		// 16 is nearer 30.
-		expect(createCelebrationSettings({ storage: memoryStorage(16) }).getThreshold()).toBe(30);
+		// 64 is nearer 30 than 99 (|64-30|=34 vs |64-99|=35).
+		expect(createCelebrationSettings({ storage: memoryStorage(64) }).getThreshold()).toBe(30);
 	});
 
 	it('persists a snapped threshold through storage', () => {
@@ -58,9 +58,9 @@ describe('celebration settings', () => {
 		expect(setThreshold).toHaveBeenCalledWith(99);
 		expect(settings.getThreshold()).toBe(99);
 
-		// 1 is an exact tier.
-		settings.setThreshold(1);
-		expect(settings.getThreshold()).toBe(1);
+		// 30 is an exact tier.
+		settings.setThreshold(30);
+		expect(settings.getThreshold()).toBe(30);
 	});
 });
 
@@ -73,18 +73,24 @@ describe('normalizeThreshold', () => {
 	});
 
 	it('snaps to nearest tier for arbitrary values', () => {
-		expect(normalizeThreshold(0)).toBe(1);
-		expect(normalizeThreshold(1)).toBe(1);
-		expect(normalizeThreshold(15)).toBe(1);
-		expect(normalizeThreshold(16)).toBe(30);
+		expect(normalizeThreshold(0)).toBe(30); // below lowest tier → 30
+		expect(normalizeThreshold(15)).toBe(30);
 		expect(normalizeThreshold(30)).toBe(30);
 		expect(normalizeThreshold(64)).toBe(30); // |64-30|=34 vs |64-99|=35 → 30
 		expect(normalizeThreshold(65)).toBe(99); // |65-30|=35 vs |65-99|=34 → 99
 		expect(normalizeThreshold(99)).toBe(99);
+		expect(normalizeThreshold(149)).toBe(99); // |149-99|=50 vs |149-199|=50 → tie → first wins (99)
+		expect(normalizeThreshold(150)).toBe(199); // |150-99|=51 vs |150-199|=49 → 199
+		expect(normalizeThreshold(199)).toBe(199);
+		expect(normalizeThreshold(249)).toBe(199); // |249-199|=50 vs |249-299|=50 → tie → first wins (199)
+		expect(normalizeThreshold(250)).toBe(299); // |250-199|=51 vs |250-299|=49 → 299
 		expect(normalizeThreshold(299)).toBe(299);
-		expect(normalizeThreshold(649)).toBe(299); // |649-299|=350 vs |649-999|=350 → tie → first wins (299)
-		expect(normalizeThreshold(650)).toBe(999); // |650-299|=351 vs |650-999|=349 → 999
-		expect(normalizeThreshold(999)).toBe(999);
-		expect(normalizeThreshold(999999)).toBe(999);
+		expect(normalizeThreshold(399)).toBe(299); // |399-299|=100 vs |399-499|=100 → tie → first wins (299)
+		expect(normalizeThreshold(400)).toBe(499); // |400-299|=101 vs |400-499|=99 → 499
+		expect(normalizeThreshold(499)).toBe(499);
+		expect(normalizeThreshold(699)).toBe(499); // |699-499|=200 vs |699-899|=200 → tie → first wins (499)
+		expect(normalizeThreshold(700)).toBe(899); // |700-499|=201 vs |700-899|=199 → 899
+		expect(normalizeThreshold(899)).toBe(899);
+		expect(normalizeThreshold(999999)).toBe(899);
 	});
 });

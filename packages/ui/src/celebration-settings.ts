@@ -12,8 +12,8 @@
  * tier so every consumer sees a valid tier value.
  */
 
-/** The five discrete tiers the Celebration Threshold can be set to. */
-export const CELEBRATION_THRESHOLD_TIERS = [1, 30, 99, 299, 999] as const;
+/** The discrete tiers the Celebration Threshold can be set to. */
+export const CELEBRATION_THRESHOLD_TIERS = [30, 99, 199, 299, 499, 899] as const;
 
 export type CelebrationThresholdTier = (typeof CELEBRATION_THRESHOLD_TIERS)[number];
 

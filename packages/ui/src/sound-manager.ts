@@ -1,4 +1,4 @@
-export type Channel = 'chat' | 'gift';
+export type Channel = 'chat' | 'gift' | 'celebration';
 export type VolumeKey = 'master' | Channel;
 
 export interface SoundManager {
@@ -21,11 +21,13 @@ const cooldownMs = 300;
 const audioSources: Record<Channel, string> = {
 	chat: '/sfx-chat.mp3',
 	gift: '/sfx-gift.wav',
+	celebration: '/sfx-celebration.mp3',
 };
 const defaultVolumes: Record<VolumeKey, number> = {
 	master: 100,
 	chat: 30,
 	gift: 50,
+	celebration: 70,
 };
 
 class BrowserSoundManager implements SoundManager {

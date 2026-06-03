@@ -46,6 +46,29 @@ describe('useSoundEffects', () => {
 		unmount();
 	});
 
+	it('routes a gift at or above the celebration threshold to the celebration channel', () => {
+		const play = vi.spyOn(soundManager, 'play').mockImplementation(() => {});
+		const { render, unmount } = createStrictRoot();
+
+		render(<SoundEffectsHarness events={[]} />);
+
+		// Default Celebration Threshold is 99. A below-threshold gift keeps the
+		// per-gift chime; an at/above-threshold gift plays the fanfare instead.
+		render(<SoundEffectsHarness events={[giftEvent('gift-low', 30)]} />);
+
+		expect(play).toHaveBeenCalledTimes(1);
+		expect(play).toHaveBeenLastCalledWith('gift');
+
+		render(
+			<SoundEffectsHarness events={[giftEvent('gift-low', 30), giftEvent('gift-high', 99)]} />,
+		);
+
+		expect(play).toHaveBeenCalledTimes(2);
+		expect(play).toHaveBeenLastCalledWith('celebration');
+
+		unmount();
+	});
+
 	it('does not play sounds for events that already exist on mount', () => {
 		const play = vi.spyOn(soundManager, 'play').mockImplementation(() => {});
 		const { render, unmount } = createStrictRoot();
@@ -103,7 +126,7 @@ function chatEvent(id: string): ChatLiveEvent {
 	};
 }
 
-function giftEvent(id: string): GiftLiveEvent {
+function giftEvent(id: string, diamondCount = 1): GiftLiveEvent {
 	return {
 		type: 'gift',
 		id,
@@ -116,7 +139,7 @@ function giftEvent(id: string): GiftLiveEvent {
 		},
 		giftId: 'rose',
 		giftName: 'Rose',
-		diamondCount: 1,
+		diamondCount,
 		repeatCount: 1,
 	};
 }

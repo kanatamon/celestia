@@ -38,7 +38,7 @@ const volumeRows: VolumeRow[] = [
  * antd Slider with step={null} snaps the handle to the nearest mark key.
  * The keys are 0–4 (equidistant); tier values are stored separately so the
  * slider always moves in equal visual steps regardless of numeric gaps between
- * tiers (1, 30, 99, 299, 999).
+ * tiers (30, 99, 199, 299, 499, 899).
  */
 const TIER_INDEX_TO_VALUE: Record<number, number> = Object.fromEntries(
 	CELEBRATION_THRESHOLD_TIERS.map((tier, i) => [i, tier]),
@@ -105,6 +105,12 @@ export function SettingsPopover({
 					</div>
 					<div className={`${styles.title} ${styles.giftCelebrationTitle}`}>GIFT CELEBRATION</div>
 					<div className={styles.rows}>
+						<VolumeSliderRow
+							label="Volume"
+							onVolumeChange={(value) => handleVolumeChange('celebration', value)}
+							onPreview={() => manager.preview('celebration')}
+							value={volumes.celebration}
+						/>
 						<ThresholdSliderRow onThresholdChange={handleThresholdChange} value={threshold} />
 					</div>
 					<div className={`${styles.title} ${styles.liveSessionTitle}`}>LIVE SESSION</div>
@@ -226,5 +232,6 @@ function readVolumes(manager: SoundManager): VolumeValues {
 		master: manager.getVolume('master'),
 		chat: manager.getVolume('chat'),
 		gift: manager.getVolume('gift'),
+		celebration: manager.getVolume('celebration'),
 	};
 }

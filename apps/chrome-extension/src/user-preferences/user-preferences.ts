@@ -15,7 +15,12 @@ function volumePreferenceKey(key: VolumeKey): VolumePreferenceKey {
 const recentStreamerUsernamePreferenceKey = 'recentStreamerUsername';
 const traceModePreferenceKey = 'celestia.trace';
 const celebrationThresholdPreferenceKey = 'celebration.diamondThreshold';
-const volumeKeys = ['master', 'chat', 'gift'] as const satisfies readonly VolumeKey[];
+const volumeKeys = [
+	'master',
+	'chat',
+	'gift',
+	'celebration',
+] as const satisfies readonly VolumeKey[];
 const volumePreferenceKeys = volumeKeys.map(volumePreferenceKey);
 
 export type UserPreferenceKey =
@@ -55,6 +60,7 @@ const defaultVolumes: Record<VolumeKey, number> = {
 	master: 100,
 	chat: 30,
 	gift: 50,
+	celebration: 70,
 };
 
 export const userPreferences = createUserPreferencesStore();

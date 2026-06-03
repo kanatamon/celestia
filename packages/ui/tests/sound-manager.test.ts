@@ -37,6 +37,7 @@ describe('soundManager', () => {
 		expect(soundManager.getVolume('master')).toBe(100);
 		expect(soundManager.getVolume('chat')).toBe(30);
 		expect(soundManager.getVolume('gift')).toBe(50);
+		expect(soundManager.getVolume('celebration')).toBe(70);
 
 		soundManager.setVolume('master', 40);
 		soundManager.setVolume('chat', 25);
@@ -75,6 +76,13 @@ describe('soundManager', () => {
 		soundManager.preview('gift');
 		soundManager.preview('gift');
 		expect(giftAudio?.play).toHaveBeenCalledTimes(3);
+
+		soundManager.play('celebration');
+		const celebrationAudio = MockAudio.instances.find(
+			(audio) => audio.src === '/sfx-celebration.mp3',
+		);
+		expect(celebrationAudio).toBeDefined();
+		expect(celebrationAudio?.play).toHaveBeenCalledTimes(1);
 	});
 
 	it('round-trips volumes through injected storage and returns defaults when storage is empty', () => {

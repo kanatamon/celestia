@@ -83,6 +83,7 @@ describe('SettingsPopover', () => {
 			master: 100,
 			chat: 30,
 			gift: 50,
+			celebration: 70,
 		};
 
 		vi.spyOn(soundManager, 'getVolume').mockImplementation((key) => {
@@ -112,10 +113,12 @@ describe('SettingsPopover', () => {
 		expect(container.textContent).toContain('100%');
 		expect(container.textContent).toContain('30%');
 		expect(container.textContent).toContain('50%');
+		expect(container.textContent).toContain('70%');
 		expect(getButton(container, 'Clear Live Session Data').disabled).toBe(true);
-		// Three volume sliders plus the Celebration Threshold slider.
-		expect(container.querySelectorAll('input[type="range"]')).toHaveLength(4);
-		expect(container.querySelectorAll('button[aria-label="Play test sound"]')).toHaveLength(2);
+		// Master/Chat/Gift plus the Celebration volume slider and the Celebration
+		// Threshold slider.
+		expect(container.querySelectorAll('input[type="range"]')).toHaveLength(5);
+		expect(container.querySelectorAll('button[aria-label="Play test sound"]')).toHaveLength(3);
 
 		const chatSlider = getSlider(container, 'Chat volume');
 		await act(async () => {
@@ -126,15 +129,17 @@ describe('SettingsPopover', () => {
 		expect(setVolume).toHaveBeenCalledWith('chat', 42);
 		expect(container.textContent).toContain('42%');
 
-		const [chatPreview, giftPreview] = getTestSoundButtons(container);
+		const [chatPreview, giftPreview, celebrationPreview] = getTestSoundButtons(container);
 
 		await act(async () => {
 			chatPreview.click();
 			giftPreview.click();
+			celebrationPreview.click();
 		});
 
 		expect(preview).toHaveBeenCalledWith('chat');
 		expect(preview).toHaveBeenCalledWith('gift');
+		expect(preview).toHaveBeenCalledWith('celebration');
 
 		await act(async () => {
 			gearButton.click();
@@ -193,18 +198,18 @@ describe('SettingsPopover', () => {
 			</SettingsPopover>,
 		);
 
-		// The slider value is the tier index (0–4), not the raw diamond count.
-		// 299 is tier index 3.
+		// The slider value is the tier index (0–5), not the raw diamond count.
+		// Tiers are [30, 99, 199, 299, 499, 899], so 299 is tier index 3.
 		const thresholdSlider = getSlider(container, 'Celebration diamond threshold');
 		expect(thresholdSlider.value).toBe('3');
 
-		// Dragging to index 4 maps to tier 999.
+		// Dragging to index 5 maps to tier 899.
 		await act(async () => {
-			thresholdSlider.value = '4';
+			thresholdSlider.value = '5';
 			thresholdSlider.dispatchEvent(new Event('input', { bubbles: true }));
 		});
 
-		expect(celebrationSettings.setThreshold).toHaveBeenCalledWith(999);
+		expect(celebrationSettings.setThreshold).toHaveBeenCalledWith(899);
 
 		unmount();
 	});
@@ -245,15 +250,17 @@ function getSlider(container: Element, label: string): HTMLInputElement {
 	return element;
 }
 
-function getTestSoundButtons(container: Element): [HTMLButtonElement, HTMLButtonElement] {
+function getTestSoundButtons(
+	container: Element,
+): [HTMLButtonElement, HTMLButtonElement, HTMLButtonElement] {
 	const buttons = Array.from(
 		container.querySelectorAll<HTMLButtonElement>('button[aria-label="Play test sound"]'),
 	);
-	const [chatButton, giftButton] = buttons;
+	const [chatButton, giftButton, celebrationButton] = buttons;
 
-	if (buttons.length !== 2 || !chatButton || !giftButton) {
-		throw new Error('Expected chat and gift test sound buttons.');
+	if (buttons.length !== 3 || !chatButton || !giftButton || !celebrationButton) {
+		throw new Error('Expected chat, gift, and celebration test sound buttons.');
 	}
 
-	return [chatButton, giftButton];
+	return [chatButton, giftButton, celebrationButton];
 }
