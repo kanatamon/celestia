@@ -204,7 +204,8 @@
 	padding: 0 12px;
 	scroll-behavior: smooth;
 	/* Minimal custom scrollbar */
-	scrollbar-width: thin; /* Firefox */
+	scrollbar-width: thin;
+	/* Firefox */
 	scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
@@ -543,11 +544,23 @@
 	gap: 5px;
 	width: 100%;
 	min-width: 0;
-	padding: 9px 12px 10px;
-	border: 0;
-	background: linear-gradient(to right, rgba(20, 12, 32, 0.94), rgba(10, 24, 40, 0.94));
-	backdrop-filter: blur(14px);
-	box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.42);
+	padding: 10px 12px 11px;
+	border: 1px solid rgba(175, 255, 232, 0.22);
+	border-right: 0;
+	border-bottom: 0;
+	border-left: 0;
+	background: linear-gradient(
+		110deg,
+		rgba(16, 185, 129, 0.16),
+		rgba(59, 130, 246, 0.15) 45%,
+		rgba(244, 114, 182, 0.14)
+	);
+	backdrop-filter: blur(22px) saturate(1.42);
+	box-shadow:
+		0 -18px 46px rgba(16, 185, 129, 0.15),
+		0 -16px 48px rgba(59, 130, 246, 0.14),
+		0 -12px 42px rgba(244, 114, 182, 0.11),
+		0 -1px 0 rgba(255, 255, 255, 0.16) inset;
 	color: var(--ant-color-text-base);
 	cursor: pointer;
 	font: inherit;
@@ -557,18 +570,29 @@
 
 .newMessagesBar::before {
 	position: absolute;
-	top: -32px;
+	bottom: 100%;
 	right: 0;
 	left: 0;
 	z-index: -1;
-	height: 32px;
-	background: linear-gradient(0deg, rgba(20, 12, 32, 0.78), rgba(10, 24, 40, 0.3) 54%, transparent);
+	height: 40px;
+	background: linear-gradient(
+		0deg,
+		rgba(45, 212, 191, 0.14),
+		rgba(96, 165, 250, 0.1) 48%,
+		rgba(244, 114, 182, 0.05) 72%,
+		transparent
+	);
 	content: "";
 	pointer-events: none;
 }
 
 .newMessagesBar:hover {
-	background: linear-gradient(to right, rgba(28, 16, 44, 0.96), rgba(14, 32, 54, 0.96));
+	background: linear-gradient(
+		110deg,
+		rgba(16, 185, 129, 0.21),
+		rgba(59, 130, 246, 0.19) 45%,
+		rgba(244, 114, 182, 0.18)
+	);
 }
 
 .newMessagesTopRow,
@@ -594,9 +618,12 @@
 	justify-content: center;
 	height: 22px;
 	flex: 0 0 auto;
-	padding: 0 6px;
+	padding: 0 7px;
 	border-radius: 999px;
-	background: linear-gradient(135deg, #ec4899, #8b5cf6);
+	background: linear-gradient(135deg, #34d399, #60a5fa 52%, #f472b6);
+	box-shadow:
+		0 8px 18px rgba(0, 0, 0, 0.18),
+		inset 0 1px 0 rgba(255, 255, 255, 0.24);
 	color: #fff;
 	font-size: 12px;
 	font-weight: 900;
@@ -604,18 +631,18 @@
 }
 
 .newMessagesLabel {
-	color: #f5b8da;
+	color: #d1fae5;
 	font-size: 12px;
-	font-weight: 800;
+	font-weight: 900;
 	line-height: 1;
 	white-space: nowrap;
 }
 
 .newMessagesHint {
 	flex: 0 0 auto;
-	color: #7fd6e8;
+	color: #fbcfe8;
 	font-size: 12px;
-	font-weight: 800;
+	font-weight: 900;
 	line-height: 1;
 	white-space: nowrap;
 }
@@ -632,7 +659,7 @@
 	flex: 0 1 auto;
 	min-width: 0;
 	overflow: hidden;
-	color: #67e8f9;
+	color: #5eead4;
 	font-weight: 900;
 	text-overflow: ellipsis;
 }
@@ -641,7 +668,7 @@
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow: hidden;
-	color: #d6dae8;
-	font-weight: 700;
+	color: rgba(244, 250, 255, 0.83);
+	font-weight: 750;
 	text-overflow: ellipsis;
 }
