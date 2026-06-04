@@ -4,6 +4,8 @@
 	"files": {
 		"includes": [
 			"**",
+			"!.sandcastle",
+			"!.turbo",
 			"!apps/legacy",
 			"!**/node_modules",
 			"!**/dist",

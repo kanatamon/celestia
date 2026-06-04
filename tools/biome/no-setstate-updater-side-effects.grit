@@ -28,9 +28,5 @@ language js
 		`$o.reverse()`,
 		`$ref.current = $value`
 	},
-	register_diagnostic(
-		span = $arg,
-		message = "Side effect inside a setState updater: React StrictMode double-invokes updaters in dev, so this runs twice and can corrupt state (issue #66). Compute the value before calling the setter and pass it in.",
-		severity = "error"
-	)
+	register_diagnostic(span=$arg, message="Side effect inside a setState updater: React StrictMode double-invokes updaters in dev, so this runs twice and can corrupt state (issue #66). Compute the value before calling the setter and pass it in.", severity="error")
 }
