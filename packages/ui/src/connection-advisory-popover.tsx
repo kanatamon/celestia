@@ -33,9 +33,11 @@ export function ConnectionAdvisory({
 	onReconnect,
 }: ConnectionAdvisoryProps) {
 	const content = resolveConnectionAdvisoryContent(signal.reason);
+	const accentClassName = content.accent === 'red' ? styles.accentRed : styles.accentAmber;
 
 	return (
 		<Dropdown
+			arrow
 			destroyOnHidden
 			open={open}
 			onOpenChange={onOpenChange}
@@ -43,6 +45,7 @@ export function ConnectionAdvisory({
 			popupRender={() => (
 				<AdvisoryContent content={content} onReconnect={onReconnect} onOpenChange={onOpenChange} />
 			)}
+			rootClassName={`${styles.popoverRoot} ${accentClassName}`}
 			trigger={['click']}
 		>
 			{children}

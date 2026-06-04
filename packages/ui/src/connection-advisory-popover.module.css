@@ -1,30 +1,63 @@
 .advisory {
 	width: 268px;
 	padding: 14px;
-	border: 1px solid var(--advisory-border, rgba(255, 255, 255, 0.1));
-	border-radius: 8px;
-	background: rgba(10, 14, 28, 0.96);
+	border-radius: 10px;
+	/* Glassmorphic surface: a translucent accent-tinted wash over the blurred,
+	   saturated backdrop, with an inset top highlight and layered depth shadow —
+	   matching the established glass language (see event-feed `.newMessagesBar`).
+	   No hard border: it would draw a seam across the top edge where the arrow
+	   meets the body. The arrow is painted with this same surface (below) so the
+	   pointer and body read as one continuous piece of glass. */
+	background:
+		linear-gradient(150deg, var(--advisory-accent-soft), transparent 62%),
+		var(--advisory-surface, rgba(12, 16, 30, 0.55));
 	box-shadow:
-		0 18px 48px rgba(0, 0, 0, 0.42),
-		inset 0 1px 0 rgba(255, 255, 255, 0.08);
-	backdrop-filter: blur(18px);
+		0 18px 48px rgba(0, 0, 0, 0.5),
+		0 6px 18px var(--advisory-accent-glow, rgba(0, 0, 0, 0.28)),
+		inset 0 1px 0 rgba(255, 255, 255, 0.14);
+	backdrop-filter: blur(22px) saturate(1.4);
 	color: #f8fafc;
 }
 
-.advisory[data-accent="red"] {
+/* Accent vars live on the scoped Dropdown root so the arrow (an AntD-rendered
+   sibling of our content) inherits the same palette as the body. */
+.accentRed {
 	--advisory-accent: #fb7185;
-	--advisory-accent-soft: rgba(251, 113, 133, 0.16);
+	--advisory-accent-soft: rgba(251, 113, 133, 0.18);
 	--advisory-accent-strong: rgba(127, 29, 29, 0.24);
-	--advisory-border: rgba(251, 113, 133, 0.32);
+	--advisory-accent-glow: rgba(251, 113, 133, 0.2);
+	--advisory-border: rgba(251, 113, 133, 0.36);
+	--advisory-surface: rgba(28, 14, 20, 0.55);
 	--advisory-title: #fecdd3;
 }
 
-.advisory[data-accent="amber"] {
+.accentAmber {
 	--advisory-accent: #fbbf24;
-	--advisory-accent-soft: rgba(251, 191, 36, 0.16);
+	--advisory-accent-soft: rgba(251, 191, 36, 0.18);
 	--advisory-accent-strong: rgba(120, 53, 15, 0.26);
-	--advisory-border: rgba(251, 191, 36, 0.34);
+	--advisory-accent-glow: rgba(251, 191, 36, 0.2);
+	--advisory-border: rgba(251, 191, 36, 0.38);
+	--advisory-surface: rgba(30, 22, 8, 0.55);
 	--advisory-title: #fde68a;
+}
+
+/* Glass arrow: paint AntD's arrow `::before` with the exact same translucent,
+   accent-tinted, blurred surface as the body, and strip the `::after`
+   faux-border. With no border on either piece and a matching surface, the
+   pointer and body merge seamlessly. AntD's own rules sit at specificity (0,2,1)
+   and are injected at runtime, so we anchor on the root compound
+   (`.popoverRoot` and `.ant-dropdown` are the same element) to reach (0,3,1) and
+   win deterministically without `!important`. `clip-path`/sizing from AntD's
+   rule are preserved (we only set paint properties). */
+.popoverRoot:global(.ant-dropdown) :global(.ant-dropdown-arrow)::before {
+	background:
+		linear-gradient(var(--advisory-accent-soft), var(--advisory-accent-soft)),
+		var(--advisory-surface, rgba(12, 16, 30, 0.55));
+	backdrop-filter: blur(22px) saturate(1.4);
+}
+
+.popoverRoot:global(.ant-dropdown) :global(.ant-dropdown-arrow)::after {
+	box-shadow: none;
 }
 
 .header {

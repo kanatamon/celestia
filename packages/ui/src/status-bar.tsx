@@ -183,6 +183,16 @@ export function StatusBar({
 
 	const displayUsername = username || connectionState.username;
 
+	// Signal bars + streamer name. For fault kinds this whole group is the
+	// advisory's clickable trigger (a button, so the hit target spans the cluster
+	// rather than the tiny bars, with a hover affordance); otherwise it is inert.
+	const clusterContent = (
+		<>
+			<ConnectionSignal signal={connectionSignal} />
+			<span className={styles.username}>@{displayUsername}</span>
+		</>
+	);
+
 	return (
 		<div className={styles.statusBar} role="status">
 			<div className={styles.statusCluster} data-celestia-status-cluster>
@@ -194,12 +204,19 @@ export function StatusBar({
 							onOpenChange={handleAdvisoryOpenChange}
 							onReconnect={onReconnect}
 						>
-							<ConnectionSignal signal={connectionSignal} />
+							<button
+								aria-label={`${connectionSignal.label} — show connection advisory`}
+								className={styles.clusterTrigger}
+								data-celestia-connection-cluster-trigger
+								data-open={isAdvisoryOpen ? 'true' : undefined}
+								type="button"
+							>
+								{clusterContent}
+							</button>
 						</ConnectionAdvisory>
 					) : (
-						<ConnectionSignal signal={connectionSignal} />
+						clusterContent
 					)}
-					<span className={styles.username}>@{displayUsername}</span>
 				</span>
 				<span className={styles.metric}>
 					<EyeOutlined aria-hidden="true" />

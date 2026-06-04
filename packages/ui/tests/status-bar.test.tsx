@@ -87,11 +87,13 @@ describe('StatusBar', () => {
 		);
 
 		const signal = container.querySelector('[role="status"][data-state]');
-		const gradientScope = signal?.parentElement;
-		const username = gradientScope?.lastElementChild;
+		// The gradient scope is the [data-state] cluster wrapping the signal. For
+		// fault kinds an advisory trigger <button> sits between them, so walk up to
+		// the nearest [data-state] ancestor rather than assuming a direct parent.
+		const gradientScope = signal?.parentElement?.closest('[data-state]');
 
 		expect(gradientScope?.getAttribute('data-state')).toBe(state);
-		expect(username?.textContent).toBe('@celestia');
+		expect(gradientScope?.textContent).toContain('@celestia');
 
 		unmount();
 	});
