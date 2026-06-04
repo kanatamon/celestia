@@ -34,7 +34,19 @@ export interface StatusBarProps {
 	 * what scale-bumps on a Heart Float arrival (the Like Counter pop).
 	 */
 	likeCounterRef?: Ref<HTMLSpanElement>;
+	/**
+	 * Monotonically increasing on each Heart Float arrival. The Like Layer signals
+	 * an arrival (`onHeartArrived`); the host bumps this and the StatusBar owns the
+	 * pop — the canvas only signals. The displayed `likeCount` keeps updating
+	 * immediately from the store regardless of this; only the scale-bump is gated
+	 * to arrival, so under a storm the pop throttles to the arrival rate while the
+	 * number sprints.
+	 */
+	heartArrivalSignal?: number;
 }
+
+/** How long the Like Counter pop lasts; matches the keyframe in the CSS module. */
+const LIKE_POP_MS = 260;
 
 type ActiveConnectionState = ConnectionState & {
 	status: Exclude<ConnectionState['status'], 'idle'>;
@@ -65,8 +77,34 @@ export function StatusBar({
 	onClearLiveSessionData,
 	onReconnect,
 	likeCounterRef,
+	heartArrivalSignal = 0,
 }: StatusBarProps) {
 	const [uncontrolledSettingsOpen, setUncontrolledSettingsOpen] = useState(false);
+
+	// The Like Counter pop, driven by `heartArrivalSignal` advancing on each Heart
+	// Float arrival. `isPopping` latches the scale-bump class for one animation
+	// cycle and re-arms on each fresh arrival, so a sustained burst pulses at the
+	// arrival rate. `popNonce` advances per arrival and keys the animated heart so
+	// React remounts it — restarting the CSS keyframe mid-pop without a "flush off
+	// then on" dance, so a burst re-fires the bump.
+	const [isPopping, setIsPopping] = useState(false);
+	const [popNonce, setPopNonce] = useState(0);
+	const lastArrivalRef = useRef(heartArrivalSignal);
+	const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	useEffect(() => {
+		if (heartArrivalSignal === lastArrivalRef.current) return;
+		lastArrivalRef.current = heartArrivalSignal;
+		setIsPopping(true);
+		setPopNonce((n) => n + 1);
+		if (popTimerRef.current !== null) clearTimeout(popTimerRef.current);
+		popTimerRef.current = setTimeout(() => setIsPopping(false), LIKE_POP_MS);
+	}, [heartArrivalSignal]);
+	useEffect(
+		() => () => {
+			if (popTimerRef.current !== null) clearTimeout(popTimerRef.current);
+		},
+		[],
+	);
 
 	// The Connection Advisory auto-opens on entering a fault kind (offline /
 	// reconnecting) and auto-closes on recovery (connected / discovering) or end.
@@ -145,8 +183,18 @@ export function StatusBar({
 					<EyeOutlined aria-hidden="true" />
 					{viewerCount.toLocaleString()}
 				</span>
-				<span className={styles.metric} data-celestia-like-counter ref={likeCounterRef}>
-					<HeartFilled aria-hidden="true" />
+				<span
+					className={styles.metric}
+					data-celestia-like-counter
+					data-popping={isPopping ? 'true' : undefined}
+					ref={likeCounterRef}
+				>
+					{/* Keyed by `popNonce` to remount and restart the keyframe per arrival. */}
+					<HeartFilled
+						key={popNonce}
+						aria-hidden="true"
+						className={isPopping ? styles.likeCounterPop : undefined}
+					/>
 					{likeCount.toLocaleString()}
 				</span>
 			</div>

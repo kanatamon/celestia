@@ -167,6 +167,54 @@ describe('StatusBar', () => {
 		unmount();
 	});
 
+	it('does not mark the like counter as popping on initial mount', () => {
+		const { container, render, unmount } = createStrictRoot();
+
+		render(
+			<StatusBar
+				connectionState={{ status: 'connected', username: 'celestia' }}
+				viewerCount={1}
+				likeCount={10}
+				heartArrivalSignal={0}
+			/>,
+		);
+
+		expect(getLikeCounter(container).getAttribute('data-popping')).not.toBe('true');
+
+		unmount();
+	});
+
+	it('pops the like counter when the heart-arrival signal advances, not on the raw count', async () => {
+		const { container, render, unmount } = createStrictRoot();
+
+		const renderBar = (likeCount: number, heartArrivalSignal: number) =>
+			render(
+				<StatusBar
+					connectionState={{ status: 'connected', username: 'celestia' }}
+					viewerCount={1}
+					likeCount={likeCount}
+					heartArrivalSignal={heartArrivalSignal}
+				/>,
+			);
+
+		renderBar(10, 0);
+
+		// The count races ahead from the store with no heart arrival: no pop.
+		await act(async () => {
+			renderBar(99, 0);
+		});
+		expect(getLikeCounter(container).textContent).toBe('99');
+		expect(getLikeCounter(container).getAttribute('data-popping')).not.toBe('true');
+
+		// A Heart Float arrives (signal advances): the counter pops.
+		await act(async () => {
+			renderBar(99, 1);
+		});
+		expect(getLikeCounter(container).getAttribute('data-popping')).toBe('true');
+
+		unmount();
+	});
+
 	it('groups status details in one left cluster and opens settings from the right icon button', async () => {
 		const onOpenSettings = vi.fn();
 		const { container, render, unmount } = createStrictRoot();
@@ -207,6 +255,16 @@ function getStatusCluster(container: Element): HTMLElement {
 
 	if (!(element instanceof HTMLElement)) {
 		throw new Error('Expected StatusBar to render the left status cluster.');
+	}
+
+	return element;
+}
+
+function getLikeCounter(container: Element): HTMLElement {
+	const element = container.querySelector('[data-celestia-like-counter]');
+
+	if (!(element instanceof HTMLElement)) {
+		throw new Error('Expected StatusBar to render the like counter.');
 	}
 
 	return element;

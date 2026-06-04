@@ -60,6 +60,21 @@
 	color: rgba(255, 255, 255, 0.9);
 }
 
+/* Like Counter pop: a quick scale-bump on the heart icon each time a Heart Float
+   arrives. The StatusBar owns this animation; the Like Layer only signals arrival.
+   The keyframe is restarted per arrival by remounting the icon (keyed by a nonce),
+   so a sustained burst pulses at the heart-arrival rate. */
+.likeCounterPop {
+	animation: likeCounterPop 260ms ease-out;
+	transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.likeCounterPop {
+		animation: none;
+	}
+}
+
 .username {
 	flex: 0 0 auto;
 	white-space: nowrap;
@@ -239,6 +254,20 @@
 
 	52% {
 		background-position: 100% 50%;
+	}
+}
+
+@keyframes likeCounterPop {
+	0% {
+		transform: scale(1);
+	}
+
+	38% {
+		transform: scale(1.42);
+	}
+
+	100% {
+		transform: scale(1);
 	}
 }
 

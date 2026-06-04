@@ -156,6 +156,14 @@ function LiveFeed({
 	const handleLikeLayerReady = useCallback((spawn: SpawnLike) => {
 		spawnLikeRef.current = spawn;
 	}, []);
+	// Heart Float arrival → Like Counter pop. The Like Layer signals each arrival
+	// (already throttled to the heart-arrival rate); we advance a nonce and the
+	// StatusBar owns the scale-bump. The displayed count keeps racing from the
+	// store independently — only the pop is gated to arrival.
+	const [heartArrivalSignal, setHeartArrivalSignal] = useState(0);
+	const handleHeartArrived = useCallback(() => {
+		setHeartArrivalSignal((n) => n + 1);
+	}, []);
 	const pushLikerRef = useRef<PushLiker | null>(null);
 	const handleConveyorReady = useCallback((push: PushLiker) => {
 		pushLikerRef.current = push;
@@ -311,6 +319,7 @@ function LiveFeed({
 					spawnAnchorRef={activityBarRef}
 					targetAnchorRef={likeCounterRef}
 					onReady={handleLikeLayerReady}
+					onHeartArrived={handleHeartArrived}
 					resetKey={likeResetKey}
 				/>
 				<div className={styles.liveFeedContent}>
@@ -323,6 +332,7 @@ function LiveFeed({
 						onReconnect={onReconnect}
 						username={state.streamerUsername ?? ''}
 						likeCounterRef={likeCounterRef}
+						heartArrivalSignal={heartArrivalSignal}
 					/>
 					<ClearLiveSessionDataModal
 						open={isClearDataConfirmOpen}
