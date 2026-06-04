@@ -77,6 +77,21 @@ export {
 	computeGiftCelebrationTriptychLayout,
 	getGiftCelebrationSourceAspectRatio,
 } from './gift-celebration-layout.js';
+export type { LikeLayerProps, SpawnLike } from './like-layer.js';
+export { LikeLayer } from './like-layer.js';
+export type { Heart, HeartPhase, StepHeartResult } from './like-layer-motion.js';
+export {
+	admitHearts,
+	createHeart,
+	DIVERT_DUR,
+	heartsForBatch,
+	MAX_HEARTS,
+	RISE_DUR,
+	RISE_SPEED,
+	SWAY_AMP,
+	SWAY_FREQ,
+	stepHeart,
+} from './like-layer-motion.js';
 export { CelestiaProvider } from './provider.js';
 export type { SettingsPopoverProps } from './settings-popover.js';
 export { SettingsPopover } from './settings-popover.js';

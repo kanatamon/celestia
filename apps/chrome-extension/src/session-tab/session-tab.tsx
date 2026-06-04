@@ -14,6 +14,8 @@ import {
 	type CelebrationSettings,
 	CelebrationStage,
 	celebrationSettings,
+	LikeLayer,
+	type SpawnLike,
 	SplitFeedLayout,
 	StatusBar,
 	useSoundEffects,
@@ -122,10 +124,23 @@ function LiveFeed({
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
 	const [isClearDataConfirmOpen, setIsClearDataConfirmOpen] = useState(false);
+	const [likeResetKey, setLikeResetKey] = useState(0);
 	const hasLiveSessionData = hasClearableLiveSessionData(state);
 	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
 	useDevGiftCelebrationTrigger(enqueueCapture);
 	const observeGiftForSynthesis = useSynthesizedCelebrationTrigger(enqueueCapture);
+
+	// Like Layer geometry anchors + read-only spawn sink. The sink is fed straight
+	// from the Provider's event callback below, mirroring the synthesized-celebration
+	// arbiter wiring — it bypasses the live-event store entirely (the store still
+	// folds likes into `likeCount`; the liker stream is never persisted).
+	const liveFeedRef = useRef<HTMLElement>(null);
+	const activityBarRef = useRef<HTMLDivElement>(null);
+	const likeCounterRef = useRef<HTMLSpanElement>(null);
+	const spawnLikeRef = useRef<SpawnLike | null>(null);
+	const handleLikeLayerReady = useCallback((spawn: SpawnLike) => {
+		spawnLikeRef.current = spawn;
+	}, []);
 	const soundEffectEvents = useMemo(
 		() => [...state.chatEvents, ...state.giftEvents].sort((a, b) => a.ts - b.ts),
 		[state.chatEvents, state.giftEvents],
@@ -191,6 +206,13 @@ function LiveFeed({
 			const unsubscribeLogs = provider.onLog(logProviderMessage);
 			const unsubscribeEvents = provider.onEvent((event) => {
 				dispatchLiveEvent(event, store.getState(), username);
+				if (event.type === 'like') {
+					// Read-only Like Layer sink: spawn Heart Floats for this like's
+					// delta. This bypasses the live-event store (which still folds the
+					// like into `likeCount` via `dispatchLiveEvent` above); the liker
+					// stream is never written to `chrome.storage.session`.
+					spawnLikeRef.current?.(event.likeCount ?? 1);
+				}
 				if (event.type === 'gift') {
 					// Read-only: feed the synthesized-celebration arbiter the gift's
 					// unit value and icon. The live event store is never mutated here.
@@ -255,8 +277,15 @@ function LiveFeed({
 					message="The paired TikTok Live tab was closed. This feed is no longer receiving new events."
 				/>
 			) : null}
-			<section aria-label="Live feed" className={styles.liveFeed}>
+			<section aria-label="Live feed" className={styles.liveFeed} ref={liveFeedRef}>
 				<CelebrationStage capture={celebrationCapture} onCaptureIngested={onCaptureIngested} />
+				<LikeLayer
+					feedRef={liveFeedRef}
+					spawnAnchorRef={activityBarRef}
+					targetAnchorRef={likeCounterRef}
+					onReady={handleLikeLayerReady}
+					resetKey={likeResetKey}
+				/>
 				<div className={styles.liveFeedContent}>
 					<StatusBar
 						canClearLiveSessionData={hasLiveSessionData}
@@ -265,12 +294,17 @@ function LiveFeed({
 						likeCount={state.likeCount}
 						onClearLiveSessionData={() => setIsClearDataConfirmOpen(true)}
 						username={state.streamerUsername ?? ''}
+						likeCounterRef={likeCounterRef}
 					/>
 					<ClearLiveSessionDataModal
 						open={isClearDataConfirmOpen}
 						onCancel={() => setIsClearDataConfirmOpen(false)}
 						onConfirm={() => {
 							store.getState().resetSession();
+							// Explicit Like Layer reset: clears in-flight Heart Floats. A
+							// bumped key (not watching likeCount hit 0) so it cannot be
+							// confused with a genuine 0.
+							setLikeResetKey((key) => key + 1);
 							setIsClearDataConfirmOpen(false);
 						}}
 					/>
@@ -279,7 +313,9 @@ function LiveFeed({
 						giftEvents={state.giftEvents}
 						userGiftEvents={state.userGiftEvents}
 					/>
-					<ActivitySwitcher memberEvents={state.memberEvents} giftEvents={state.giftEvents} />
+					<div ref={activityBarRef} data-celestia-activity-bar>
+						<ActivitySwitcher memberEvents={state.memberEvents} giftEvents={state.giftEvents} />
+					</div>
 				</div>
 			</section>
 		</main>

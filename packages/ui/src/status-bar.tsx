@@ -1,6 +1,6 @@
 import { EyeOutlined, HeartFilled, SettingOutlined } from '@ant-design/icons';
 import type { ConnectionState } from '@celestia/tiktok-live-core';
-import { type ButtonHTMLAttributes, useState } from 'react';
+import { type ButtonHTMLAttributes, type Ref, useState } from 'react';
 import { SettingsPopover } from './settings-popover.js';
 import styles from './status-bar.module.css';
 
@@ -15,6 +15,12 @@ export interface StatusBarProps {
 	isSettingsOpen?: boolean;
 	canClearLiveSessionData?: boolean;
 	onClearLiveSessionData?: () => void;
+	/**
+	 * Anchor for the Like Layer's Heart Float target — the Like Counter element
+	 * hearts fly to. The Like Layer caches this element's coordinates; it is also
+	 * what scale-bumps on a Heart Float arrival (the Like Counter pop).
+	 */
+	likeCounterRef?: Ref<HTMLSpanElement>;
 }
 
 type ConnectionSignalKind = 'discovering' | 'connected' | 'offline' | 'reconnecting' | 'ended';
@@ -50,6 +56,7 @@ export function StatusBar({
 	isSettingsOpen,
 	canClearLiveSessionData,
 	onClearLiveSessionData,
+	likeCounterRef,
 }: StatusBarProps) {
 	const [uncontrolledSettingsOpen, setUncontrolledSettingsOpen] = useState(false);
 	const isSettingsPopoverOpen = isSettingsOpen ?? uncontrolledSettingsOpen;
@@ -98,7 +105,7 @@ export function StatusBar({
 					<EyeOutlined aria-hidden="true" />
 					{viewerCount.toLocaleString()}
 				</span>
-				<span className={styles.metric}>
+				<span className={styles.metric} data-celestia-like-counter ref={likeCounterRef}>
 					<HeartFilled aria-hidden="true" />
 					{likeCount.toLocaleString()}
 				</span>

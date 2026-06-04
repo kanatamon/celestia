@@ -1,0 +1,16 @@
+.likeLayer {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	/* Ambient, non-interactive: never covers or blocks the feed or controls. */
+	pointer-events: none;
+	/* Above the feed content, below modals/popovers which portal to the body. */
+	z-index: 2;
+}
+
+.likeLayerCanvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
