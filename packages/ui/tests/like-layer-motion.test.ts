@@ -84,6 +84,30 @@ describe('stepHeart lifecycle', () => {
 		stepHeart(heart, 0.5);
 		expect(heart).toEqual(createHeart('h1'));
 	});
+
+	it('honours a per-heart riseDur instead of the default', () => {
+		const longRise = createHeart('h1', { riseDur: 3 });
+		// Past the default RISE_DUR but well short of this heart's own riseDur.
+		const stepped = stepHeart(longRise, RISE_DUR + 0.5);
+		expect(stepped.heart.phase).toBe('rise');
+		expect(stepped.heart.riseT).toBeCloseTo(RISE_DUR + 0.5);
+	});
+
+	it('burns the stagger delay before any rise progresses', () => {
+		const staggered = createHeart('h1', { delay: 0.2 });
+		const waiting = stepHeart(staggered, 0.05);
+		expect(waiting.heart.phase).toBe('rise');
+		expect(waiting.heart.riseT).toBe(0);
+		expect(waiting.heart.delay).toBeCloseTo(0.15);
+	});
+
+	it('folds the leftover of an over-running delay step into the rise', () => {
+		const staggered = createHeart('h1', { delay: 0.2 });
+		const launched = stepHeart(staggered, 0.5);
+		expect(launched.heart.delay).toBe(0);
+		// 0.5 dt - 0.2 delay = 0.3 spent rising.
+		expect(launched.heart.riseT).toBeCloseTo(0.3);
+	});
 });
 
 describe('admitHearts (MAX_HEARTS cap)', () => {

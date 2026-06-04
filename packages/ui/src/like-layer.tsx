@@ -34,7 +34,6 @@ import {
 	createHeart,
 	DIVERT_DUR,
 	type Heart,
-	RISE_DUR,
 	RISE_SPEED,
 	SWAY_AMP,
 	SWAY_FREQ,
@@ -51,6 +50,21 @@ const HEART_BASE_RADIUS = 9;
 /** Glossy pink heart fill + glow (fixed; no per-sender hue). */
 const HEART_COLOR = '#ff5fa2';
 const HEART_GLOW_COLOR = 'rgba(255, 120, 175, 0.85)';
+
+/** Spawn-edge inset in CSS px (room for rightward sway/jitter). */
+const SPAWN_INSET = 18;
+/** Vertical gap in CSS px the rise stops short of the Like Counter before peeling off. */
+const TOP_GAP = 40;
+/** Floor on rise distance so a short feed still gives a visible climb. */
+const MIN_RISE_PX = 60;
+/** Floor on rise duration in seconds. */
+const MIN_RISE_DUR = 0.35;
+/** Per-heart launch stagger in seconds so a burst streams instead of stacking. */
+const SPAWN_STAGGER = 0.07;
+/** Leftward horizontal spread in CSS px at the launch edge (fans a burst out). */
+const SPAWN_SPREAD = 22;
+/** Per-heart rise-duration jitter: a burst peels off across a band, not one line. */
+const RISE_DUR_JITTER = 0.2;
 
 /** A spawn signal: how many likes arrived at once. */
 export type SpawnLike = (likeDelta: number) => void;
@@ -144,7 +158,9 @@ export function LikeLayer({
 		const targetRect = target?.getBoundingClientRect();
 
 		anchorsRef.current = {
-			spawnX: spawnRect ? spawnRect.right - feedRect.left : width - 12,
+			// Inset from the true right edge so a heart swaying/jittering rightward
+			// still stays on-canvas instead of clipping.
+			spawnX: spawnRect ? spawnRect.right - feedRect.left - SPAWN_INSET : width - 12,
 			spawnY: spawnRect ? spawnRect.top + spawnRect.height / 2 - feedRect.top : height - 24,
 			targetX: targetRect ? targetRect.left + targetRect.width / 2 - feedRect.left : 24,
 			targetY: targetRect ? targetRect.top + targetRect.height / 2 - feedRect.top : 24,
@@ -169,7 +185,8 @@ export function LikeLayer({
 		const sprite = ensureSprite();
 
 		ctx.clearRect(0, 0, anchors.width, anchors.height);
-		ctx.globalCompositeOperation = 'lighter';
+		// Normal alpha blending (not additive): the sprite already carries its glow,
+		// and `lighter` made overlapping hearts in a burst sum to a pure-white blob.
 
 		for (const heart of heartsRef.current) {
 			const placed = placeHeart(heart, anchors);
@@ -180,7 +197,6 @@ export function LikeLayer({
 		}
 
 		ctx.globalAlpha = 1;
-		ctx.globalCompositeOperation = 'source-over';
 	}, [ensureSprite]);
 
 	// The single rAF loop. Owned by exactly one effect; idempotent start/stop so
@@ -228,10 +244,29 @@ export function LikeLayer({
 			});
 			if (count === 0) return;
 			recacheAnchors();
+			// Rise the whole feed: climb from the launch edge to just under the Like
+			// Counter, then peel off — so a heart reaches the top rather than a fixed
+			// stub. Derived once from the cached geometry, jittered per heart below.
+			const anchors = anchorsRef.current;
+			const riseDistance = anchors
+				? Math.max(MIN_RISE_PX, anchors.spawnY - (anchors.targetY + TOP_GAP))
+				: MIN_RISE_PX;
+			const riseDurBase = Math.max(MIN_RISE_DUR, riseDistance / RISE_SPEED);
 			const fresh: Heart[] = [];
 			for (let i = 0; i < count; i += 1) {
 				seqRef.current += 1;
-				fresh.push(createHeart(`heart-${seqRef.current}`));
+				fresh.push(
+					createHeart(`heart-${seqRef.current}`, {
+						// Stagger launches so a burst streams up instead of stacking.
+						delay: i * SPAWN_STAGGER,
+						// Peel off across a band near the top, not one shared instant.
+						riseDur: riseDurBase * (1 - Math.random() * RISE_DUR_JITTER),
+						swayPhase: Math.random() * Math.PI * 2,
+						swayAmp: SWAY_AMP * (0.7 + Math.random() * 0.6),
+						// Fan leftward into the feed (never rightward past the edge).
+						spawnDX: -Math.random() * SPAWN_SPREAD,
+					}),
+				);
 			}
 			heartsRef.current = admitHearts(heartsRef.current, fresh);
 			startLoop();
@@ -314,29 +349,41 @@ interface PlacedHeart {
 /** Map a heart's time-domain state onto canvas-local pixels using cached anchors. */
 function placeHeart(heart: Heart, anchors: Anchors): PlacedHeart | null {
 	if (heart.phase === 'dead') return null;
+	// Still staged behind its stagger delay: not yet visible.
+	if (heart.delay > 0) return null;
 
 	if (heart.phase === 'rise') {
-		const riseFrac = heart.riseT / RISE_DUR;
-		const sway = Math.sin(heart.riseT * SWAY_FREQ * Math.PI * 2) * SWAY_AMP;
+		const riseFrac = heart.riseT / heart.riseDur;
+		const sway = riseSway(heart, heart.riseT);
+		// Gentle breathe so a slow climb has life (prototype lock).
+		const breathe = 1 + Math.sin(heart.riseT * 2.4 + heart.swayPhase) * 0.06;
 		return {
-			x: anchors.spawnX + sway,
+			x: anchors.spawnX + heart.spawnDX + sway,
 			y: anchors.spawnY - heart.riseT * RISE_SPEED,
-			scale: 0.7 + 0.3 * riseFrac,
+			scale: (0.7 + 0.3 * riseFrac) * breathe,
 			alpha: 1,
 		};
 	}
 
-	// divert / fade: ease from the rise-end point toward the Like Counter.
-	const riseEndX = anchors.spawnX;
-	const riseEndY = anchors.spawnY - RISE_DUR * RISE_SPEED;
+	// divert / fade: ease from the *actual* rise-end point — including the sway
+	// the heart had at peel-off — toward the Like Counter. Recomputing the sway
+	// here (instead of dropping it) keeps X continuous, killing the sideways snap.
+	const riseEndX = anchors.spawnX + heart.spawnDX + riseSway(heart, heart.riseDur);
+	const riseEndY = anchors.spawnY - heart.riseDur * RISE_SPEED;
 	const t = Math.min(heart.divertT / DIVERT_DUR, 1);
 	const ease = easeInOutCubic(t);
 	return {
 		x: lerp(riseEndX, anchors.targetX, ease),
 		y: lerp(riseEndY, anchors.targetY, ease),
 		scale: 1 - 0.4 * t,
-		alpha: 1 - t,
+		// Stay bright through most of the projectile, then fade into the counter.
+		alpha: 1 - easeInCubic(t),
 	};
+}
+
+/** Horizontal sway offset for a heart at rise-time `t` (shared by rise + divert start). */
+function riseSway(heart: Heart, t: number): number {
+	return Math.sin(t * SWAY_FREQ * Math.PI * 2 + heart.swayPhase) * heart.swayAmp;
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -345,6 +392,10 @@ function lerp(a: number, b: number, t: number): number {
 
 function easeInOutCubic(t: number): number {
 	return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
+function easeInCubic(t: number): number {
+	return t * t * t;
 }
 
 /** Sprite is drawn larger than the heart so the soft glow has room. */

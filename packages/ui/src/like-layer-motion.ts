@@ -28,7 +28,12 @@ export const SWAY_AMP = 14;
 export const SWAY_FREQ = 1.1;
 /** Duration in seconds of the peel-off toward the Like Counter (prototype lock). */
 export const DIVERT_DUR = 0.95;
-/** How long a heart rises before it peels off toward the counter, in seconds. */
+/**
+ * Fallback rise duration in seconds. The renderer normally injects a per-heart
+ * `riseDur` derived from geometry (rise to near the top of the feed, then peel
+ * off), so a heart climbs the *whole* feed rather than a fixed stub; this
+ * constant is the default when no geometry is supplied (and the test baseline).
+ */
 export const RISE_DUR = 1.1;
 /** Hard ceiling on simultaneously-in-flight hearts; oldest dropped past it. */
 export const MAX_HEARTS = 70;
@@ -54,6 +59,30 @@ export interface Heart {
 	 * exactly once per heart even across many subsequent steps.
 	 */
 	arrived: boolean;
+	/**
+	 * Per-heart launch fields so a *burst* flies as independent particles instead
+	 * of one stacked clump (the renderer applies them in space; this module just
+	 * carries them through time):
+	 */
+	/** Seconds this heart sits idle before its rise begins — staggers a burst. */
+	delay: number;
+	/** How long *this* heart rises before peeling off (renderer-derived geometry). */
+	readonly riseDur: number;
+	/** Sway phase offset so neighbours don't sway in lockstep. */
+	readonly swayPhase: number;
+	/** Per-heart sway amplitude in px (slight variance around `SWAY_AMP`). */
+	readonly swayAmp: number;
+	/** Horizontal spawn offset in px so hearts fan out from the launch edge. */
+	readonly spawnDX: number;
+}
+
+/** Optional per-heart launch parameters; every field defaults to the prototype lock. */
+export interface HeartInit {
+	delay?: number;
+	riseDur?: number;
+	swayPhase?: number;
+	swayAmp?: number;
+	spawnDX?: number;
 }
 
 export interface StepHeartResult {
@@ -66,8 +95,19 @@ export interface StepHeartResult {
 }
 
 /** Mint a fresh Heart Float at the start of its `rise` phase. */
-export function createHeart(id: string): Heart {
-	return { id, phase: 'rise', riseT: 0, divertT: 0, arrived: false };
+export function createHeart(id: string, init: HeartInit = {}): Heart {
+	return {
+		id,
+		phase: 'rise',
+		riseT: 0,
+		divertT: 0,
+		arrived: false,
+		delay: init.delay ?? 0,
+		riseDur: init.riseDur ?? RISE_DUR,
+		swayPhase: init.swayPhase ?? 0,
+		swayAmp: init.swayAmp ?? SWAY_AMP,
+		spawnDX: init.spawnDX ?? 0,
+	};
 }
 
 /**
@@ -82,14 +122,24 @@ export function stepHeart(heart: Heart, dt: number): StepHeartResult {
 
 	switch (heart.phase) {
 		case 'rise': {
-			const riseT = heart.riseT + dt;
-			if (riseT < RISE_DUR) {
-				return { heart: { ...heart, riseT }, arrivedNow: false };
+			// Burn the stagger delay first so a burst launches as a stream, not a
+			// clump. If the delay outlasts this step the heart stays parked; any
+			// leftover after the delay ends folds straight into the rise.
+			let step = dt;
+			if (heart.delay > 0) {
+				if (heart.delay >= step) {
+					return { heart: { ...heart, delay: heart.delay - step }, arrivedNow: false };
+				}
+				step -= heart.delay;
+			}
+			const riseT = heart.riseT + step;
+			if (riseT < heart.riseDur) {
+				return { heart: { ...heart, delay: 0, riseT }, arrivedNow: false };
 			}
 			// Cross into divert; carry the overshoot so motion stays continuous.
 			return stepHeart(
-				{ ...heart, phase: 'divert', riseT: RISE_DUR, divertT: 0 },
-				riseT - RISE_DUR,
+				{ ...heart, delay: 0, phase: 'divert', riseT: heart.riseDur, divertT: 0 },
+				riseT - heart.riseDur,
 			);
 		}
 		case 'divert': {
