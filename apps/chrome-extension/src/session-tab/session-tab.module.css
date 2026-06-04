@@ -49,6 +49,30 @@
 	line-height: 1.45;
 }
 
+/*
+ * Bottom row: the ActivitySwitcher shrinks to share its row with the Heartbeat
+ * Conveyor (issue #81). The switcher stays a single toggle button; the avatars
+ * are NOT inside it. The Conveyor sits at the right edge — the same edge the
+ * Heart Float peels off from (this element is the Heart Float spawn anchor).
+ */
+.activityBar {
+	display: flex;
+	align-items: stretch;
+	gap: 10px;
+	padding-right: 12px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.activitySwitcherSlot {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* The switcher already owns its own top border; the row carries it now. */
+.activitySwitcherSlot :global([data-celestia-activity-switcher]) {
+	border-top: 0;
+}
+
 .modalBackdrop {
 	position: fixed;
 	inset: 0;

@@ -77,6 +77,20 @@ export {
 	computeGiftCelebrationTriptychLayout,
 	getGiftCelebrationSourceAspectRatio,
 } from './gift-celebration-layout.js';
+export type { HeartbeatConveyorProps, PushLiker } from './heartbeat-conveyor.js';
+export { HeartbeatConveyor } from './heartbeat-conveyor.js';
+export type {
+	ConveyorEvent,
+	ConveyorLiker,
+	ConveyorSlot,
+	ConveyorState,
+} from './heartbeat-conveyor-motion.js';
+export {
+	BEAT_MS,
+	CONVEYOR_CAPACITY,
+	computeConveyor,
+	initialConveyorState,
+} from './heartbeat-conveyor-motion.js';
 export type { LikeLayerProps, SpawnLike } from './like-layer.js';
 export { LikeLayer } from './like-layer.js';
 export type { Heart, HeartPhase, StepHeartResult } from './like-layer-motion.js';

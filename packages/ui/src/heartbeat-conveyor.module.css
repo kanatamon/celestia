@@ -1,0 +1,119 @@
+/*
+ * Heartbeat Conveyor — avatar-only row (PRD #79, issue #81).
+ *
+ * The row owns *space*: the reducer decides membership, CSS does the motion.
+ * Newest avatar is on the right; the row is right-aligned so a newcomer fades in
+ * at the right edge and the oldest fades off the left as it is evicted. The
+ * Heart Float (issue #80) originates from this same Activity-Bar edge, so the
+ * heart visibly peels off the Conveyor.
+ */
+
+.conveyor {
+	display: flex;
+	flex: 0 1 auto;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	min-width: 0;
+	/* Identity-only ambient layer: never blocks the switcher, feed, or controls. */
+	pointer-events: none;
+}
+
+.seat {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	overflow: hidden;
+	/* Existing avatars slide left ease-in-out as the row shifts; a fresh seat
+	 * fades + scales in at the right (oldest fades off the left via the keyframe). */
+	animation: conveyor-enter 320ms ease-out both;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+	background: rgba(255, 95, 162, 0.18);
+}
+
+/* Reduced Like Motion: faces still show, but swap the slide for a calm cross-fade. */
+.reduced .seat {
+	animation: conveyor-crossfade 240ms ease both;
+}
+
+.avatar {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.fallback {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	color: #ffd7e7;
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1;
+	background: linear-gradient(135deg, rgba(255, 95, 162, 0.55), rgba(147, 51, 234, 0.45));
+}
+
+/*
+ * Repeat-liker breathe: a one-shot gentle pulse in place (no reorder). The
+ * reducer bumps `breatheSeq`; the renderer projects each bump to an alternating
+ * `data-breathe` token (a/b). Toggling the animation name on every bump restarts
+ * the keyframe, so each repeat like breathes once — unbounded, for any tally.
+ */
+.seat[data-breathe="a"] {
+	animation: conveyor-breathe-a 520ms ease-in-out;
+}
+
+.seat[data-breathe="b"] {
+	animation: conveyor-breathe-b 520ms ease-in-out;
+}
+
+@keyframes conveyor-enter {
+	from {
+		opacity: 0;
+		transform: translateX(12px) scale(0.6);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0) scale(1);
+	}
+}
+
+@keyframes conveyor-crossfade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes conveyor-breathe-a {
+	0% {
+		transform: scale(1);
+	}
+	45% {
+		transform: scale(1.16);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes conveyor-breathe-b {
+	0% {
+		transform: scale(1);
+	}
+	45% {
+		transform: scale(1.16);
+	}
+	100% {
+		transform: scale(1);
+	}
+}

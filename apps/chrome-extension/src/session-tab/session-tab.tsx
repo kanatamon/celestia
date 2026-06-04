@@ -4,6 +4,7 @@ import type { GiftAnimationAssetCapturedMessage } from '@celestia/tiktok-live-ch
 import { ChromeExtensionTikTokLiveProvider } from '@celestia/tiktok-live-chrome-extension';
 import type {
 	ConnectionState,
+	LikeLiveEvent,
 	LiveEvent,
 	ProviderLog,
 	TikTokLiveProvider,
@@ -13,8 +14,11 @@ import {
 	type CapturedCelebration,
 	type CelebrationSettings,
 	CelebrationStage,
+	type ConveyorLiker,
 	celebrationSettings,
+	HeartbeatConveyor,
 	LikeLayer,
+	type PushLiker,
 	type SpawnLike,
 	SplitFeedLayout,
 	StatusBar,
@@ -141,6 +145,10 @@ function LiveFeed({
 	const handleLikeLayerReady = useCallback((spawn: SpawnLike) => {
 		spawnLikeRef.current = spawn;
 	}, []);
+	const pushLikerRef = useRef<PushLiker | null>(null);
+	const handleConveyorReady = useCallback((push: PushLiker) => {
+		pushLikerRef.current = push;
+	}, []);
 	const soundEffectEvents = useMemo(
 		() => [...state.chatEvents, ...state.giftEvents].sort((a, b) => a.ts - b.ts),
 		[state.chatEvents, state.giftEvents],
@@ -212,6 +220,14 @@ function LiveFeed({
 					// like into `likeCount` via `dispatchLiveEvent` above); the liker
 					// stream is never written to `chrome.storage.session`.
 					spawnLikeRef.current?.(event.likeCount ?? 1);
+					// Same read-only sink, identity half: hand the liker's face to the
+					// Heartbeat Conveyor. It buffers the latest liker and commits on its
+					// own ~1.2s beat, so a like storm never floods the row. Identity is
+					// the face only — no nickname text is shown (CONTEXT.md).
+					const liker = toConveyorLiker(event.user);
+					if (liker) {
+						pushLikerRef.current?.(liker);
+					}
 				}
 				if (event.type === 'gift') {
 					// Read-only: feed the synthesized-celebration arbiter the gift's
@@ -313,8 +329,14 @@ function LiveFeed({
 						giftEvents={state.giftEvents}
 						userGiftEvents={state.userGiftEvents}
 					/>
-					<div ref={activityBarRef} data-celestia-activity-bar>
-						<ActivitySwitcher memberEvents={state.memberEvents} giftEvents={state.giftEvents} />
+					<div ref={activityBarRef} data-celestia-activity-bar className={styles.activityBar}>
+						<div className={styles.activitySwitcherSlot}>
+							<ActivitySwitcher memberEvents={state.memberEvents} giftEvents={state.giftEvents} />
+						</div>
+						{/* The Conveyor sits beside the (shrunken) switcher at the bar's right
+						    edge — the same edge the Heart Float peels off from, so the heart
+						    visibly originates from the row of liker faces. */}
+						<HeartbeatConveyor onReady={handleConveyorReady} resetKey={likeResetKey} />
 					</div>
 				</div>
 			</section>
@@ -559,6 +581,20 @@ function useStore(store: LiveEventStoreApi): LiveEventStore {
 	}, [store]);
 
 	return snapshot;
+}
+
+/**
+ * Project a like's `UserInfo` onto the identity payload the Heartbeat Conveyor
+ * needs — the face only. Returns `undefined` for an identity-less like (no id),
+ * so the row never seats a faceless ghost; such likes still race the counter and
+ * float a Heart. The `id` keys dedupe (a loyal repeat liker breathes in place).
+ */
+function toConveyorLiker(user: LikeLiveEvent['user']): ConveyorLiker | undefined {
+	const id = user?.userId || user?.uniqueId || user?.secUid;
+	if (!id) {
+		return undefined;
+	}
+	return { id, avatarUrl: user?.avatarUrl, name: user?.nickname || user?.uniqueId };
 }
 
 function dispatchLiveEvent(event: LiveEvent, actions: LiveEventStore, username: string): void {
