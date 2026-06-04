@@ -1,10 +1,16 @@
 /// <reference types="chrome" />
 
-import type { CelebrationSettingsStorage, SoundManagerStorage, VolumeKey } from '@celestia/ui';
-// Import the value from the DOM-free module directly, not the barrel: this file
+import type {
+	CelebrationSettingsStorage,
+	LikeMotionSettingsStorage,
+	SoundManagerStorage,
+	VolumeKey,
+} from '@celestia/ui';
+// Import the values from the DOM-free modules directly, not the barrel: this file
 // is reachable from the service worker, and the @celestia/ui barrel pulls in
 // CSS-module components whose `document`-based style injection crashes a worker.
 import { normalizeThreshold } from '@celestia/ui/celebration-settings';
+import { normalizeReducedMotion } from '@celestia/ui/like-motion-settings';
 
 type VolumePreferenceKey = `volume.${VolumeKey}`;
 
@@ -15,6 +21,7 @@ function volumePreferenceKey(key: VolumeKey): VolumePreferenceKey {
 const recentStreamerUsernamePreferenceKey = 'recentStreamerUsername';
 const traceModePreferenceKey = 'celestia.trace';
 const celebrationThresholdPreferenceKey = 'celebration.diamondThreshold';
+const reducedLikeMotionPreferenceKey = 'likeLayer.reducedMotion';
 const volumeKeys = [
 	'master',
 	'chat',
@@ -27,7 +34,8 @@ export type UserPreferenceKey =
 	| typeof recentStreamerUsernamePreferenceKey
 	| VolumePreferenceKey
 	| typeof traceModePreferenceKey
-	| typeof celebrationThresholdPreferenceKey;
+	| typeof celebrationThresholdPreferenceKey
+	| typeof reducedLikeMotionPreferenceKey;
 
 type UserPreferenceValues = Partial<Record<UserPreferenceKey, unknown>>;
 
@@ -36,6 +44,7 @@ const userPreferenceKeys = [
 	...volumePreferenceKeys,
 	traceModePreferenceKey,
 	celebrationThresholdPreferenceKey,
+	reducedLikeMotionPreferenceKey,
 ] as const satisfies readonly UserPreferenceKey[];
 
 interface ChromeLocalStorageArea {
@@ -54,6 +63,8 @@ export interface UserPreferencesStore {
 	getCachedTraceModeEnabled(): boolean;
 	getCelebrationThreshold(): Promise<number>;
 	setCelebrationThreshold(value: number): Promise<void>;
+	getReducedLikeMotion(): Promise<boolean>;
+	setReducedLikeMotion(value: boolean): Promise<void>;
 }
 
 const defaultVolumes: Record<VolumeKey, number> = {
@@ -113,6 +124,15 @@ export function createUserPreferencesStore(
 				[celebrationThresholdPreferenceKey]: normalizeThreshold(value),
 			});
 		},
+		async getReducedLikeMotion() {
+			const value = await getValue(storageArea, reducedLikeMotionPreferenceKey);
+			return normalizeReducedMotion(value);
+		},
+		async setReducedLikeMotion(value) {
+			await storageArea.set({
+				[reducedLikeMotionPreferenceKey]: normalizeReducedMotion(value),
+			});
+		},
 	};
 }
 
@@ -159,6 +179,28 @@ export async function createCelebrationSettingsStorage(
 		setThreshold: (value) => {
 			threshold = normalizeThreshold(value);
 			return preferences.setCelebrationThreshold(value);
+		},
+	};
+}
+
+/**
+ * Hydrates the Reduced Like Motion live store from the persisted preference,
+ * mirroring `createCelebrationSettingsStorage`. The Like Layer reads
+ * `getReducedMotion` synchronously, so the current value is cached here; the
+ * settings toggle's writes persist through `setReducedMotion` and update that
+ * cache, so flipping the toggle changes the Like Layer's motion without a reload.
+ * This is the sole source of truth — OS `prefers-reduced-motion` is not consulted.
+ */
+export async function createLikeMotionSettingsStorage(
+	preferences: UserPreferencesStore = userPreferences,
+): Promise<LikeMotionSettingsStorage> {
+	let reducedMotion = await preferences.getReducedLikeMotion();
+
+	return {
+		getReducedMotion: () => reducedMotion,
+		setReducedMotion: (value) => {
+			reducedMotion = normalizeReducedMotion(value);
+			return preferences.setReducedLikeMotion(value);
 		},
 	};
 }

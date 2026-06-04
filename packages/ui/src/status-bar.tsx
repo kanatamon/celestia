@@ -51,6 +51,13 @@ export interface StatusBarProps {
 	 * number sprints.
 	 */
 	heartArrivalSignal?: number;
+	/**
+	 * Fired when the Reduced Like Motion toggle in the settings popover changes, so
+	 * the host can re-render the Like Layer with the new value. The popover persists
+	 * the preference itself (via `likeMotionSettings`); this only mirrors the live
+	 * value up to the host React tree.
+	 */
+	onReducedLikeMotionChange?: (reducedMotion: boolean) => void;
 }
 
 /** How long the Like Counter pop lasts; matches the keyframe in the CSS module. */
@@ -86,6 +93,7 @@ export function StatusBar({
 	onReconnect,
 	likeCounterRef,
 	heartArrivalSignal = 0,
+	onReducedLikeMotionChange,
 }: StatusBarProps) {
 	const [uncontrolledSettingsOpen, setUncontrolledSettingsOpen] = useState(false);
 
@@ -154,6 +162,7 @@ export function StatusBar({
 		<SettingsPopover
 			canClearLiveSessionData={canClearLiveSessionData}
 			onClearLiveSessionData={onClearLiveSessionData}
+			onReducedLikeMotionChange={onReducedLikeMotionChange}
 			open={isSettingsPopoverOpen}
 			onOpenChange={handleSettingsPopoverOpenChange}
 		>

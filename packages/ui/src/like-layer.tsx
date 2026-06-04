@@ -34,11 +34,11 @@ import {
 	createHeart,
 	DIVERT_DUR,
 	type Heart,
-	heartsForBatch,
 	RISE_DUR,
 	RISE_SPEED,
 	SWAY_AMP,
 	SWAY_FREQ,
+	spawnHeartCount,
 	stepHeart,
 } from './like-layer-motion.js';
 
@@ -219,10 +219,15 @@ export function LikeLayer({
 
 	const spawn = useCallback<SpawnLike>(
 		(likeDelta) => {
-			// Drop, never buffer, while motion is off or the tab is hidden.
-			if (reducedMotionRef.current || hiddenRef.current) return;
+			// Drop, never buffer, while Reduced Like Motion is on or the tab is
+			// hidden. The pure `spawnHeartCount` owns that decision (unit-tested); a
+			// zero count means no Heart Float, while the count still races via the store.
+			const count = spawnHeartCount(likeDelta, {
+				reducedMotion: reducedMotionRef.current,
+				hidden: hiddenRef.current,
+			});
+			if (count === 0) return;
 			recacheAnchors();
-			const count = heartsForBatch(likeDelta);
 			const fresh: Heart[] = [];
 			for (let i = 0; i < count; i += 1) {
 				seqRef.current += 1;

@@ -18,6 +18,7 @@ import {
 	celebrationSettings,
 	HeartbeatConveyor,
 	LikeLayer,
+	likeMotionSettings,
 	type PushLiker,
 	type SpawnLike,
 	SplitFeedLayout,
@@ -140,6 +141,14 @@ function LiveFeed({
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
 	const [isClearDataConfirmOpen, setIsClearDataConfirmOpen] = useState(false);
 	const [likeResetKey, setLikeResetKey] = useState(0);
+	// Reduced Like Motion (issue #83): the persisted User Preference, the sole
+	// source of truth (OS `prefers-reduced-motion` is never consulted). Seeded from
+	// the hydrated live store and mirrored down to the Heart Float, the Heartbeat
+	// Conveyor, and the StatusBar pop; the settings popover flips it through the
+	// `onReducedLikeMotionChange` callback so the layer reacts without a reload.
+	const [reducedLikeMotion, setReducedLikeMotion] = useState(() =>
+		likeMotionSettings.getReducedMotion(),
+	);
 	const hasLiveSessionData = hasClearableLiveSessionData(state);
 	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
 	useDevGiftCelebrationTrigger(enqueueCapture);
@@ -320,6 +329,7 @@ function LiveFeed({
 					targetAnchorRef={likeCounterRef}
 					onReady={handleLikeLayerReady}
 					onHeartArrived={handleHeartArrived}
+					reducedMotion={reducedLikeMotion}
 					resetKey={likeResetKey}
 				/>
 				<div className={styles.liveFeedContent}>
@@ -333,6 +343,7 @@ function LiveFeed({
 						username={state.streamerUsername ?? ''}
 						likeCounterRef={likeCounterRef}
 						heartArrivalSignal={heartArrivalSignal}
+						onReducedLikeMotionChange={setReducedLikeMotion}
 					/>
 					<ClearLiveSessionDataModal
 						open={isClearDataConfirmOpen}
@@ -358,7 +369,11 @@ function LiveFeed({
 						{/* The Conveyor sits beside the (shrunken) switcher at the bar's right
 						    edge — the same edge the Heart Float peels off from, so the heart
 						    visibly originates from the row of liker faces. */}
-						<HeartbeatConveyor onReady={handleConveyorReady} resetKey={likeResetKey} />
+						<HeartbeatConveyor
+							onReady={handleConveyorReady}
+							reducedMotion={reducedLikeMotion}
+							resetKey={likeResetKey}
+						/>
 					</div>
 				</div>
 			</section>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	createCelebrationSettingsStorage,
+	createLikeMotionSettingsStorage,
 	createSoundManagerStorage,
 	createUserPreferencesStore,
 	type UserPreferenceKey,
@@ -103,6 +104,61 @@ describe('user preferences store', () => {
 		const celebrationStorage = await createCelebrationSettingsStorage(preferences);
 
 		expect(celebrationStorage.getThreshold()).toBe(99);
+	});
+
+	it('defaults Reduced Like Motion to off and round-trips it through chrome.storage.local', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		const preferences = createUserPreferencesStore(storageArea);
+
+		// Default is off (full motion) when the preference is unset.
+		await expect(preferences.getReducedLikeMotion()).resolves.toBe(false);
+
+		await preferences.setReducedLikeMotion(true);
+		expect(storageArea.values.get('likeLayer.reducedMotion')).toBe(true);
+		await expect(preferences.getReducedLikeMotion()).resolves.toBe(true);
+
+		await preferences.setReducedLikeMotion(false);
+		expect(storageArea.values.get('likeLayer.reducedMotion')).toBe(false);
+		await expect(preferences.getReducedLikeMotion()).resolves.toBe(false);
+	});
+
+	it('coerces a non-boolean stored Reduced Like Motion value to the off default', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		const preferences = createUserPreferencesStore(storageArea);
+
+		storageArea.values.set('likeLayer.reducedMotion', 'nonsense');
+		await expect(preferences.getReducedLikeMotion()).resolves.toBe(false);
+
+		// Persisted string '1'/'true' read back as on (storage round-trips booleans,
+		// but a legacy/foreign value is interpreted leniently).
+		storageArea.values.set('likeLayer.reducedMotion', '1');
+		await expect(preferences.getReducedLikeMotion()).resolves.toBe(true);
+	});
+
+	it('hydrates Reduced Like Motion storage from preferences and persists updates', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		storageArea.values.set('likeLayer.reducedMotion', true);
+		const preferences = createUserPreferencesStore(storageArea);
+
+		const likeMotionStorage = await createLikeMotionSettingsStorage(preferences);
+
+		// Hydrated synchronously from the persisted preference.
+		expect(likeMotionStorage.getReducedMotion()).toBe(true);
+
+		await likeMotionStorage.setReducedMotion(false);
+
+		// The cache updates immediately (so the live Like Layer sees it) and persists.
+		expect(likeMotionStorage.getReducedMotion()).toBe(false);
+		expect(storageArea.values.get('likeLayer.reducedMotion')).toBe(false);
+	});
+
+	it('defaults Reduced Like Motion storage to off when the preference is unset', async () => {
+		const storageArea = new FakeChromeLocalStorageArea();
+		const preferences = createUserPreferencesStore(storageArea);
+
+		const likeMotionStorage = await createLikeMotionSettingsStorage(preferences);
+
+		expect(likeMotionStorage.getReducedMotion()).toBe(false);
 	});
 
 	it('hydrates SoundManager storage from preferences and persists volume updates', async () => {

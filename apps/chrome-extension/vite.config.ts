@@ -30,6 +30,9 @@ export default defineConfig({
 			'@celestia/ui/celebration-settings': fileURLToPath(
 				new URL('../../packages/ui/src/celebration-settings.ts', import.meta.url),
 			),
+			'@celestia/ui/like-motion-settings': fileURLToPath(
+				new URL('../../packages/ui/src/like-motion-settings.ts', import.meta.url),
+			),
 			'@celestia/ui': fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)),
 		},
 	},

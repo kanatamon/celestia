@@ -121,6 +121,18 @@ export {
 	SWAY_FREQ,
 	stepHeart,
 } from './like-layer-motion.js';
+export type {
+	CreateLikeMotionSettingsOptions,
+	LikeMotionSettings,
+	LikeMotionSettingsStorage,
+} from './like-motion-settings.js';
+export {
+	configureLikeMotionSettingsStorage,
+	createLikeMotionSettings,
+	likeMotionSettings,
+	normalizeReducedMotion,
+	REDUCED_LIKE_MOTION_DEFAULT,
+} from './like-motion-settings.js';
 export { CelestiaProvider } from './provider.js';
 export type { SettingsPopoverProps } from './settings-popover.js';
 export { SettingsPopover } from './settings-popover.js';

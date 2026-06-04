@@ -7,6 +7,7 @@ import {
 	heartsForBatch,
 	MAX_HEARTS,
 	RISE_DUR,
+	spawnHeartCount,
 	stepHeart,
 } from '../src/like-layer-motion.js';
 
@@ -127,5 +128,27 @@ describe('heartsForBatch', () => {
 	it('is monotonic in the delta', () => {
 		expect(heartsForBatch(2)).toBeLessThanOrEqual(heartsForBatch(20));
 		expect(heartsForBatch(20)).toBeLessThanOrEqual(heartsForBatch(200));
+	});
+});
+
+describe('spawnHeartCount (Reduced Like Motion + hidden suppression)', () => {
+	it('spawns the full batch at full motion while visible', () => {
+		expect(spawnHeartCount(1, { reducedMotion: false, hidden: false })).toBe(heartsForBatch(1));
+		expect(spawnHeartCount(50, { reducedMotion: false, hidden: false })).toBe(heartsForBatch(50));
+	});
+
+	it('suppresses every spawn under Reduced Like Motion', () => {
+		// The count still races via the store; only the decorative Heart Float drops.
+		expect(spawnHeartCount(1, { reducedMotion: true, hidden: false })).toBe(0);
+		expect(spawnHeartCount(500, { reducedMotion: true, hidden: false })).toBe(0);
+	});
+
+	it('suppresses every spawn while the tab is hidden (drop, not buffer)', () => {
+		expect(spawnHeartCount(1, { reducedMotion: false, hidden: true })).toBe(0);
+		expect(spawnHeartCount(500, { reducedMotion: false, hidden: true })).toBe(0);
+	});
+
+	it('suppresses when both conditions hold', () => {
+		expect(spawnHeartCount(10, { reducedMotion: true, hidden: true })).toBe(0);
 	});
 });

@@ -11,13 +11,23 @@
  *  - `{ kind: 'like', liker }` — a like arrived. It does **not** advance the row;
  *    it only records the **latest** liker as pending. A storm of likes between
  *    two beats collapses to a single pending liker (last writer wins).
- *  - `{ kind: 'beat' }` — the ~1.2s metronome fired. It commits the pending
- *    liker (if any) and clears it:
+ *  - `{ kind: 'beat', reducedMotion? }` — the ~1.2s metronome fired. It commits
+ *    the pending liker (if any) and clears it:
  *      - a **new** liker is **appended** at the right; if the row is over
  *        `CONVEYOR_CAPACITY` the **oldest on the left is evicted**;
  *      - a **repeat** liker already seated gets a one-shot **breathe** (its
  *        `breatheSeq` bumps) **in place** — no reorder, no new seat — and its
  *        identity payload is refreshed (newest avatar/name wins).
+ *
+ * **Reduced Like Motion (PRD #79, issue #83).** The beat carries a `reducedMotion`
+ * flag — the sole source of truth, set from the persisted User Preference (OS
+ * `prefers-reduced-motion` is never consulted). Membership is **identical** either
+ * way: the same faces seat on the same beats. The flag only decides how a newly
+ * seated face *arrives* — the reducer stamps each seated slot with a `transition`
+ * (`'slide'` at full motion, `'crossfade'` when reduced) so the renderer swaps the
+ * sliding metronome for a calm cross-fade. Information (the face) is never removed,
+ * only decorative motion. The decision lives here so it is unit-testable, not
+ * buried in CSS.
  *
  * Each seat carries a stable `key` minted on first seating, so the DOM renderer
  * can track a seat across beats (slide vs. fade-in vs. breathe) by identity, not
@@ -46,6 +56,13 @@ export interface ConveyorLiker {
 	readonly name?: string;
 }
 
+/**
+ * How a newly seated face enters the row, decided by the Reduced Like Motion
+ * preference at commit time. `'slide'` is the full-motion metronome; `'crossfade'`
+ * is the calm reduced-motion swap. Membership is identical for both.
+ */
+export type ConveyorTransition = 'slide' | 'crossfade';
+
 /** One seated avatar in the row. */
 export interface ConveyorSlot {
 	/** Stable seat key, minted once on first seating; survives breathes. */
@@ -57,6 +74,12 @@ export interface ConveyorSlot {
 	 * again on a beat, so the renderer can fire a single gentle pulse in place.
 	 */
 	readonly breatheSeq: number;
+	/**
+	 * The enter transition stamped on the beat this seat was committed: `'slide'`
+	 * at full motion, `'crossfade'` under Reduced Like Motion. The renderer reads
+	 * it to pick the CSS; a breathe never changes it.
+	 */
+	readonly transition: ConveyorTransition;
 }
 
 export interface ConveyorState {
@@ -68,7 +91,14 @@ export interface ConveyorState {
 	readonly nextKey: number;
 }
 
-export type ConveyorEvent = { kind: 'like'; liker: ConveyorLiker } | { kind: 'beat' };
+export type ConveyorEvent =
+	| { kind: 'like'; liker: ConveyorLiker }
+	/**
+	 * The metronome tick. `reducedMotion` (default false) is the sole source of
+	 * truth from the User Preference; it stamps the enter transition of any face
+	 * seated on this beat. It never changes which face seats.
+	 */
+	| { kind: 'beat'; reducedMotion?: boolean };
 
 /** An empty Conveyor: no seats, nothing pending. */
 export const initialConveyorState: ConveyorState = {
@@ -99,11 +129,16 @@ export function computeConveyor(
 		return state;
 	}
 	const pending = state.pending;
+	// Reduced Like Motion is the sole source of truth: it picks the enter
+	// transition of a newly seated face. Membership is unchanged either way.
+	const transition: ConveyorTransition = event.reducedMotion ? 'crossfade' : 'slide';
 
 	const seatedIndex = state.slots.findIndex((slot) => slot.liker.id === pending.id);
 	if (seatedIndex !== -1) {
 		// Repeat liker already in the row: breathe in place — no reorder, no new
-		// seat. Refresh the identity payload (newest avatar/name wins).
+		// seat. Refresh the identity payload (newest avatar/name wins). The breathe
+		// pulse is the same calm in-place beat regardless of motion mode, so the
+		// stamped transition is left untouched.
 		const slots = state.slots.map((slot, index) =>
 			index === seatedIndex ? { ...slot, liker: pending, breatheSeq: slot.breatheSeq + 1 } : slot,
 		);
@@ -115,6 +150,7 @@ export function computeConveyor(
 		key: `conveyor-${state.nextKey}`,
 		liker: pending,
 		breatheSeq: 0,
+		transition,
 	};
 	const appended = [...state.slots, seated];
 	// Cap capacity, evicting the oldest on the left.

@@ -1,5 +1,5 @@
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Dropdown, Slider } from 'antd';
+import { Dropdown, Slider, Switch } from 'antd';
 import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 import {
@@ -7,6 +7,7 @@ import {
 	type CelebrationSettings,
 	celebrationSettings,
 } from './celebration-settings.js';
+import { type LikeMotionSettings, likeMotionSettings } from './like-motion-settings.js';
 import styles from './settings-popover.module.css';
 import { type Channel, type SoundManager, soundManager, type VolumeKey } from './sound-manager.js';
 
@@ -16,6 +17,13 @@ export interface SettingsPopoverProps {
 	onOpenChange: (open: boolean) => void;
 	soundManager?: SoundManager;
 	celebrationSettings?: CelebrationSettings;
+	likeMotionSettings?: LikeMotionSettings;
+	/**
+	 * Mirrors the live Reduced Like Motion value up to the host after the toggle
+	 * changes. The popover persists the preference itself; this lets the host
+	 * re-render the Like Layer without a reload.
+	 */
+	onReducedLikeMotionChange?: (reducedMotion: boolean) => void;
 	canClearLiveSessionData?: boolean;
 	onClearLiveSessionData?: () => void;
 }
@@ -54,18 +62,24 @@ export function SettingsPopover({
 	onOpenChange,
 	soundManager: manager = soundManager,
 	celebrationSettings: celebration = celebrationSettings,
+	likeMotionSettings: likeMotion = likeMotionSettings,
+	onReducedLikeMotionChange,
 	canClearLiveSessionData = false,
 	onClearLiveSessionData,
 }: SettingsPopoverProps) {
 	const [volumes, setVolumes] = useState<VolumeValues>(() => readVolumes(manager));
 	const [threshold, setThreshold] = useState<number>(() => celebration.getThreshold());
+	const [reducedLikeMotion, setReducedLikeMotion] = useState<boolean>(() =>
+		likeMotion.getReducedMotion(),
+	);
 
 	useEffect(() => {
 		if (open) {
 			setVolumes(readVolumes(manager));
 			setThreshold(celebration.getThreshold());
+			setReducedLikeMotion(likeMotion.getReducedMotion());
 		}
-	}, [manager, celebration, open]);
+	}, [manager, celebration, likeMotion, open]);
 
 	const handleVolumeChange = (key: VolumeKey, value: number) => {
 		manager.setVolume(key, value);
@@ -75,6 +89,12 @@ export function SettingsPopover({
 	const handleThresholdChange = (value: number) => {
 		celebration.setThreshold(value);
 		setThreshold(value);
+	};
+
+	const handleReducedLikeMotionChange = (value: boolean) => {
+		likeMotion.setReducedMotion(value);
+		setReducedLikeMotion(value);
+		onReducedLikeMotionChange?.(value);
 	};
 
 	const handleClearLiveSessionData = () => {
@@ -112,6 +132,13 @@ export function SettingsPopover({
 							value={volumes.celebration}
 						/>
 						<ThresholdSliderRow onThresholdChange={handleThresholdChange} value={threshold} />
+					</div>
+					<div className={`${styles.title} ${styles.likeLayerTitle}`}>LIKE LAYER</div>
+					<div className={styles.rows}>
+						<ReducedLikeMotionRow
+							checked={reducedLikeMotion}
+							onChange={handleReducedLikeMotionChange}
+						/>
 					</div>
 					<div className={`${styles.title} ${styles.liveSessionTitle}`}>LIVE SESSION</div>
 					<button
@@ -223,6 +250,26 @@ function ThresholdSliderRow({ onThresholdChange, value }: ThresholdSliderRowProp
 				tooltip={{ formatter: null }}
 				value={sliderIndex}
 			/>
+		</div>
+	);
+}
+
+interface ReducedLikeMotionRowProps {
+	checked: boolean;
+	onChange: (value: boolean) => void;
+}
+
+/**
+ * Reduced Like Motion toggle (issue #83). When on, the Like Layer drops its
+ * decorative motion (no Heart Float, no Like Counter pop; the Conveyor
+ * cross-fades) while the count and faces remain. This toggle is the sole source
+ * of truth — OS `prefers-reduced-motion` is never consulted.
+ */
+function ReducedLikeMotionRow({ checked, onChange }: ReducedLikeMotionRowProps) {
+	return (
+		<div className={styles.toggleRow}>
+			<span className={styles.toggleLabel}>Reduced Like Motion</span>
+			<Switch aria-label="Reduced Like Motion" checked={checked} onChange={onChange} size="small" />
 		</div>
 	);
 }

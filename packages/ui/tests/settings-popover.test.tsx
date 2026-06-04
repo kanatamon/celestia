@@ -1,7 +1,13 @@
 import type { ChangeEvent, ReactElement, ReactNode } from 'react';
 import { act, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type CelebrationSettings, StatusBar, soundManager, type VolumeKey } from '../src/index.js';
+import {
+	type CelebrationSettings,
+	type LikeMotionSettings,
+	StatusBar,
+	soundManager,
+	type VolumeKey,
+} from '../src/index.js';
 import { SettingsPopover } from '../src/settings-popover.js';
 import { createStrictRoot } from './render-strict.js';
 
@@ -213,7 +219,57 @@ describe('SettingsPopover', () => {
 
 		unmount();
 	});
+
+	it('reads the stored Reduced Like Motion preference and persists toggle changes', async () => {
+		let stored = false;
+		const onReducedLikeMotionChange = vi.fn();
+		const likeMotionSettings: LikeMotionSettings = {
+			getReducedMotion: () => stored,
+			setReducedMotion: vi.fn((value) => {
+				stored = value;
+			}),
+		};
+
+		const { container, render, unmount } = createStrictRoot();
+
+		render(
+			<SettingsPopover
+				open
+				onOpenChange={() => {}}
+				likeMotionSettings={likeMotionSettings}
+				onReducedLikeMotionChange={onReducedLikeMotionChange}
+			>
+				<button type="button">settings</button>
+			</SettingsPopover>,
+		);
+
+		expect(container.textContent).toContain('Reduced Like Motion');
+		const toggle = getSwitch(container, 'Reduced Like Motion');
+		// Default off (full motion).
+		expect(toggle.getAttribute('aria-checked')).toBe('false');
+
+		await act(async () => {
+			toggle.click();
+		});
+
+		// Persists the preference and mirrors the live value up to the host.
+		expect(likeMotionSettings.setReducedMotion).toHaveBeenCalledWith(true);
+		expect(onReducedLikeMotionChange).toHaveBeenCalledWith(true);
+		expect(stored).toBe(true);
+
+		unmount();
+	});
 });
+
+function getSwitch(container: Element, label: string): HTMLButtonElement {
+	const element = container.querySelector(`button[aria-label="${label}"]`);
+
+	if (!(element instanceof HTMLButtonElement)) {
+		throw new Error(`Expected switch with label "${label}".`);
+	}
+
+	return element;
+}
 
 function ControlledStatusBar() {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);

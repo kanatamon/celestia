@@ -126,6 +126,33 @@ export function heartsForBatch(n: number): number {
 	return Math.max(1, Math.round(1 + Math.log(n)));
 }
 
+/** Conditions under which a spawn is dropped (never buffered). */
+export interface SpawnConditions {
+	/**
+	 * Reduced Like Motion is on (the User Preference, the sole source of truth —
+	 * OS `prefers-reduced-motion` is never consulted): drop the Heart Float entirely.
+	 */
+	readonly reducedMotion: boolean;
+	/** The Session Tab is hidden: drop-not-buffer so returning unleashes no flood. */
+	readonly hidden: boolean;
+}
+
+/**
+ * Whether a like with delta `n` should spawn Heart Floats, and how many.
+ *
+ * The **count always races elsewhere** (the live-event store folds the like into
+ * `likeCount` independently), so suppressing the decorative Heart Float never
+ * loses information. Spawns are **dropped, never buffered**, under Reduced Like
+ * Motion or while the tab is hidden — returning then unleashes no backlog. This
+ * is the pure twin of the canvas spawn sink, so the suppression is unit-testable.
+ */
+export function spawnHeartCount(n: number, conditions: SpawnConditions): number {
+	if (conditions.reducedMotion || conditions.hidden) {
+		return 0;
+	}
+	return heartsForBatch(n);
+}
+
 /**
  * Append freshly-spawned hearts, enforcing the `MAX_HEARTS` ceiling by dropping
  * the oldest (front of the list) so the newest spawns always survive. Pure.

@@ -20,6 +20,10 @@ function beat(state: ConveyorState, now: number): ConveyorState {
 	return computeConveyor(state, { kind: 'beat' }, now);
 }
 
+function beatReduced(state: ConveyorState, now: number): ConveyorState {
+	return computeConveyor(state, { kind: 'beat', reducedMotion: true }, now);
+}
+
 describe('computeConveyor — beat commit decoupling', () => {
 	it('does not advance the row on a like event, only on a beat', () => {
 		let state = initialConveyorState;
@@ -111,6 +115,58 @@ describe('computeConveyor — repeat liker breathe without reorder', () => {
 		state = beat(like(state, liker('a'), BEAT_MS * 2), BEAT_MS * 3);
 		const keyAfterBreathe = state.slots.find((s) => s.liker.id === 'a')?.key;
 		expect(keyAfterBreathe).toBe(keyAfterFirst);
+	});
+});
+
+describe('computeConveyor — Reduced Like Motion cross-fade branch', () => {
+	it('stamps a newly seated face slide at full motion', () => {
+		let state = initialConveyorState;
+		state = beat(like(state, liker('a'), 0), BEAT_MS);
+		expect(state.slots[0]?.transition).toBe('slide');
+	});
+
+	it('stamps a newly seated face crossfade under Reduced Like Motion', () => {
+		let state = initialConveyorState;
+		state = beatReduced(like(state, liker('a'), 0), BEAT_MS);
+		expect(state.slots[0]?.transition).toBe('crossfade');
+	});
+
+	it('keeps membership identical regardless of the motion mode', () => {
+		// Same likers, same beats: only the stamped transition differs.
+		const ids = ['a', 'b', 'c'];
+		let full = initialConveyorState;
+		let reduced = initialConveyorState;
+		let now = 0;
+		for (const id of ids) {
+			now += BEAT_MS;
+			full = beat(like(full, liker(id), now - 1), now);
+			reduced = beatReduced(like(reduced, liker(id), now - 1), now);
+		}
+		expect(full.slots.map((s) => s.liker.id)).toEqual(reduced.slots.map((s) => s.liker.id));
+		expect(reduced.slots.every((s) => s.transition === 'crossfade')).toBe(true);
+		expect(full.slots.every((s) => s.transition === 'slide')).toBe(true);
+	});
+
+	it('decides per beat: a face seated under reduced motion carries crossfade even when later beats are full motion', () => {
+		let state = initialConveyorState;
+		// 'a' seats under reduced motion.
+		state = beatReduced(like(state, liker('a'), 0), BEAT_MS);
+		// 'b' seats under full motion on a later beat.
+		state = beat(like(state, liker('b'), BEAT_MS), BEAT_MS * 2);
+		expect(state.slots.find((s) => s.liker.id === 'a')?.transition).toBe('crossfade');
+		expect(state.slots.find((s) => s.liker.id === 'b')?.transition).toBe('slide');
+	});
+
+	it('breathes a repeat liker in place without changing its stamped transition', () => {
+		let state = initialConveyorState;
+		// 'a' seats with a slide.
+		state = beat(like(state, liker('a'), 0), BEAT_MS);
+		// 'a' repeats on a reduced-motion beat: it breathes in place, no reseat, and
+		// the original slide transition is preserved (the breathe owns its own pulse).
+		state = beatReduced(like(state, liker('a'), BEAT_MS), BEAT_MS * 2);
+		expect(state.slots).toHaveLength(1);
+		expect(state.slots[0]?.breatheSeq).toBe(1);
+		expect(state.slots[0]?.transition).toBe('slide');
 	});
 });
 

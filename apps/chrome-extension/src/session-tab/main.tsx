@@ -1,6 +1,7 @@
 import {
 	CelestiaProvider,
 	configureCelebrationSettingsStorage,
+	configureLikeMotionSettingsStorage,
 	configureSoundManagerStorage,
 } from '@celestia/ui';
 import 'antd/dist/reset.css';
@@ -8,6 +9,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
 	createCelebrationSettingsStorage,
+	createLikeMotionSettingsStorage,
 	createSoundManagerStorage,
 	hydrateUserPreferences,
 } from '../user-preferences/user-preferences.js';
@@ -24,6 +26,7 @@ const tiktokTabId = readTiktokTabId();
 await hydrateUserPreferences();
 configureSoundManagerStorage(await createSoundManagerStorage());
 configureCelebrationSettingsStorage(await createCelebrationSettingsStorage());
+configureLikeMotionSettingsStorage(await createLikeMotionSettingsStorage());
 
 createRoot(rootElement).render(
 	<StrictMode>

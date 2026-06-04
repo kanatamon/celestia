@@ -32,12 +32,13 @@
  * the reducer is pure so React's double-invoke cannot fork membership.
  */
 
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import styles from './heartbeat-conveyor.module.css';
 import {
 	BEAT_MS,
 	type ConveyorLiker,
 	type ConveyorState,
+	type ConveyorTransition,
 	computeConveyor,
 	initialConveyorState,
 } from './heartbeat-conveyor-motion.js';
@@ -64,14 +65,21 @@ export interface HeartbeatConveyorProps {
 	resetKey?: number;
 }
 
-type Action = { kind: 'event'; liker: ConveyorLiker } | { kind: 'beat' } | { kind: 'reset' };
+type Action =
+	| { kind: 'event'; liker: ConveyorLiker }
+	| { kind: 'beat'; reducedMotion: boolean }
+	| { kind: 'reset' };
 
 function reducer(state: ConveyorState, action: Action): ConveyorState {
 	switch (action.kind) {
 		case 'event':
 			return computeConveyor(state, { kind: 'like', liker: action.liker }, Date.now());
 		case 'beat':
-			return computeConveyor(state, { kind: 'beat' }, Date.now());
+			return computeConveyor(
+				state,
+				{ kind: 'beat', reducedMotion: action.reducedMotion },
+				Date.now(),
+			);
 		case 'reset':
 			return initialConveyorState;
 	}
@@ -84,6 +92,11 @@ export function HeartbeatConveyor({
 }: HeartbeatConveyorProps) {
 	const [state, dispatch] = useReducer(reducer, initialConveyorState);
 
+	// Read the live Reduced Like Motion flag in the beat tick without re-arming the
+	// metronome interval when the preference changes mid-session.
+	const reducedMotionRef = useRef(reducedMotion);
+	reducedMotionRef.current = reducedMotion;
+
 	// Stable push sink: dispatch is stable, so `onReady` fires once.
 	const push = useCallback<PushLiker>((liker) => dispatch({ kind: 'event', liker }), []);
 	useEffect(() => {
@@ -91,9 +104,14 @@ export function HeartbeatConveyor({
 	}, [onReady, push]);
 
 	// The single owned metronome. One interval, cleaned up on unmount, so
-	// StrictMode's mount→unmount→mount never stacks two beats.
+	// StrictMode's mount→unmount→mount never stacks two beats. Each beat carries
+	// the live Reduced Like Motion flag so the seated face is stamped slide vs.
+	// cross-fade — the sole source of truth (no OS `prefers-reduced-motion`).
 	useEffect(() => {
-		const id = setInterval(() => dispatch({ kind: 'beat' }), BEAT_MS);
+		const id = setInterval(
+			() => dispatch({ kind: 'beat', reducedMotion: reducedMotionRef.current }),
+			BEAT_MS,
+		);
 		return () => clearInterval(id);
 	}, []);
 
@@ -104,26 +122,39 @@ export function HeartbeatConveyor({
 	}, [resetKey]);
 
 	return (
-		<div
-			aria-hidden="true"
-			className={`${styles.conveyor} ${reducedMotion ? styles.reduced : ''}`}
-			data-celestia-heartbeat-conveyor=""
-		>
+		<div aria-hidden="true" className={styles.conveyor} data-celestia-heartbeat-conveyor="">
 			{state.slots.map((slot) => (
-				<ConveyorAvatar key={slot.key} liker={slot.liker} breatheSeq={slot.breatheSeq} />
+				<ConveyorAvatar
+					key={slot.key}
+					liker={slot.liker}
+					breatheSeq={slot.breatheSeq}
+					transition={slot.transition}
+				/>
 			))}
 		</div>
 	);
 }
 
-function ConveyorAvatar({ liker, breatheSeq }: { liker: ConveyorLiker; breatheSeq: number }) {
+function ConveyorAvatar({
+	liker,
+	breatheSeq,
+	transition,
+}: {
+	liker: ConveyorLiker;
+	breatheSeq: number;
+	transition: ConveyorTransition;
+}) {
 	// Fall back to an initial chip when the URL is missing or the image errors,
 	// so a broken CDN face is never a broken <img>.
 	const [broken, setBroken] = useState(false);
 	const showImage = !!liker.avatarUrl && !broken;
 
 	return (
-		<span className={styles.seat} data-breathe={breatheToken(breatheSeq)}>
+		<span
+			className={`${styles.seat} ${transition === 'crossfade' ? styles.reduced : ''}`}
+			data-breathe={breatheToken(breatheSeq)}
+			data-transition={transition}
+		>
 			{showImage ? (
 				<img
 					alt=""
