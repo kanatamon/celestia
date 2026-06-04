@@ -86,6 +86,14 @@ export function SessionTab({
 		[tiktokTabId],
 	);
 
+	// Bumped by the Connection Advisory's Reconnect action. Remounting LiveFeed
+	// re-runs the provider attach effect — re-attaching the Chrome Debugger and
+	// re-discovering the socket — without tearing down this Session Tab. The
+	// live-event store is keyed only on tiktokTabId, so the captured feed
+	// survives the reload.
+	const [reloadKey, setReloadKey] = useState(0);
+	const handleReconnect = useCallback(() => setReloadKey((key) => key + 1), []);
+
 	if (!Number.isInteger(tiktokTabId)) {
 		return (
 			<main aria-label="Celestia Session Tab" className={styles.sessionTab}>
@@ -99,13 +107,14 @@ export function SessionTab({
 
 	return (
 		<LiveFeed
-			key={tiktokTabId}
+			key={`${tiktokTabId}:${reloadKey}`}
 			store={store}
 			tiktokTabId={tiktokTabId}
 			providerFactory={providerFactory}
 			resolveTab={resolveTab}
 			watchTabClosed={watchTabClosed}
 			subscribeAssets={subscribeAssets}
+			onReconnect={handleReconnect}
 		/>
 	);
 }
@@ -117,6 +126,7 @@ function LiveFeed({
 	resolveTab,
 	watchTabClosed,
 	subscribeAssets,
+	onReconnect,
 }: {
 	store: LiveEventStoreApi;
 	tiktokTabId: number;
@@ -124,6 +134,7 @@ function LiveFeed({
 	resolveTab: (tabId: number) => Promise<ResolvedTab | undefined>;
 	watchTabClosed: (tabId: number, listener: () => void) => () => void;
 	subscribeAssets: SubscribeAssets;
+	onReconnect: () => void;
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
@@ -309,6 +320,7 @@ function LiveFeed({
 						viewerCount={state.viewerCount}
 						likeCount={state.likeCount}
 						onClearLiveSessionData={() => setIsClearDataConfirmOpen(true)}
+						onReconnect={onReconnect}
 						username={state.streamerUsername ?? ''}
 						likeCounterRef={likeCounterRef}
 					/>

@@ -30,6 +30,19 @@ export type {
 } from './celebration-stage.js';
 export { CelebrationStage } from './celebration-stage.js';
 export type {
+	ConnectionAdvisoryAccent,
+	ConnectionAdvisoryContent,
+	ConnectionSignalKind,
+	ConnectionSignalViewModel,
+} from './connection-advisory.js';
+export {
+	isAdvisoryFaultKind,
+	resolveConnectionAdvisoryContent,
+	toConnectionSignalViewModel,
+} from './connection-advisory.js';
+export type { ConnectionAdvisoryProps } from './connection-advisory-popover.js';
+export { ConnectionAdvisory } from './connection-advisory-popover.js';
+export type {
 	ChatEventCardProps,
 	EventFeedProps,
 	FeedEventCardProps,
