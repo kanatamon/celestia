@@ -70,6 +70,32 @@ describe('StatusBar', () => {
 		expect(html).toContain(`data-state="${state}"`);
 	});
 
+	it.each([
+		['connecting', 'discovering'],
+		['connected', 'connected'],
+		['error', 'reconnecting'],
+		['detached', 'ended'],
+	] as const)('marks the username gradient scope with the %s state so its colour tracks the signal', (status, state) => {
+		const { container, render, unmount } = createStrictRoot();
+
+		render(
+			<StatusBar
+				connectionState={{ status, username: 'celestia' }}
+				viewerCount={1}
+				likeCount={2}
+			/>,
+		);
+
+		const signal = container.querySelector('[role="status"][data-state]');
+		const gradientScope = signal?.parentElement;
+		const username = gradientScope?.lastElementChild;
+
+		expect(gradientScope?.getAttribute('data-state')).toBe(state);
+		expect(username?.textContent).toBe('@celestia');
+
+		unmount();
+	});
+
 	it('marks offline errors with the offline username styling bucket', () => {
 		const html = renderToString(
 			<StatusBar

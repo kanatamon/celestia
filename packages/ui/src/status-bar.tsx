@@ -90,7 +90,7 @@ export function StatusBar({
 	return (
 		<div className={styles.statusBar} role="status">
 			<div className={styles.statusCluster} data-celestia-status-cluster>
-				<span className={styles.connectionCluster}>
+				<span className={styles.connectionCluster} data-state={connectionSignal.kind}>
 					<ConnectionSignal signal={connectionSignal} />
 					<span className={styles.username}>@{displayUsername}</span>
 				</span>
