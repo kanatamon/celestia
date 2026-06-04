@@ -1,5 +1,7 @@
 export type { ActivitySwitcherProps, ActivitySwitcherView } from './activity-switcher.js';
 export { ActivitySwitcher } from './activity-switcher.js';
+export type { AdvisoryOpenEvent, AdvisoryOpenState } from './advisory-open-state.js';
+export { initialAdvisoryOpenState, reduceAdvisoryOpenState } from './advisory-open-state.js';
 export type { CelebrationEvent, CelebrationQueueState } from './celebration-queue.js';
 export {
 	CELEBRATION_QUEUE_WAITING_CAP,

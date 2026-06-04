@@ -1,6 +1,14 @@
 import { EyeOutlined, HeartFilled, SettingOutlined } from '@ant-design/icons';
 import type { ConnectionState } from '@celestia/tiktok-live-core';
-import { type ButtonHTMLAttributes, type Ref, useEffect, useRef, useState } from 'react';
+import {
+	type ButtonHTMLAttributes,
+	type Ref,
+	useEffect,
+	useReducer,
+	useRef,
+	useState,
+} from 'react';
+import { initialAdvisoryOpenState, reduceAdvisoryOpenState } from './advisory-open-state.js';
 import {
 	type ConnectionSignalKind,
 	type ConnectionSignalViewModel,
@@ -106,26 +114,31 @@ export function StatusBar({
 		[],
 	);
 
-	// The Connection Advisory auto-opens on entering a fault kind (offline /
-	// reconnecting) and auto-closes on recovery (connected / discovering) or end.
-	// The per-episode dismiss/latch lifecycle is a follow-up slice; here it is a
-	// plain "open while faulting" projection with a manual reopen via the bars.
+	// The Connection Advisory's open state is governed by a pure per-episode
+	// reducer (advisory-open-state.ts): a fault auto-opens it once per episode, a
+	// dismiss latches it shut for the rest of that episode (no re-nag), the bars
+	// reopen it on demand, and recovery/end closes it. Here we only translate the
+	// fault-kind edge into faultEntered/recovered events and route the popover's
+	// open-change into dismissed/reopened — the latch logic lives in the reducer.
 	const connectionSignal: ConnectionSignalViewModel | undefined = isActiveConnectionState(
 		connectionState,
 	)
 		? toConnectionSignalViewModel(connectionState)
 		: undefined;
 	const isFaultKind = connectionSignal !== undefined && isAdvisoryFaultKind(connectionSignal.kind);
-	const [isAdvisoryOpen, setIsAdvisoryOpen] = useState(false);
-	const wasFaultRef = useRef(false);
+	const [advisory, dispatchAdvisory] = useReducer(
+		reduceAdvisoryOpenState,
+		initialAdvisoryOpenState,
+	);
+	const isAdvisoryOpen = advisory.open;
 	useEffect(() => {
-		if (isFaultKind && !wasFaultRef.current) {
-			setIsAdvisoryOpen(true);
-		} else if (!isFaultKind && wasFaultRef.current) {
-			setIsAdvisoryOpen(false);
-		}
-		wasFaultRef.current = isFaultKind;
+		dispatchAdvisory({ kind: isFaultKind ? 'faultEntered' : 'recovered' });
 	}, [isFaultKind]);
+	// AntD reports open=false on click-away / clicking the open bars (a dismiss),
+	// and open=true when the bars are clicked while closed (a manual reopen).
+	const handleAdvisoryOpenChange = (open: boolean) => {
+		dispatchAdvisory({ kind: open ? 'reopened' : 'dismissed' });
+	};
 
 	const isSettingsPopoverOpen = isSettingsOpen ?? uncontrolledSettingsOpen;
 	const handleSettingsPopoverOpenChange = (open: boolean) => {
@@ -169,7 +182,7 @@ export function StatusBar({
 						<ConnectionAdvisory
 							signal={connectionSignal}
 							open={isAdvisoryOpen}
-							onOpenChange={setIsAdvisoryOpen}
+							onOpenChange={handleAdvisoryOpenChange}
 							onReconnect={onReconnect}
 						>
 							<ConnectionSignal signal={connectionSignal} />
