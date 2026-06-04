@@ -28,6 +28,12 @@
  * transition swaps the sliding metronome for a cross-fade. Information (the
  * faces) is never removed, only decorative motion.
  *
+ * Lifecycle (issue #84): while the Session Tab is hidden the metronome is frozen
+ * — beats are dropped, not buffered — so returning never floods the row with the
+ * beats missed while away; the row resumes from its current state. "Clear Live
+ * Session data" empties the row through `resetKey`. A disconnect needs no special
+ * handling: with no new likes the pending liker simply stops refreshing.
+ *
  * StrictMode-safe: the metronome is a single owned `setInterval` with cleanup;
  * the reducer is pure so React's double-invoke cannot fork membership.
  */
@@ -97,6 +103,10 @@ export function HeartbeatConveyor({
 	const reducedMotionRef = useRef(reducedMotion);
 	reducedMotionRef.current = reducedMotion;
 
+	// Whether the Session Tab is hidden. Read in the beat tick (ref, no re-arm) to
+	// freeze the metronome — drop-not-buffer, mirroring the Heart Float sink.
+	const hiddenRef = useRef(false);
+
 	// Stable push sink: dispatch is stable, so `onReady` fires once.
 	const push = useCallback<PushLiker>((liker) => dispatch({ kind: 'event', liker }), []);
 	useEffect(() => {
@@ -107,12 +117,30 @@ export function HeartbeatConveyor({
 	// StrictMode's mount→unmount→mount never stacks two beats. Each beat carries
 	// the live Reduced Like Motion flag so the seated face is stamped slide vs.
 	// cross-fade — the sole source of truth (no OS `prefers-reduced-motion`).
+	//
+	// While the tab is hidden the beat is dropped, not buffered: the row freezes
+	// in place (the pending liker is held but never committed), so returning
+	// unleashes no flood of stale beats. On visible the metronome resumes from the
+	// current state — the next beat commits whatever is pending now. The interval
+	// keeps firing while hidden; we simply no-op the dispatch, which keeps the
+	// cadence phase-stable on return rather than re-arming a fresh interval.
 	useEffect(() => {
-		const id = setInterval(
-			() => dispatch({ kind: 'beat', reducedMotion: reducedMotionRef.current }),
-			BEAT_MS,
-		);
+		const id = setInterval(() => {
+			if (hiddenRef.current) return;
+			dispatch({ kind: 'beat', reducedMotion: reducedMotionRef.current });
+		}, BEAT_MS);
 		return () => clearInterval(id);
+	}, []);
+
+	// Track tab visibility for the metronome freeze above. Seeded synchronously so
+	// a Conveyor mounted while already hidden does not beat until the tab returns.
+	useEffect(() => {
+		const onVisibility = () => {
+			hiddenRef.current = document.visibilityState === 'hidden';
+		};
+		onVisibility();
+		document.addEventListener('visibilitychange', onVisibility);
+		return () => document.removeEventListener('visibilitychange', onVisibility);
 	}, []);
 
 	// Explicit session reset: empty the row. Keyed, never inferred from a lull.

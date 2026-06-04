@@ -15,11 +15,23 @@ describe('HeartbeatConveyor', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		push = null;
+		setVisibility('visible');
 	});
 
 	afterEach(() => {
 		vi.useRealTimers();
+		setVisibility('visible');
 	});
+
+	function setVisibility(state: DocumentVisibilityState) {
+		Object.defineProperty(document, 'visibilityState', {
+			configurable: true,
+			get: () => state,
+		});
+		act(() => {
+			document.dispatchEvent(new Event('visibilitychange'));
+		});
+	}
 
 	function mount(props: Partial<Parameters<typeof HeartbeatConveyor>[0]> = {}) {
 		const root = createStrictRoot();
@@ -130,6 +142,29 @@ describe('HeartbeatConveyor', () => {
 		const { container, unmount } = mount();
 		const row = container.querySelector('[data-celestia-heartbeat-conveyor]');
 		expect(row?.getAttribute('aria-hidden')).toBe('true');
+		unmount();
+	});
+
+	it('freezes the metronome while the tab is hidden, then resumes on visible', () => {
+		const { container, unmount } = mount();
+
+		// Buffer a liker while visible, then hide the tab before the beat fires.
+		act(() => {
+			push?.(liker('alice'));
+		});
+		setVisibility('hidden');
+
+		// A beat fires on the metronome, but a hidden tab must NOT commit it:
+		// drop-not-buffer means the row stays frozen, no stale flood on return.
+		tickBeat();
+		expect(avatars(container)).toHaveLength(0);
+
+		// Returning visible resumes from current state: the still-pending liker
+		// seats on the next beat — no replay of the beats missed while hidden.
+		setVisibility('visible');
+		tickBeat();
+		expect(avatars(container)).toHaveLength(1);
+		expect(avatars(container)[0]?.getAttribute('src')).toBe('https://cdn/alice.jpg');
 		unmount();
 	});
 
