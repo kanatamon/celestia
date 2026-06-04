@@ -16,6 +16,7 @@ import {
 	ChromeApiDebuggerTransport,
 	type ChromeDebuggerTransport,
 	type Debuggee,
+	type TabUpdatedHandler,
 } from './chrome-debugger-transport.js';
 import { LiveIngestionTraceCapture, liveIngestionTraceBuild } from './live-ingestion-trace.js';
 
@@ -70,6 +71,14 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 	private debuggerAttached = false;
 	private streamEnded = false;
 	private destroyed = false;
+	// Whether the paired tab's URL is still a `/@user/live` page. Seeded from the
+	// attach URL and kept current by `chrome.tabs.onUpdated`. Feeds the classifier's
+	// `off-live` fault (ADR-0009).
+	private tabIsLive = true;
+	// Latched true the first time the Provider reaches a confirmed-live `connected`
+	// state. Gates `off-live` so a cold attach to a not-yet-live tab never raises
+	// it — only leaving a live we had reached does. Resets on each fresh attach.
+	private everConnectedLive = false;
 	private readonly diagnosticsEnabled: boolean;
 	private readonly traceCapture: LiveIngestionTraceCapture | undefined;
 
@@ -108,6 +117,25 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.emitLog('warn', 'Chrome debugger detached', { reason });
 	};
 
+	private readonly handleTabUpdated: TabUpdatedHandler = (tabId, changeInfo): void => {
+		// Only URL navigations on our attached tab matter. `chrome.tabs.onUpdated`
+		// fires for every tab and every change kind (title, favicon, status); we
+		// filter to our tab's `changeInfo.url` mirroring how we filter debugger
+		// events to the active debuggee.
+		if (tabId !== this.state.tabId) return;
+		if (changeInfo.url === undefined) return;
+		const tabIsLive = isTikTokLiveUrl(changeInfo.url);
+		if (tabIsLive === this.tabIsLive) return;
+		this.tabIsLive = tabIsLive;
+		this.setState({ ...this.state, tabUrl: changeInfo.url });
+		this.emitLog('info', 'Paired tab navigation observed', {
+			tabId,
+			url: changeInfo.url,
+			tabIsLive,
+		});
+		this.applyClassifiedState();
+	};
+
 	private readonly handleBrowserOffline = (): void => {
 		this.clearStaleEventTimer();
 		this.applyClassifiedState(false);
@@ -141,6 +169,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			: undefined;
 		this.transport.addEventListener(this.handleDebuggerEvent);
 		this.transport.addDetachListener(this.handleDebuggerDetach);
+		this.transport.addTabUpdatedListener(this.handleTabUpdated);
 		this.browserEvents?.addEventListener('offline', this.handleBrowserOffline);
 		this.browserEvents?.addEventListener('online', this.handleBrowserOnline);
 		this.emitLog('debug', 'Chrome Extension Provider constructed');
@@ -187,6 +216,11 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.clearDiscoveryState();
 		this.debuggerAttached = false;
 		this.streamEnded = false;
+		// Seed tab-liveness from the attach URL; `chrome.tabs.onUpdated` keeps it
+		// current. The `everConnectedLive` latch resets on each fresh attach (it is
+		// Provider-owned and dies with the Provider on remount — ADR-0009).
+		this.tabIsLive = tabUrl === undefined ? true : isTikTokLiveUrl(tabUrl);
+		this.everConnectedLive = false;
 		const debuggee = { tabId };
 		this.setState({
 			...this.state,
@@ -284,6 +318,7 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.destroyed = true;
 		this.transport.removeEventListener(this.handleDebuggerEvent);
 		this.transport.removeDetachListener(this.handleDebuggerDetach);
+		this.transport.removeTabUpdatedListener(this.handleTabUpdated);
 		this.browserEvents?.removeEventListener('offline', this.handleBrowserOffline);
 		this.browserEvents?.removeEventListener('online', this.handleBrowserOnline);
 		this.clearPromiscuousTimer();
@@ -574,7 +609,15 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 			now: this.now(),
 			username: this.state.username,
 			viewerCount: this.state.viewerCount,
+			tabIsLive: this.tabIsLive,
+			everConnectedLive: this.everConnectedLive,
 		});
+		// Latch the first confirmed-live connection. From here on a navigation away
+		// from the live raises `off-live`; before it, a non-live tab simply spins on
+		// Discovering (the latch gates the fault — ADR-0009).
+		if (classifiedState.status === 'connected') {
+			this.everConnectedLive = true;
+		}
 		this.setState({
 			...this.state,
 			status: classifiedState.status,
@@ -694,6 +737,26 @@ function defaultBrowserEventTarget(): BrowserEventTarget | undefined {
 		};
 	}
 	return undefined;
+}
+
+/**
+ * Whether `url` is a TikTok `/@user/live` page — the only URL that hosts a live
+ * socket. The Provider uses this to maintain `tabIsLive`. Mirrors the host's
+ * `parseTikTokUsername` shape but only needs the boolean here, so it stays a
+ * local, dependency-free check (keeps the data layer platform-agnostic).
+ */
+function isTikTokLiveUrl(url: string): boolean {
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		return false;
+	}
+	if (parsed.protocol !== 'https:') return false;
+	if (parsed.hostname !== 'tiktok.com' && !parsed.hostname.endsWith('.tiktok.com')) {
+		return false;
+	}
+	return /^\/@[^/]+\/live\/?$/.test(parsed.pathname);
 }
 
 function stringParam(params: Record<string, unknown>, key: string): string | undefined {

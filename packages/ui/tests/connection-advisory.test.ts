@@ -31,6 +31,7 @@ describe('toConnectionSignalViewModel', () => {
 	});
 
 	it.each([
+		'off-live',
 		'interrupted',
 		'stale',
 	] as const)('carries the %s reason through the reconnecting kind', (reason) => {
@@ -69,6 +70,21 @@ describe('resolveConnectionAdvisoryContent', () => {
 		expect(content.accent).toBe('amber');
 	});
 
+	it('explains an off-live fault with a Reopen live action and an amber accent', () => {
+		const content = resolveConnectionAdvisoryContent('off-live');
+		expect(content.title).toMatch(/live/i);
+		expect(content.why).toMatch(/navigat|left|away|live page/i);
+		expect(content.actionLabel).toBe('Reopen live');
+		expect(content.accent).toBe('amber');
+	});
+
+	it('gives off-live a Reopen live action distinct from the Reconnect reasons', () => {
+		const offLive = resolveConnectionAdvisoryContent('off-live');
+		expect(offLive.actionLabel).not.toBe('Reconnect');
+		expect(resolveConnectionAdvisoryContent('interrupted').actionLabel).toBe('Reconnect');
+		expect(resolveConnectionAdvisoryContent('stale').actionLabel).toBe('Reconnect');
+	});
+
 	it('explains a stale fault with a Reconnect action and a relaunch fallback', () => {
 		const content = resolveConnectionAdvisoryContent('stale');
 		expect(content.title).toMatch(/stall/i);
@@ -78,13 +94,13 @@ describe('resolveConnectionAdvisoryContent', () => {
 		expect(content.accent).toBe('amber');
 	});
 
-	it('produces three distinct titles across the fault reasons', () => {
+	it('produces a distinct title for each fault reason', () => {
 		const titles = new Set(
-			(['offline', 'interrupted', 'stale'] as const).map(
+			(['offline', 'off-live', 'interrupted', 'stale'] as const).map(
 				(reason) => resolveConnectionAdvisoryContent(reason).title,
 			),
 		);
-		expect(titles.size).toBe(3);
+		expect(titles.size).toBe(4);
 	});
 
 	it('falls back to the interrupted copy for an unknown reason', () => {

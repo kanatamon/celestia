@@ -43,6 +43,10 @@ class FakeTransport implements ChromeDebuggerTransport {
 	removeDetachListener(): void {
 		this.detachHandler = undefined;
 	}
+
+	addTabUpdatedListener(): void {}
+
+	removeTabUpdatedListener(): void {}
 }
 
 const transport = new FakeTransport();

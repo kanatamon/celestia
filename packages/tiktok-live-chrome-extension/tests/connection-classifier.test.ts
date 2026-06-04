@@ -55,6 +55,93 @@ assertState(
 assertState(
 	classifyConnectionState({
 		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: true,
+	}),
+	{ status: 'error', reason: 'off-live' },
+	'Expected a navigated-away tab after a confirmed-live connection to classify as off-live',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: true,
+		debuggerAttached: false,
+	}),
+	{ status: 'error', reason: 'off-live' },
+	'Expected off-live to dominate a debugger detach (interrupted)',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: true,
+		lastEventAt: now - staleThresholdMs - 1,
+	}),
+	{ status: 'error', reason: 'off-live' },
+	'Expected off-live to dominate a stale fault',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: true,
+		confirmedSocket: false,
+	}),
+	{ status: 'error', reason: 'off-live' },
+	'Expected off-live to dominate the connecting state',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: true,
+		online: false,
+	}),
+	{ status: 'error', reason: 'offline' },
+	'Expected offline to dominate off-live (a URL read is untrustworthy offline)',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: false,
+	}),
+	{ status: 'connected' },
+	'Expected a cold non-live tab that never connected to NOT raise off-live',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: false,
+		confirmedSocket: false,
+		lastEventAt: undefined,
+	}),
+	{ status: 'connecting' },
+	'Expected a cold non-live tab still discovering to stay connecting, not off-live',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
+		tabIsLive: false,
+		everConnectedLive: true,
+		streamEnded: true,
+	}),
+	{ status: 'disconnected' },
+	'Expected stream end to dominate off-live',
+);
+
+assertState(
+	classifyConnectionState({
+		...connectedSignals(),
 		streamEnded: true,
 	}),
 	{ status: 'disconnected' },
@@ -88,6 +175,8 @@ function connectedSignals(): ConnectionClassificationSignals {
 		staleThresholdMs,
 		streamEnded: false,
 		now,
+		tabIsLive: true,
+		everConnectedLive: true,
 	};
 }
 

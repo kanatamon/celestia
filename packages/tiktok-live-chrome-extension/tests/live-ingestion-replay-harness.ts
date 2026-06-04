@@ -106,6 +106,10 @@ class ReplayTransport implements ChromeDebuggerTransport {
 		this.detachHandler = undefined;
 	}
 
+	addTabUpdatedListener(): void {}
+
+	removeTabUpdatedListener(): void {}
+
 	emit(method: string, params?: Record<string, unknown>): void {
 		if (this.attachedTabId === undefined) {
 			throw new Error(`Cannot replay ${method} before debugger attachment`);

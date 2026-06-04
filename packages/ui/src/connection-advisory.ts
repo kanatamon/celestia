@@ -79,6 +79,8 @@ export interface ConnectionAdvisoryContent {
  * whether a Reconnect action is offered. Pure; fully decoupled from rendering.
  *
  * - `offline` — device lost network; Celestia resumes automatically. No action.
+ * - `off-live` — the paired tab is still attached but has navigated off the live
+ *   page. Reopen-live action navigates that same tab back to this streamer.
  * - `interrupted` — Chrome Debugger detached. Reconnect action.
  * - `stale` — debugger attached but no LiveEvents past the stale threshold.
  *   Reconnect action, plus a close-tabs-and-relaunch fallback.
@@ -96,6 +98,14 @@ export function resolveConnectionAdvisoryContent(
 				why: 'Your device lost its network connection, so events stopped arriving.',
 				workaround: 'No action needed — Celestia will resume automatically once you reconnect.',
 				accent: 'red',
+			};
+		case 'off-live':
+			return {
+				title: 'You left the live',
+				why: 'The paired TikTok tab navigated away from the live page, so the live feed stopped. Celestia is still attached to that tab.',
+				workaround: 'Reopen live to take that same tab back to this streamer and resume the feed.',
+				actionLabel: 'Reopen live',
+				accent: 'amber',
 			};
 		case 'stale':
 			return {

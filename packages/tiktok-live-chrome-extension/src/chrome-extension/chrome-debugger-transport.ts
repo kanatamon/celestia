@@ -7,6 +7,7 @@ export type ChromeDebuggerEventHandler = (
 	params?: Record<string, unknown>,
 ) => void;
 export type ChromeDebuggerDetachHandler = (source: Debuggee, reason: string) => void;
+export type TabUpdatedHandler = ChromeApi.TabUpdatedHandler;
 
 export interface ChromeDebuggerTransport {
 	queryActiveTab(): Promise<ChromeApi.Tab | undefined>;
@@ -17,6 +18,13 @@ export interface ChromeDebuggerTransport {
 	removeEventListener(handler: ChromeDebuggerEventHandler): void;
 	addDetachListener(handler: ChromeDebuggerDetachHandler): void;
 	removeDetachListener(handler: ChromeDebuggerDetachHandler): void;
+	/**
+	 * Observe URL navigations on tabs (`chrome.tabs.onUpdated`, filtered to
+	 * `changeInfo.url`). The Provider uses this to keep `tabIsLive` current for its
+	 * attached tab so the classifier can raise the `off-live` fault.
+	 */
+	addTabUpdatedListener(handler: TabUpdatedHandler): void;
+	removeTabUpdatedListener(handler: TabUpdatedHandler): void;
 }
 
 export class ChromeApiDebuggerTransport implements ChromeDebuggerTransport {
@@ -55,5 +63,13 @@ export class ChromeApiDebuggerTransport implements ChromeDebuggerTransport {
 
 	removeDetachListener(handler: ChromeDebuggerDetachHandler): void {
 		chrome.debugger.onDetach.removeListener(handler);
+	}
+
+	addTabUpdatedListener(handler: TabUpdatedHandler): void {
+		chrome.tabs.onUpdated.addListener(handler);
+	}
+
+	removeTabUpdatedListener(handler: TabUpdatedHandler): void {
+		chrome.tabs.onUpdated.removeListener(handler);
 	}
 }

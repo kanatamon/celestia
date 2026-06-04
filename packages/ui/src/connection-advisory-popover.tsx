@@ -14,8 +14,15 @@ export interface ConnectionAdvisoryProps {
 	signal: ConnectionSignalViewModel;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	/** Invoked by the Reconnect action, where the fault offers one. */
+	/** Invoked by the Reconnect action (the `interrupted`/`stale` faults). */
 	onReconnect?: () => void;
+	/**
+	 * Invoked by the Reopen-live action (the `off-live` fault) — navigates the
+	 * existing paired tab back to this session's streamer. Parallel to
+	 * `onReconnect`; the `ui` package stays Chrome-free and the host supplies the
+	 * actual navigation.
+	 */
+	onReopenLive?: () => void;
 }
 
 /**
@@ -31,9 +38,15 @@ export function ConnectionAdvisory({
 	open,
 	onOpenChange,
 	onReconnect,
+	onReopenLive,
 }: ConnectionAdvisoryProps) {
 	const content = resolveConnectionAdvisoryContent(signal.reason);
 	const accentClassName = content.accent === 'red' ? styles.accentRed : styles.accentAmber;
+	// The action button routes by reason: `off-live` reopens the live in the same
+	// tab; every other actionable fault reconnects. Kept here (not in the pure
+	// content resolver) so the `ui` package stays Chrome-free — the host supplies
+	// both callbacks.
+	const onAction = signal.reason === 'off-live' ? onReopenLive : onReconnect;
 
 	return (
 		<Dropdown
@@ -43,7 +56,7 @@ export function ConnectionAdvisory({
 			onOpenChange={onOpenChange}
 			placement="bottomLeft"
 			popupRender={() => (
-				<AdvisoryContent content={content} onReconnect={onReconnect} onOpenChange={onOpenChange} />
+				<AdvisoryContent content={content} onAction={onAction} onOpenChange={onOpenChange} />
 			)}
 			rootClassName={`${styles.popoverRoot} ${accentClassName}`}
 			trigger={['click']}
@@ -55,16 +68,16 @@ export function ConnectionAdvisory({
 
 function AdvisoryContent({
 	content,
-	onReconnect,
+	onAction,
 	onOpenChange,
 }: {
 	content: ConnectionAdvisoryContent;
-	onReconnect?: () => void;
+	onAction?: () => void;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const handleReconnect = () => {
+	const handleAction = () => {
 		onOpenChange(false);
-		onReconnect?.();
+		onAction?.();
 	};
 
 	return (
@@ -85,7 +98,7 @@ function AdvisoryContent({
 				<button
 					aria-label={content.actionLabel}
 					className={styles.actionButton}
-					onClick={handleReconnect}
+					onClick={handleAction}
 					type="button"
 				>
 					{content.actionLabel}

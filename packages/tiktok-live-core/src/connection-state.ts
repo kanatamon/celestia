@@ -10,7 +10,7 @@ export type ConnectionStateStatus =
 	| 'disconnected'
 	| 'error';
 
-export type ConnectionStateReason = 'offline' | 'interrupted' | 'stale';
+export type ConnectionStateReason = 'offline' | 'off-live' | 'interrupted' | 'stale';
 
 export interface ConnectionState {
 	status: ConnectionStateStatus;

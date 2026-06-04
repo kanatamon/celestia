@@ -24,6 +24,7 @@ class FakeTransport implements ChromeDebuggerTransport {
 		| ((source: Debuggee, method: string, params?: Record<string, unknown>) => void)
 		| undefined;
 	detachHandler: ((source: Debuggee, reason: string) => void) | undefined;
+	tabUpdatedHandler: ChromeApi.TabUpdatedHandler | undefined;
 
 	async queryActiveTab(): Promise<ChromeApi.Tab> {
 		return this.tab;
@@ -58,6 +59,14 @@ class FakeTransport implements ChromeDebuggerTransport {
 
 	removeDetachListener(): void {
 		this.detachHandler = undefined;
+	}
+
+	addTabUpdatedListener(handler: ChromeApi.TabUpdatedHandler): void {
+		this.tabUpdatedHandler = handler;
+	}
+
+	removeTabUpdatedListener(): void {
+		this.tabUpdatedHandler = undefined;
 	}
 }
 
@@ -275,6 +284,56 @@ assertState(
 if (activeStaleTimer?.active) {
 	throw new Error('Expected new decoded LiveEvent to clear the previous stale timer');
 }
+
+// The paired tab navigates off the live page (to a profile) after a confirmed
+// connection — the Provider observes it via chrome.tabs.onUpdated and the
+// classifier raises off-live, not interrupted.
+transport.tabUpdatedHandler?.(
+	42,
+	{ url: 'https://www.tiktok.com/@creator' },
+	{ id: 42, url: 'https://www.tiktok.com/@creator' },
+);
+assertState(
+	provider.getConnectionState(),
+	{ status: 'error', reason: 'off-live' },
+	'Expected a paired tab navigating off the live to classify as off-live after a confirmed connection',
+);
+
+// A navigation event on an UNRELATED tab is ignored.
+transport.tabUpdatedHandler?.(
+	999,
+	{ url: 'https://www.tiktok.com/@other' },
+	{ id: 999, url: 'https://www.tiktok.com/@other' },
+);
+assertState(
+	provider.getConnectionState(),
+	{ status: 'error', reason: 'off-live' },
+	'Expected a navigation on an unrelated tab to leave the off-live fault unchanged',
+);
+
+// Reopen live: the same tab navigates back to the streamer; off-live clears and a
+// fresh decoded LiveEvent reconnects (the still-attached debugger rediscovers).
+transport.tabUpdatedHandler?.(
+	42,
+	{ url: 'https://www.tiktok.com/@creator/live' },
+	{ id: 42, url: 'https://www.tiktok.com/@creator/live' },
+);
+transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
+	requestId: 'socket-recovered',
+	response: {
+		payloadData: frameBase64([
+			responseMessage(
+				'WebcastChatMessage',
+				msg([bytes(1, event(110)), bytes(2, user()), str(3, 'back on the live')]),
+			),
+		]),
+	},
+});
+assertState(
+	provider.getConnectionState(),
+	{ status: 'connected' },
+	'Expected reopening the live and a fresh LiveEvent to reconnect after off-live',
+);
 
 transport.eventHandler?.({ tabId: 42 }, 'Network.webSocketFrameReceived', {
 	requestId: 'socket-recovered',

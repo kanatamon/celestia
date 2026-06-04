@@ -67,6 +67,13 @@ interface SessionTabProps {
 	subscribeAssets?: SubscribeAssets;
 	/** Opens a fresh paired Live Session for `username` (used by the Relaunch action). */
 	relaunch?: (username: string) => void;
+	/**
+	 * Navigates the existing paired tab back to a streamer's `/@user/live` page
+	 * (used by the Connection Advisory's Reopen-live action for the `off-live`
+	 * fault). Navigate-only — the still-attached debugger rediscovers the fresh
+	 * socket and the classifier returns to `connected` on its own.
+	 */
+	reopenLive?: (tabId: number, username: string) => void;
 }
 
 const defaultProviderFactory = (): AttachableTikTokLiveProvider => {
@@ -84,6 +91,7 @@ export function SessionTab({
 	watchTabClosed = defaultWatchTabClosed,
 	subscribeAssets = subscribeGiftAnimationAssets,
 	relaunch = defaultRelaunch,
+	reopenLive = defaultReopenLive,
 }: SessionTabProps) {
 	const store = useMemo(
 		() => createLiveEventStore({ name: `celestia-live-event-store-${tiktokTabId}` }),
@@ -120,6 +128,7 @@ export function SessionTab({
 			subscribeAssets={subscribeAssets}
 			onReconnect={handleReconnect}
 			relaunch={relaunch}
+			reopenLive={reopenLive}
 		/>
 	);
 }
@@ -133,6 +142,7 @@ function LiveFeed({
 	subscribeAssets,
 	onReconnect,
 	relaunch,
+	reopenLive,
 }: {
 	store: LiveEventStoreApi;
 	tiktokTabId: number;
@@ -142,6 +152,7 @@ function LiveFeed({
 	subscribeAssets: SubscribeAssets;
 	onReconnect: () => void;
 	relaunch: (username: string) => void;
+	reopenLive: (tabId: number, username: string) => void;
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
@@ -159,6 +170,14 @@ function LiveFeed({
 	// The streamer this closed feed was paired to — the obvious candidate to
 	// relaunch. Empty when we never resolved a username (no Relaunch offered).
 	const relaunchUsername = (state.streamerUsername ?? '').trim();
+	// Reopen live navigates the *existing* paired tab back to this session's
+	// streamer. `off-live` only fires after a confirmed-live connection, so the
+	// username is always known here. Navigate-only: the still-attached debugger
+	// rediscovers the fresh socket and the classifier returns to `connected`.
+	const handleReopenLive = useCallback(() => {
+		if (!relaunchUsername) return;
+		reopenLive(tiktokTabId, relaunchUsername);
+	}, [reopenLive, tiktokTabId, relaunchUsername]);
 	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
 	useDevGiftCelebrationTrigger(enqueueCapture);
 	const observeGiftForSynthesis = useSynthesizedCelebrationTrigger(enqueueCapture);
@@ -357,6 +376,7 @@ function LiveFeed({
 						likeCount={state.likeCount}
 						onClearLiveSessionData={() => setIsClearDataConfirmOpen(true)}
 						onReconnect={onReconnect}
+						onReopenLive={handleReopenLive}
 						username={state.streamerUsername ?? ''}
 						likeCounterRef={likeCounterRef}
 						heartArrivalSignal={heartArrivalSignal}
@@ -648,6 +668,18 @@ function DisconnectedBanner({
 function defaultRelaunch(username: string): void {
 	const runtime = typeof chrome === 'undefined' ? undefined : chrome.runtime;
 	void runtime?.sendMessage?.({ type: 'OPEN_LIVE_SESSION', username });
+}
+
+/**
+ * Default Reopen-live action: navigate the *existing* paired tab back to this
+ * session's streamer `/@user/live`. Unlike Relaunch (which opens a fresh tab)
+ * and Reconnect (which only remounts to re-attach the debugger), this keeps the
+ * same tab and debugger — so the still-attached debugger rediscovers the fresh
+ * live socket and the classifier returns to `connected` with no remount.
+ */
+function defaultReopenLive(tabId: number, username: string): void {
+	const chromeTabs = typeof chrome === 'undefined' ? undefined : chrome.tabs;
+	void chromeTabs?.update?.(tabId, { url: `https://www.tiktok.com/@${username}/live` });
 }
 
 function useStore(store: LiveEventStoreApi): LiveEventStore {

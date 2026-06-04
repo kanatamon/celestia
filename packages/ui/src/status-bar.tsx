@@ -37,6 +37,12 @@ export interface StatusBarProps {
 	 */
 	onReconnect?: () => void;
 	/**
+	 * Re-opens the live in the existing paired tab when the user clicks Reopen live
+	 * in the Connection Advisory's `off-live` branch. The `ui` package stays
+	 * Chrome-free; the host (Session Tab) supplies the navigation.
+	 */
+	onReopenLive?: () => void;
+	/**
 	 * Anchor for the Like Layer's Heart Float target — the Like Counter element
 	 * hearts fly to. The Like Layer caches this element's coordinates; it is also
 	 * what scale-bumps on a Heart Float arrival (the Like Counter pop).
@@ -91,6 +97,7 @@ export function StatusBar({
 	canClearLiveSessionData,
 	onClearLiveSessionData,
 	onReconnect,
+	onReopenLive,
 	likeCounterRef,
 	heartArrivalSignal = 0,
 	onReducedLikeMotionChange,
@@ -203,6 +210,7 @@ export function StatusBar({
 							open={isAdvisoryOpen}
 							onOpenChange={handleAdvisoryOpenChange}
 							onReconnect={onReconnect}
+							onReopenLive={onReopenLive}
 						>
 							<button
 								aria-label={`${connectionSignal.label} — show connection advisory`}
