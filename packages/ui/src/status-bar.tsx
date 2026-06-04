@@ -43,6 +43,13 @@ export interface StatusBarProps {
 	 */
 	onReopenLive?: () => void;
 	/**
+	 * Suppresses the Connection Advisory's auto-open while the host (Session Tab) is
+	 * silently retrying a `reconnecting` fault via Auto-Reconnect (ADR-0009). The
+	 * "Reconnecting" signal bars still show; only the popover is held back. When the
+	 * host clears this on exhaustion, the still-present fault opens the advisory.
+	 */
+	suppressAdvisory?: boolean;
+	/**
 	 * Anchor for the Like Layer's Heart Float target — the Like Counter element
 	 * hearts fly to. The Like Layer caches this element's coordinates; it is also
 	 * what scale-bumps on a Heart Float arrival (the Like Counter pop).
@@ -98,6 +105,7 @@ export function StatusBar({
 	onClearLiveSessionData,
 	onReconnect,
 	onReopenLive,
+	suppressAdvisory = false,
 	likeCounterRef,
 	heartArrivalSignal = 0,
 	onReducedLikeMotionChange,
@@ -147,8 +155,15 @@ export function StatusBar({
 	);
 	const isAdvisoryOpen = advisory.open;
 	useEffect(() => {
-		dispatchAdvisory({ kind: isFaultKind ? 'faultEntered' : 'recovered' });
-	}, [isFaultKind]);
+		// A suppressed fault edge starts no episode (Auto-Reconnect is retrying); when
+		// `suppressAdvisory` later clears while still faulting, this effect re-runs and
+		// re-fires the edge un-suppressed, opening the advisory on exhaustion.
+		if (isFaultKind) {
+			dispatchAdvisory({ kind: 'faultEntered', suppressed: suppressAdvisory });
+		} else {
+			dispatchAdvisory({ kind: 'recovered' });
+		}
+	}, [isFaultKind, suppressAdvisory]);
 	// AntD reports open=false on click-away / clicking the open bars (a dismiss),
 	// and open=true when the bars are clicked while closed (a manual reopen).
 	const handleAdvisoryOpenChange = (open: boolean) => {

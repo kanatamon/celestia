@@ -25,8 +25,15 @@ import {
 	StatusBar,
 	useSoundEffects,
 } from '@celestia/ui';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { userPreferences } from '../user-preferences/user-preferences.js';
+import {
+	AUTO_RECONNECT_ATTEMPT_TIMEOUT_MS,
+	AUTO_RECONNECT_GAP_MS,
+	type AutoReconnectEvent,
+	initialAutoReconnectState,
+	reduceAutoReconnect,
+} from './auto-reconnect.js';
 import {
 	subscribeGiftAnimationAssets,
 	toCapturedCelebration,
@@ -106,6 +113,14 @@ export function SessionTab({
 	const [reloadKey, setReloadKey] = useState(0);
 	const handleReconnect = useCallback(() => setReloadKey((key) => key + 1), []);
 
+	// Auto-Reconnect (ADR-0009) lives here, in the Session Tab, above the LiveFeed
+	// remount boundary — an attempt *is* a remount (the same mechanism as the manual
+	// Reconnect), so a budget below the boundary would reset every attempt and loop
+	// forever. It silently fires up to three remounts behind the "Reconnecting"
+	// signal and suppresses the advisory until exhaustion. The store survives the
+	// remounts (keyed on tiktokTabId), so we observe connectionState from it here.
+	const suppressAdvisory = useAutoReconnect(store, handleReconnect);
+
 	if (!Number.isInteger(tiktokTabId)) {
 		return (
 			<main aria-label="Celestia Session Tab" className={styles.sessionTab}>
@@ -127,6 +142,7 @@ export function SessionTab({
 			watchTabClosed={watchTabClosed}
 			subscribeAssets={subscribeAssets}
 			onReconnect={handleReconnect}
+			suppressAdvisory={suppressAdvisory}
 			relaunch={relaunch}
 			reopenLive={reopenLive}
 		/>
@@ -141,6 +157,7 @@ function LiveFeed({
 	watchTabClosed,
 	subscribeAssets,
 	onReconnect,
+	suppressAdvisory,
 	relaunch,
 	reopenLive,
 }: {
@@ -151,6 +168,7 @@ function LiveFeed({
 	watchTabClosed: (tabId: number, listener: () => void) => () => void;
 	subscribeAssets: SubscribeAssets;
 	onReconnect: () => void;
+	suppressAdvisory: boolean;
 	relaunch: (username: string) => void;
 	reopenLive: (tabId: number, username: string) => void;
 }) {
@@ -377,6 +395,7 @@ function LiveFeed({
 						onClearLiveSessionData={() => setIsClearDataConfirmOpen(true)}
 						onReconnect={onReconnect}
 						onReopenLive={handleReopenLive}
+						suppressAdvisory={suppressAdvisory}
 						username={state.streamerUsername ?? ''}
 						likeCounterRef={likeCounterRef}
 						heartArrivalSignal={heartArrivalSignal}
@@ -583,6 +602,135 @@ function useSynthesizedCelebrationTrigger(
 	}, [observe]);
 
 	return observe;
+}
+
+/**
+ * How the Auto-Reconnect reducer reads a {@link ConnectionState}. Liveness is
+ * already encoded in the fault `reason` — the classifier (ADR-0009 §1) raises
+ * `off-live` in precedence over `interrupted`/`stale`, so an `interrupted`/`stale`
+ * error means the tab is still on the live and the fault should be retried, while
+ * `off-live`/`offline` (and a stream end) abandon to their own paths.
+ */
+type AutoReconnectOutcome = 'reconnecting' | 'connected' | 'abandon' | 'neutral';
+
+function classifyAutoReconnectOutcome(connectionState: ConnectionState): AutoReconnectOutcome {
+	switch (connectionState.status) {
+		case 'connected':
+			return 'connected';
+		case 'error':
+			return connectionState.reason === 'off-live' || connectionState.reason === 'offline'
+				? 'abandon'
+				: 'reconnecting';
+		case 'detached':
+		case 'disconnected':
+			return 'abandon';
+		default:
+			return 'neutral';
+	}
+}
+
+/** Subscribe narrowly to the store's connectionState so non-connection events
+ * (chat, gifts, likes) never re-render the Session Tab. */
+function useConnectionState(store: LiveEventStoreApi): ConnectionState {
+	return useSyncExternalStore(store.subscribe, () => store.getState().connectionState);
+}
+
+/**
+ * Drives the pure Auto-Reconnect reducer (ADR-0009) from the live connection
+ * outcome and owns the timing the reducer deliberately omits: a ~6s per-attempt
+ * timeout (a failure) and a ~1s gap between attempts. `requestAttempt` performs
+ * one attempt — a LiveFeed remount (re-attach + re-discover, the manual-Reconnect
+ * mechanism). Returns whether the Connection Advisory should stay suppressed.
+ */
+function useAutoReconnect(store: LiveEventStoreApi, requestAttempt: () => void): boolean {
+	const connectionState = useConnectionState(store);
+	const stateRef = useRef(initialAutoReconnectState);
+	const [reducerState, setReducerState] = useState(initialAutoReconnectState);
+	const requestAttemptRef = useRef(requestAttempt);
+	requestAttemptRef.current = requestAttempt;
+	const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const attemptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const dispatchRef = useRef<(event: AutoReconnectEvent) => void>(() => {});
+
+	const clearTimers = useCallback(() => {
+		if (gapTimerRef.current !== null) {
+			clearTimeout(gapTimerRef.current);
+			gapTimerRef.current = null;
+		}
+		if (attemptTimerRef.current !== null) {
+			clearTimeout(attemptTimerRef.current);
+			attemptTimerRef.current = null;
+		}
+	}, []);
+
+	const dispatch = useCallback(
+		(event: AutoReconnectEvent) => {
+			// Any definitive transition (or the timeout itself) concludes the in-flight
+			// attempt's timing; we reschedule below only if the verdict asks for more.
+			clearTimers();
+			const firstAttempt = !stateRef.current.retrying;
+			const { state, verdict } = reduceAutoReconnect(stateRef.current, event);
+			stateRef.current = state;
+			setReducerState(state);
+
+			if (!verdict.shouldAttempt) {
+				return;
+			}
+
+			const fire = () => {
+				requestAttemptRef.current();
+				attemptTimerRef.current = setTimeout(() => {
+					attemptTimerRef.current = null;
+					dispatchRef.current({ kind: 'attemptTimeout' });
+				}, AUTO_RECONNECT_ATTEMPT_TIMEOUT_MS);
+			};
+
+			// The first attempt of an episode fires at once; later ones wait the gap so
+			// the worst case stays ~20s (3 × 6s + 2 × 1s) before the advisory is owed.
+			if (firstAttempt) {
+				fire();
+			} else {
+				gapTimerRef.current = setTimeout(() => {
+					gapTimerRef.current = null;
+					fire();
+				}, AUTO_RECONNECT_GAP_MS);
+			}
+		},
+		[clearTimers],
+	);
+	dispatchRef.current = dispatch;
+
+	// Translate connection-outcome *edges* into reducer events; steady state and the
+	// neutral connecting/discovering phases dispatch nothing.
+	const prevOutcomeRef = useRef<AutoReconnectOutcome>('neutral');
+	useEffect(() => {
+		const outcome = classifyAutoReconnectOutcome(connectionState);
+		if (outcome === prevOutcomeRef.current) {
+			return;
+		}
+		prevOutcomeRef.current = outcome;
+		switch (outcome) {
+			case 'reconnecting':
+				dispatch({ kind: 'faultObserved' });
+				break;
+			case 'connected':
+				dispatch({ kind: 'connected' });
+				break;
+			case 'abandon':
+				dispatch({ kind: 'abandoned' });
+				break;
+			case 'neutral':
+				break;
+		}
+	}, [connectionState, dispatch]);
+
+	useEffect(() => clearTimers, [clearTimers]);
+
+	// Suppress while actively retrying (covers the neutral connecting phase between
+	// attempts) and from the very first fault render (before the reducer has dispatched,
+	// keyed off the live outcome) until the budget is exhausted.
+	const outcome = classifyAutoReconnectOutcome(connectionState);
+	return reducerState.retrying || (outcome === 'reconnecting' && !reducerState.exhausted);
 }
 
 function useDevGiftCelebrationTrigger(

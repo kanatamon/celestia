@@ -40,8 +40,14 @@ export interface AdvisoryOpenState {
 }
 
 export type AdvisoryOpenEvent =
-	/** The signal kind transitioned *into* a fault (offline/reconnecting). */
-	| { kind: 'faultEntered' }
+	/**
+	 * The signal kind transitioned *into* a fault (offline/reconnecting). While
+	 * `suppressed` (Auto-Reconnect is silently retrying, ADR-0009), the edge starts
+	 * no episode and the advisory stays closed; the "Reconnecting" signal bars
+	 * still show. When suppression lifts on exhaustion the host re-fires this edge
+	 * un-suppressed, opening the advisory as a normal fault.
+	 */
+	| { kind: 'faultEntered'; suppressed?: boolean }
 	/** The connection recovered (connected/discovering) or the stream ended. */
 	| { kind: 'recovered' }
 	/** The user dismissed the advisory (click-away or clicking the open bars). */
@@ -62,7 +68,7 @@ export function reduceAdvisoryOpenState(
 ): AdvisoryOpenState {
 	switch (event.kind) {
 		case 'faultEntered':
-			return enterFault(state);
+			return enterFault(state, event.suppressed ?? false);
 		case 'recovered':
 			return recover(state);
 		case 'dismissed':
@@ -74,7 +80,14 @@ export function reduceAdvisoryOpenState(
 	}
 }
 
-function enterFault(state: AdvisoryOpenState): AdvisoryOpenState {
+function enterFault(state: AdvisoryOpenState, suppressed: boolean): AdvisoryOpenState {
+	// Suppressed by Auto-Reconnect: start no episode and stay closed. The fault is
+	// real (the bars show "Reconnecting"), but the advisory waits until suppression
+	// lifts, at which point the host re-fires this edge un-suppressed.
+	if (suppressed) {
+		return state;
+	}
+
 	// Already inside an episode: this is a redundant fault edge, not a new
 	// episode. Honour the dismiss latch — never re-nag — and leave state as is.
 	if (state.faulting) {

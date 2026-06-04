@@ -103,6 +103,47 @@ describe('reduceAdvisoryOpenState', () => {
 		expect(state).toEqual(initialAdvisoryOpenState);
 	});
 
+	it('does not open while a fault is suppressed by Auto-Reconnect', () => {
+		const state = runEvents([{ kind: 'faultEntered', suppressed: true }]);
+		expect(state.open).toBe(false);
+		// No episode starts while suppressed.
+		expect(state.episodeId).toBe(0);
+		expect(state.faulting).toBe(false);
+	});
+
+	it('opens when suppression lifts on exhaustion (the edge re-fires un-suppressed)', () => {
+		const state = runEvents([
+			{ kind: 'faultEntered', suppressed: true },
+			{ kind: 'faultEntered', suppressed: false },
+		]);
+		expect(state.open).toBe(true);
+		expect(state.episodeId).toBe(1);
+	});
+
+	it('still honours the dismiss latch after a suppressed fault opens on exhaustion', () => {
+		const state = runEvents([
+			{ kind: 'faultEntered', suppressed: true },
+			{ kind: 'faultEntered', suppressed: false },
+			{ kind: 'dismissed' },
+			{ kind: 'faultEntered', suppressed: false },
+		]);
+		expect(state.open).toBe(false);
+		expect(state.dismissed).toBe(true);
+		expect(state.episodeId).toBe(1);
+	});
+
+	it('still reopens on demand after a suppressed fault opens on exhaustion', () => {
+		const state = runEvents([
+			{ kind: 'faultEntered', suppressed: true },
+			{ kind: 'faultEntered', suppressed: false },
+			{ kind: 'dismissed' },
+			{ kind: 'reopened' },
+		]);
+		expect(state.open).toBe(true);
+		expect(state.episodeId).toBe(1);
+		expect(state.dismissed).toBe(true);
+	});
+
 	it('survives a full episode cycle: open, reopen, dismiss-again, recover', () => {
 		const state = runEvents([
 			{ kind: 'faultEntered' },
