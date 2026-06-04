@@ -65,6 +65,8 @@ interface SessionTabProps {
 	resolveTab?: (tabId: number) => Promise<ResolvedTab | undefined>;
 	watchTabClosed?: (tabId: number, listener: () => void) => () => void;
 	subscribeAssets?: SubscribeAssets;
+	/** Opens a fresh paired Live Session for `username` (used by the Relaunch action). */
+	relaunch?: (username: string) => void;
 }
 
 const defaultProviderFactory = (): AttachableTikTokLiveProvider => {
@@ -81,6 +83,7 @@ export function SessionTab({
 	resolveTab = defaultResolveTab,
 	watchTabClosed = defaultWatchTabClosed,
 	subscribeAssets = subscribeGiftAnimationAssets,
+	relaunch = defaultRelaunch,
 }: SessionTabProps) {
 	const store = useMemo(
 		() => createLiveEventStore({ name: `celestia-live-event-store-${tiktokTabId}` }),
@@ -116,6 +119,7 @@ export function SessionTab({
 			watchTabClosed={watchTabClosed}
 			subscribeAssets={subscribeAssets}
 			onReconnect={handleReconnect}
+			relaunch={relaunch}
 		/>
 	);
 }
@@ -128,6 +132,7 @@ function LiveFeed({
 	watchTabClosed,
 	subscribeAssets,
 	onReconnect,
+	relaunch,
 }: {
 	store: LiveEventStoreApi;
 	tiktokTabId: number;
@@ -136,6 +141,7 @@ function LiveFeed({
 	watchTabClosed: (tabId: number, listener: () => void) => () => void;
 	subscribeAssets: SubscribeAssets;
 	onReconnect: () => void;
+	relaunch: (username: string) => void;
 }) {
 	const state = useStore(store);
 	const [pairedTabClosed, setPairedTabClosed] = useState(false);
@@ -150,6 +156,9 @@ function LiveFeed({
 		likeMotionSettings.getReducedMotion(),
 	);
 	const hasLiveSessionData = hasClearableLiveSessionData(state);
+	// The streamer this closed feed was paired to — the obvious candidate to
+	// relaunch. Empty when we never resolved a username (no Relaunch offered).
+	const relaunchUsername = (state.streamerUsername ?? '').trim();
 	const { capture: celebrationCapture, enqueueCapture, onCaptureIngested } = useCelebrationFeed();
 	useDevGiftCelebrationTrigger(enqueueCapture);
 	const observeGiftForSynthesis = useSynthesizedCelebrationTrigger(enqueueCapture);
@@ -319,6 +328,14 @@ function LiveFeed({
 				<DisconnectedBanner
 					title="Stream ended"
 					message="The paired TikTok Live tab was closed. This feed is no longer receiving new events."
+					action={
+						relaunchUsername
+							? {
+									label: `Relaunch @${relaunchUsername}`,
+									onClick: () => relaunch(relaunchUsername),
+								}
+							: undefined
+					}
 				/>
 			) : null}
 			<section aria-label="Live feed" className={styles.liveFeed} ref={liveFeedRef}>
@@ -600,13 +617,37 @@ function isDevBuild(): boolean {
 	return import.meta.env.DEV;
 }
 
-function DisconnectedBanner({ title, message }: { title: string; message: string }) {
+function DisconnectedBanner({
+	title,
+	message,
+	action,
+}: {
+	title: string;
+	message: string;
+	action?: { label: string; onClick: () => void };
+}) {
 	return (
 		<div role="alert" aria-label="Session disconnected" className={styles.disconnectedBanner}>
 			<strong>{title}</strong>
 			<p>{message}</p>
+			{action ? (
+				<button type="button" className={styles.relaunchButton} onClick={action.onClick}>
+					{action.label}
+				</button>
+			) : null}
 		</div>
 	);
+}
+
+/**
+ * Default Relaunch action: ask the service worker to open a fresh paired Live
+ * Session for `username` (a new TikTok Live tab + Session Tab via the same
+ * `OPEN_LIVE_SESSION` path the Launcher uses). This Session Tab is left intact —
+ * its captured feed stays readable; the user moves to the freshly opened one.
+ */
+function defaultRelaunch(username: string): void {
+	const runtime = typeof chrome === 'undefined' ? undefined : chrome.runtime;
+	void runtime?.sendMessage?.({ type: 'OPEN_LIVE_SESSION', username });
 }
 
 function useStore(store: LiveEventStoreApi): LiveEventStore {

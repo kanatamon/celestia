@@ -289,11 +289,19 @@ assertState(
 );
 
 await provider.attach(42, 'creator');
-transport.detachHandler?.({ tabId: 42 }, 'target_closed');
+transport.detachHandler?.({ tabId: 42 }, 'canceled_by_user');
 assertState(
 	provider.getConnectionState(),
 	{ status: 'error', reason: 'interrupted' },
-	'Expected unexpected debugger detach to classify as interrupted',
+	'Expected a reattachable debugger detach (DevTools / dismissed banner) to classify as interrupted',
+);
+
+await provider.attach(42, 'creator');
+transport.detachHandler?.({ tabId: 42 }, 'target_closed');
+assertState(
+	provider.getConnectionState(),
+	{ status: 'detached' },
+	'Expected a target_closed detach (the debuggee tab is gone) to settle into a terminal detached state, not the reattachable interrupted fault',
 );
 
 await provider.attach(42, 'creator');

@@ -49,6 +49,28 @@
 	line-height: 1.45;
 }
 
+.relaunchButton {
+	justify-self: start;
+	margin-top: 6px;
+	padding: 6px 14px;
+	border: 1px solid var(--ant-color-primary, #4096ff);
+	border-radius: 8px;
+	background: var(--ant-color-primary, #4096ff);
+	color: #fff;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.relaunchButton:hover {
+	filter: brightness(1.08);
+}
+
+.relaunchButton:focus-visible {
+	outline: 2px solid var(--ant-color-primary, #4096ff);
+	outline-offset: 2px;
+}
+
 /*
  * Bottom row: the ActivitySwitcher shrinks to share its row with the Heartbeat
  * Conveyor (issue #81). The switcher stays a single toggle button; the avatars

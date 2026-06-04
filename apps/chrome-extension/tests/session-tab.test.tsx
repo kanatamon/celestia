@@ -128,6 +128,39 @@ describe('Session Tab', () => {
 		await mount.unmount();
 	});
 
+	it('offers a Relaunch action on the tab-closed banner that reopens a session for the same streamer', async () => {
+		const provider = new FakeProvider();
+		const tabClosed = new FakeTabCloseWatcher();
+		const relaunch = vi.fn();
+		const mount = await renderSessionTab({
+			tiktokTabId: 90,
+			provider,
+			tabUrl: 'https://www.tiktok.com/@nova/live',
+			watchTabClosed: tabClosed.watch,
+			relaunch,
+		});
+
+		await act(async () => {
+			provider.emitState({ status: 'connected', username: 'nova' });
+		});
+		await act(async () => {
+			tabClosed.fire();
+		});
+
+		const relaunchButton = Array.from(mount.container.querySelectorAll('button')).find((button) =>
+			button.textContent?.includes('Relaunch'),
+		);
+		expect(relaunchButton).toBeInstanceOf(HTMLButtonElement);
+		expect(relaunchButton?.textContent).toContain('nova');
+
+		await act(async () => {
+			relaunchButton?.click();
+		});
+		expect(relaunch).toHaveBeenCalledWith('nova');
+
+		await mount.unmount();
+	});
+
 	it('keeps two Session Tabs with different tiktokTabId values isolated', async () => {
 		const providerA = new FakeProvider();
 		const providerB = new FakeProvider();
@@ -659,6 +692,7 @@ interface RenderSessionTabOptions {
 	tabUrl?: string;
 	watchTabClosed?: (tabId: number, listener: () => void) => () => void;
 	subscribeAssets?: (onAsset: (asset: GiftAnimationAssetCapturedMessage) => void) => () => void;
+	relaunch?: (username: string) => void;
 }
 
 interface MountedSessionTab {
@@ -680,6 +714,7 @@ async function renderSessionTab(options: RenderSessionTabOptions): Promise<Mount
 				resolveTab={async () => ({ url: options.tabUrl })}
 				watchTabClosed={options.watchTabClosed}
 				subscribeAssets={options.subscribeAssets}
+				relaunch={options.relaunch}
 			/>,
 		);
 		await Promise.resolve();

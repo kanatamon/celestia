@@ -94,7 +94,13 @@ export class ChromeExtensionTikTokLiveProvider implements TikTokLiveProvider {
 		this.clearPromiscuousTimer();
 		this.clearStaleEventTimer();
 		this.debuggerAttached = false;
-		if (this.explicitDetachInProgress) {
+		if (this.explicitDetachInProgress || reason === 'target_closed') {
+			// `target_closed` means the debuggee tab itself is gone — there is
+			// nothing left to reattach to, so settle into the same terminal
+			// `detached` state as an explicit teardown. Routing it through
+			// `applyClassifiedState` would mislabel it as the reattachable
+			// `interrupted` fault, whose advisory blames DevTools or a dismissed
+			// debugging banner — a lie when the tab was simply closed.
 			this.setState({ ...this.state, status: 'detached', tabId: undefined, attachedAt: undefined });
 		} else {
 			this.applyClassifiedState();
