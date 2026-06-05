@@ -25,6 +25,9 @@ const SPLIT_FEED_MIN_WIDTH = INDIVIDUAL_FEED_MIN_WIDTH + MAIN_FEED_MIN_WIDTH;
 const FIVE_SECOND_MS = 5_000;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
+const FOLLOWER_BADGE_VIEW_BOX = '0 0 24 24';
+const FOLLOWER_BADGE_PATH =
+	'M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z';
 const CHAT_BUBBLE_TAIL_VIEW_BOX = '0 0 500 500';
 const CHAT_BUBBLE_TAIL_PATH =
 	'M 7.345 20.273 C 262.053 61.815 213.415 428.641 213.031 501.451 L 499.161 502.063 C 501.472 232.37 386.075 -28.462 7.345 20.273 Z';
@@ -756,6 +759,7 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 			) : (
 				<span className={styles.avatarFallback}>{toInitials(toDisplayName(user))}</span>
 			)}
+			<FollowerBadge followStatus={user?.followStatus} />
 			{badgeGift ? (
 				<img
 					className={styles.heartBadge}
@@ -764,6 +768,24 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 					title="Heart Me badge"
 				/>
 			) : null}
+		</span>
+	);
+}
+
+function FollowerBadge({ followStatus }: { followStatus?: number }) {
+	// Binary, silent for non-followers: following (1) and mutual (2) render the
+	// same badge; stranger (0) or unknown (undefined) render no DOM node at all.
+	if (followStatus === undefined || followStatus < 1) return null;
+	return (
+		<span
+			className={styles.followBadge}
+			role="img"
+			aria-label="Follows the streamer"
+			title="Follows the streamer"
+		>
+			<svg className={styles.followBadgeThumb} viewBox={FOLLOWER_BADGE_VIEW_BOX} aria-hidden="true">
+				<path d={FOLLOWER_BADGE_PATH} />
+			</svg>
 		</span>
 	);
 }

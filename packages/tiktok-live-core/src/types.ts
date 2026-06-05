@@ -7,6 +7,7 @@ export interface UserInfo {
 	bioDescription?: string;
 	followingCount?: number;
 	followerCount?: number;
+	followStatus?: number;
 }
 
 export interface EmoteInfo {

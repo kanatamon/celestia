@@ -56,6 +56,52 @@ describe('ChatEventCard', () => {
 	});
 });
 
+describe('Follower Badge', () => {
+	it('renders the badge when the viewer follows (followStatus 1)', () => {
+		const html = renderToString(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 1)} />);
+
+		expect(html).toContain('Follows the streamer');
+	});
+
+	it('treats mutual follow (followStatus 2) identically to following', () => {
+		const html = renderToString(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 2)} />);
+
+		// One badge, no friend-tier markup.
+		expect(html.match(/role="img" aria-label="Follows the streamer"/g)).toHaveLength(1);
+		expect(html).not.toContain('friend');
+	});
+
+	it('renders no badge DOM node for a stranger (followStatus 0)', () => {
+		const html = renderToString(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 0)} />);
+
+		expect(html).not.toContain('Follows the streamer');
+	});
+
+	it('renders no badge DOM node when followStatus is undefined', () => {
+		const html = renderToString(<ChatEventCard event={chatEvent('chat-1', 40, 'hi')} />);
+
+		expect(html).not.toContain('Follows the streamer');
+	});
+
+	it('coexists with the top-right Heart Me badge on the same avatar', () => {
+		const html = renderToString(
+			<ChatEventCard
+				event={chatEvent('chat-1', 40, 'hi', 1)}
+				userGiftEvents={[giftEvent('heart-1', 10, 'Heart Me', 1, 1)]}
+			/>,
+		);
+
+		expect(html).toContain('Follows the streamer');
+		expect(html).toContain('Heart Me badge');
+	});
+
+	it('renders the badge on a 30px gift avatar', () => {
+		const html = renderToString(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2, 1)} />);
+
+		expect(html).toContain('Follows the streamer');
+	});
+});
+
 describe('GiftEventCard', () => {
 	it('renders as a compact one-line gift sentence with the timestamp pinned last', () => {
 		vi.useFakeTimers();
@@ -782,7 +828,12 @@ function getPillDismiss(container: Element): HTMLElement {
 	return element;
 }
 
-function chatEvent(id: string, ts: number, text = 'hello @celestia'): ChatLiveEvent {
+function chatEvent(
+	id: string,
+	ts: number,
+	text = 'hello @celestia',
+	followStatus?: number,
+): ChatLiveEvent {
 	return {
 		id,
 		ts,
@@ -794,6 +845,7 @@ function chatEvent(id: string, ts: number, text = 'hello @celestia'): ChatLiveEv
 			uniqueId: 'viewer',
 			nickname: 'Viewer',
 			avatarUrl: 'https://example.test/avatar.png',
+			followStatus,
 		},
 	};
 }
@@ -804,6 +856,7 @@ function giftEvent(
 	giftName: string,
 	diamondCount: number,
 	repeatCount: number,
+	followStatus?: number,
 ): GiftLiveEvent {
 	return {
 		id,
@@ -820,6 +873,7 @@ function giftEvent(
 			uniqueId: 'viewer',
 			nickname: 'Viewer',
 			avatarUrl: 'https://example.test/avatar.png',
+			followStatus,
 		},
 	};
 }

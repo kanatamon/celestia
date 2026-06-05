@@ -25,7 +25,7 @@ export function user(id = 1001): Uint8Array {
 		uint(1, id),
 		str(3, 'Celestia Viewer'),
 		bytes(9, msg([str(1, 'https://example.test/avatar.png')])),
-		bytes(22, msg([uint(1, 10), uint(2, 20)])),
+		bytes(22, msg([uint(1, 10), uint(2, 20), uint(3, 1)])),
 		str(38, 'celestia.viewer'),
 		str(46, 'sec_uid'),
 		str(5, 'watches TikTok Live'),

@@ -31,6 +31,9 @@ if (chatEvent?.type !== 'chat') {
 }
 chatEvent satisfies LiveEvent;
 chatEvent.text satisfies string;
+if (chatEvent.user?.followStatus !== 1) {
+	throw new Error('Expected FollowInfo field 3 to decode and normalize as followStatus');
+}
 
 const originalAtob = globalThis.atob;
 const globalWithBuffer = globalThis as typeof globalThis & { Buffer?: typeof Buffer };

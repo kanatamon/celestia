@@ -318,6 +318,62 @@
 	filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
 }
 
+/* Follower Badge — green-glass thumbs-up jewel, TOP-LEFT, glassmorphic.
+   Pure absolutely-positioned overlay inside .avatarWrap: zero layout impact,
+   and the top-right corner stays reserved for the Heart Me badge.
+   Sizing is token-driven so it scales to the 30px gift avatar with no
+   inline overrides. Ported from prototype-follower-avatar-symbol-v2.html;
+   the friend tier and the "just followed" one-shot were explicitly cut. */
+.followBadge {
+	--celestia-follow-size: 18px;
+	--celestia-follow-offset: -4px;
+	--celestia-follow-fill: radial-gradient(
+		circle at 34% 28%,
+		rgba(160, 255, 196, 0.55) 0%,
+		rgba(34, 197, 110, 0.34) 52%,
+		rgba(16, 150, 80, 0.24) 100%
+	);
+	--celestia-follow-border: rgba(168, 255, 196, 0.58);
+	--celestia-follow-glow-1: rgba(34, 197, 110, 0.3);
+	--celestia-follow-glow-2: rgba(42, 212, 122, 0.55);
+	--celestia-follow-glow-3: rgba(24, 180, 90, 0.24);
+	--celestia-follow-icon: rgba(236, 255, 242, 0.96);
+	--celestia-follow-icon-shadow: rgba(46, 224, 120, 0.85);
+	position: absolute;
+	top: var(--celestia-follow-offset);
+	left: var(--celestia-follow-offset);
+	width: var(--celestia-follow-size);
+	height: var(--celestia-follow-size);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 6;
+	background: var(--celestia-follow-fill);
+	backdrop-filter: blur(5px) saturate(1.5);
+	-webkit-backdrop-filter: blur(5px) saturate(1.5);
+	border: 1px solid var(--celestia-follow-border);
+	box-shadow:
+		0 0 0 1.4px var(--celestia-follow-glow-1),
+		0 0 7px 2px var(--celestia-follow-glow-2),
+		0 0 13px 4px var(--celestia-follow-glow-3),
+		inset 0 1px 2px rgba(230, 255, 238, 0.42),
+		inset 0 -1px 2px rgba(0, 70, 30, 0.3);
+	pointer-events: none;
+}
+
+.giftEvent .followBadge {
+	--celestia-follow-size: 15px;
+	--celestia-follow-offset: -3px;
+}
+
+.followBadgeThumb {
+	width: calc(var(--celestia-follow-size) * 0.52);
+	height: calc(var(--celestia-follow-size) * 0.52);
+	fill: var(--celestia-follow-icon);
+	filter: drop-shadow(0 0 1.5px var(--celestia-follow-icon-shadow));
+}
+
 .chatBody {
 	min-width: 0;
 }

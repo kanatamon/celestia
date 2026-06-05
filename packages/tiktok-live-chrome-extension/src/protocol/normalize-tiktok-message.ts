@@ -149,6 +149,7 @@ function normalizeUser(user: User | undefined): UserInfo | undefined {
 		bioDescription: user.bioDescription,
 		followingCount: user.followInfo?.followingCount,
 		followerCount: user.followInfo?.followerCount,
+		followStatus: user.followInfo?.followStatus,
 	};
 }
 

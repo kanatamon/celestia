@@ -28,6 +28,7 @@ export interface User {
 	followInfo?: {
 		followingCount?: number;
 		followerCount?: number;
+		followStatus?: number;
 	};
 }
 
@@ -239,13 +240,18 @@ function decodeProfilePicture(bytes: Uint8Array): { urls: string[] } {
 	return { urls };
 }
 
-function decodeFollowInfo(bytes: Uint8Array): { followingCount?: number; followerCount?: number } {
+function decodeFollowInfo(bytes: Uint8Array): {
+	followingCount?: number;
+	followerCount?: number;
+	followStatus?: number;
+} {
 	const reader = new ProtoReader(bytes);
-	const followInfo: { followingCount?: number; followerCount?: number } = {};
+	const followInfo: { followingCount?: number; followerCount?: number; followStatus?: number } = {};
 	while (!reader.done()) {
 		const { field, wire } = reader.tag();
 		if (field === 1 && wire === 0) followInfo.followingCount = reader.int32();
 		else if (field === 2 && wire === 0) followInfo.followerCount = reader.int32();
+		else if (field === 3 && wire === 0) followInfo.followStatus = reader.int32();
 		else reader.skip(wire);
 	}
 	return followInfo;
