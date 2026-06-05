@@ -4,7 +4,7 @@ export const manifestDefinition = {
 	manifest_version: 3,
 	name: 'Celestia',
 	description: 'TikTok Live companion Session Tab.',
-	version: '1.3.0',
+	version: '1.4.0',
 	icons: {
 		16: 'public/icon-16.png',
 		32: 'public/icon-32.png',
