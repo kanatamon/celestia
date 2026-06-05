@@ -853,21 +853,41 @@ function EventTimestamp({ ts, className }: { ts: number; className?: string }) {
 
 function toGiftChips(giftEvents: GiftLiveEvent[]): GiftChipViewModel[] {
 	const giftsByName = new Map<string, GiftChipViewModel>();
+	const giftEventsByGroup = new Map<string, GiftLiveEvent>();
+	const ungroupedGiftEvents: GiftLiveEvent[] = [];
 
 	for (const event of giftEvents) {
 		if (!event.giftName || event.giftName === HEART_ME_GIFT_NAME) {
 			continue;
 		}
-		if (!event?.repeatEnd) {
+
+		if (!event.groupId) {
+			ungroupedGiftEvents.push(event);
+			continue;
+		}
+
+		const current = giftEventsByGroup.get(event.groupId);
+		if (
+			!current ||
+			toPositiveRepeatCount(event.repeatCount) > toPositiveRepeatCount(current.repeatCount)
+		) {
+			giftEventsByGroup.set(event.groupId, event);
+		}
+	}
+
+	for (const event of [...giftEventsByGroup.values(), ...ungroupedGiftEvents]) {
+		const giftName = event.giftName;
+
+		if (!giftName) {
 			continue;
 		}
 
 		const repeatCount = toPositiveRepeatCount(event.repeatCount);
 		const diamondCount = toNonNegativeDiamondCount(event.diamondCount);
-		const current = giftsByName.get(event.giftName);
+		const current = giftsByName.get(giftName);
 
-		giftsByName.set(event.giftName, {
-			giftName: event.giftName,
+		giftsByName.set(giftName, {
+			giftName,
 			giftImageUrl: current?.giftImageUrl ?? event.giftImageUrl,
 			repeatCount: (current?.repeatCount ?? 0) + repeatCount,
 			totalValue: (current?.totalValue ?? 0) + diamondCount * repeatCount,

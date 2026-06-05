@@ -41,20 +41,69 @@ describe('ChatEventCard', () => {
 					giftEvent('galaxy-1', 12, 'Galaxy', 1000, 1),
 					giftEvent('rose-2', 13, 'Rose', 1, 3),
 					giftEvent('lion-1', 14, 'Lion', 29999, 1),
+					giftEvent('doughnut-1', 15, 'Doughnut', 30, 1, undefined, {
+						groupId: 'doughnut-group-1',
+						repeatEnd: undefined,
+					}),
+					giftEvent('doughnut-2', 16, 'Doughnut', 30, 1, undefined, {
+						groupId: 'doughnut-group-1',
+					}),
+					giftEvent('hand-heart-1', 17, 'Hand Heart', 100, 1, undefined, {
+						groupId: 'hand-heart-group-1',
+						repeatEnd: undefined,
+					}),
 				]}
-				visibleGiftChipCount={2}
+				visibleGiftChipCount={4}
 			/>,
 		);
 
 		expect(html).toContain('Heart Me badge');
 		expect(html).toContain('Lion');
 		expect(html).toContain('Galaxy');
+		expect(html).toContain('Hand Heart');
+		expect(html).toContain('Doughnut');
 		expect(html).not.toContain('Rose<!-- -->');
 		expect(html).toContain('+1 more');
 		expect(html).not.toContain('role="tooltip"');
 		expect(html).not.toContain('diamonds');
 		expect(html).toContain('<svg');
 		expect(html).not.toContain('bubblePointer');
+	});
+
+	it('counts grouped gift streaks once when repeatEnd is missing from earlier messages', () => {
+		const doughnutGroups = Array.from({ length: 7 }, (_, index) => `doughnut-group-${index + 1}`);
+		const doughnutEvents = doughnutGroups.flatMap((groupId, index) => [
+			giftEvent(`doughnut-start-${index + 1}`, 10 + index * 2, 'Doughnut', 30, 1, undefined, {
+				groupId,
+				repeatEnd: undefined,
+			}),
+			giftEvent(`doughnut-end-${index + 1}`, 11 + index * 2, 'Doughnut', 30, 1, undefined, {
+				groupId,
+			}),
+		]);
+
+		const html = renderToString(
+			<ChatEventCard
+				event={chatEvent('chat-1', 40)}
+				userGiftEvents={[
+					...doughnutEvents,
+					giftEvent('hand-heart-1', 30, 'Hand Heart', 100, 1, undefined, {
+						groupId: 'hand-heart-group-1',
+						repeatEnd: undefined,
+					}),
+				]}
+				visibleGiftChipCount={10}
+			/>,
+		);
+
+		expect(html).toContain('Doughnut');
+		expect(html).toContain('Hand Heart');
+		expect(html).toMatch(
+			/alt="Doughnut"\/><span class="[^"]+">x<\/span><span class="[^"]+">7<\/span>/,
+		);
+		expect(html).toMatch(
+			/alt="Hand Heart"\/><span class="[^"]+">x<\/span><span class="[^"]+">1<\/span>/,
+		);
 	});
 });
 
@@ -930,6 +979,7 @@ function giftEvent(
 	diamondCount: number,
 	repeatCount: number,
 	followStatus?: number,
+	overrides: Partial<GiftLiveEvent> = {},
 ): GiftLiveEvent {
 	return {
 		id,
@@ -941,6 +991,7 @@ function giftEvent(
 		diamondCount,
 		repeatCount,
 		repeatEnd: true,
+		...overrides,
 		user: {
 			userId: 'user-1',
 			uniqueId: 'viewer',
