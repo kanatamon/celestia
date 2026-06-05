@@ -106,6 +106,13 @@ export {
 	computeConveyor,
 	initialConveyorState,
 } from './heartbeat-conveyor-motion.js';
+export type { FollowerPulseState } from './just-followed-pulse.js';
+export {
+	markJustFollowed,
+	resetFollowerPulseRegistry,
+	toFollowPulseKey,
+	useFollowerPulse,
+} from './just-followed-pulse.js';
 export type { LikeLayerProps, SpawnLike } from './like-layer.js';
 export { LikeLayer } from './like-layer.js';
 export type { Heart, HeartPhase, StepHeartResult } from './like-layer-motion.js';

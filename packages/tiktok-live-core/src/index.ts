@@ -13,6 +13,7 @@ export type {
 	LiveEvent,
 	LiveEventType,
 	MemberLiveEvent,
+	SocialAction,
 	SocialLiveEvent,
 	StreamEndLiveEvent,
 	SubscribeLiveEvent,

@@ -53,6 +53,7 @@ export interface DecodedTikTokMessage {
 	likeCount?: number;
 	totalLikeCount?: number;
 	actionId?: number;
+	displayType?: string;
 	action?: number;
 	id?: string;
 	description?: string;
@@ -407,11 +408,39 @@ function decodeSocialMessage(bytes: Uint8Array): DecodedTikTokMessage {
 	const message: DecodedTikTokMessage = {};
 	while (!reader.done()) {
 		const { field, wire } = reader.tag();
-		if (field === 1 && wire === 2) message.event = decodeEvent(reader.bytesField());
-		else if (field === 2 && wire === 2) message.user = decodeUser(reader.bytesField());
+		if (field === 1 && wire === 2) {
+			// Field 1 is the Common header. Decode it twice from the same bytes:
+			// once for the event envelope (msgId/createTime) and once for the
+			// follow/share discriminator at common.displayText.key (1 -> 8 -> 1).
+			const common = reader.bytesField();
+			message.event = decodeEvent(common);
+			message.displayType = decodeDisplayTextKey(common);
+		} else if (field === 2 && wire === 2) message.user = decodeUser(reader.bytesField());
 		else reader.skip(wire);
 	}
 	return message;
+}
+
+// WebcastSocialMessage.common.displayText.key - the verified follow/share
+// discriminator (issue #91). `common` is field 1, `displayText` is field 8
+// within it, and `key` is field 1 within displayText.
+function decodeDisplayTextKey(common: Uint8Array): string | undefined {
+	const commonReader = new ProtoReader(common);
+	while (!commonReader.done()) {
+		const { field, wire } = commonReader.tag();
+		if (field === 8 && wire === 2) {
+			const displayText = commonReader.bytesField();
+			const displayTextReader = new ProtoReader(displayText);
+			while (!displayTextReader.done()) {
+				const inner = displayTextReader.tag();
+				if (inner.field === 1 && inner.wire === 2) return displayTextReader.string();
+				displayTextReader.skip(inner.wire);
+			}
+			return undefined;
+		}
+		commonReader.skip(wire);
+	}
+	return undefined;
 }
 
 function decodeSubscribeMessage(bytes: Uint8Array): DecodedTikTokMessage {

@@ -62,9 +62,25 @@ export interface MemberLiveEvent extends BaseLiveEvent {
 	action?: string;
 }
 
+/**
+ * The normalized social action carried by a WebcastSocialMessage, derived from
+ * its `common.displayText.key`. Verified against a live stream (issue #91 HITL):
+ * a follow carries `pm_main_follow_message_viewer*`, a share `pm_mt_guidance_share`.
+ * `'follow'` is the follow *transition* the Follower Badge one-shot keys off;
+ * `'share'`/`'other'` must never trigger it.
+ */
+export type SocialAction = 'follow' | 'share' | 'other';
+
 export interface SocialLiveEvent extends BaseLiveEvent {
 	type: 'social';
 	user?: UserInfo;
+	/**
+	 * Raw i18n display key from `WebcastSocialMessage.common.displayText.key`
+	 * (e.g. `pm_main_follow_message_viewer_2`, `pm_mt_guidance_share`). The
+	 * authoritative discriminator; `action` is its normalization.
+	 */
+	displayType?: string;
+	action?: SocialAction;
 }
 
 export interface SubscribeLiveEvent extends BaseLiveEvent {

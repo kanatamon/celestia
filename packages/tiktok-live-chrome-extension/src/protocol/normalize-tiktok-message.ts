@@ -1,4 +1,4 @@
-import type { LiveEvent, UserInfo } from '@celestia/tiktok-live-core';
+import type { LiveEvent, SocialAction, UserInfo } from '@celestia/tiktok-live-core';
 import type { DecodedTikTokMessage, User, WebcastMessage } from './tiktok-live.generated.js';
 import { decodeTikTokMessage } from './tiktok-live.generated.js';
 
@@ -79,7 +79,16 @@ export function normalizeTikTokMessage(message: WebcastMessage): LiveEvent {
 				action: humanizeMemberAction(decoded.actionId),
 			};
 		case 'WebcastSocialMessage':
-			return { id, ts, type: 'social', source: liveEventSource, rawType: message.type, user };
+			return {
+				id,
+				ts,
+				type: 'social',
+				source: liveEventSource,
+				rawType: message.type,
+				user,
+				displayType: decoded.displayType,
+				action: classifySocialAction(decoded.displayType),
+			};
 		case 'WebcastSubNotifyMessage':
 			return {
 				id,
@@ -167,8 +176,11 @@ function humanizeMemberAction(actionId: number | undefined): string | undefined 
 	switch (actionId) {
 		case 1:
 			return 'joined';
-		case 2:
-			return 'followed';
+		// actionId 2 was previously mapped to 'followed'. Verified wrong against a
+		// live stream (issue #91 HITL): a follow never emits a WebcastMemberMessage
+		// - it arrives as a WebcastSocialMessage. The follow transition lives on the
+		// social event's `action`, not here. Unmapped actionIds fall through to the
+		// raw number rather than claim an unverified meaning.
 		case 3:
 			return 'subscribed';
 		case 52:
@@ -176,6 +188,18 @@ function humanizeMemberAction(actionId: number | undefined): string | undefined 
 		default:
 			return actionId.toString();
 	}
+}
+
+// Normalizes WebcastSocialMessage.common.displayText.key into a social action.
+// The follow key family is `pm_main_follow_message_viewer*`; share is
+// `pm_mt_guidance_share` (issue #91 HITL). Matching the follow family - rather
+// than excluding shares - keeps the Follower Badge one-shot from firing on
+// shares, joins, or any other social key.
+function classifySocialAction(displayType: string | undefined): SocialAction | undefined {
+	if (displayType === undefined) return undefined;
+	if (displayType.includes('follow')) return 'follow';
+	if (displayType.includes('share')) return 'share';
+	return 'other';
 }
 
 function bytesPreview(bytes: Uint8Array): string {

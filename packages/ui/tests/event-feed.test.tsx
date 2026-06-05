@@ -8,6 +8,8 @@ import {
 	FeedEventCard,
 	GiftEventCard,
 	IndividualChatFeed,
+	markJustFollowed,
+	resetFollowerPulseRegistry,
 	ScrollableFeedList,
 	SplitFeedLayout,
 } from '../src/index.js';
@@ -99,6 +101,77 @@ describe('Follower Badge', () => {
 		const html = renderToString(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2, 1)} />);
 
 		expect(html).toContain('Follows the streamer');
+	});
+});
+
+describe('Follower Badge "just followed" one-shot (#91)', () => {
+	afterEach(() => {
+		resetFollowerPulseRegistry();
+		vi.useRealTimers();
+	});
+
+	it("plays once on this viewer's follow transition, settles, and ignores other viewers", () => {
+		vi.useFakeTimers();
+		const { container, render, unmount } = createStrictRoot();
+		// chatEvent's user is `user-1`, already following (followStatus 1) so the
+		// static badge is present and can carry the one-shot.
+		render(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 1)} />);
+
+		const badge = () => container.querySelector('[aria-label="Follows the streamer"]');
+		const badgeClassName = () => badge()?.className ?? '';
+
+		expect(badge()).not.toBeNull();
+		expect(badgeClassName()).not.toContain('justFollowed');
+
+		// A follow transition for a DIFFERENT viewer must not pop this badge.
+		act(() => {
+			markJustFollowed({ userId: 'someone-else' });
+		});
+		expect(badgeClassName()).not.toContain('justFollowed');
+
+		// This viewer's follow transition arms the one-shot.
+		act(() => {
+			markJustFollowed({ userId: 'user-1' });
+		});
+		expect(badgeClassName()).toContain('justFollowed');
+
+		// After the pulse window the pop settles, but the badge persists.
+		act(() => {
+			vi.advanceTimersByTime(2000);
+		});
+		expect(badge()).not.toBeNull();
+		expect(badgeClassName()).not.toContain('justFollowed');
+
+		unmount();
+	});
+
+	it("pops on a viewer's existing card with stale followStatus - no new message needed", () => {
+		vi.useFakeTimers();
+		const { container, render, unmount } = createStrictRoot();
+		// An existing card captured before the follow: stranger standing (0), so no
+		// badge is rendered yet.
+		render(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 0)} />);
+
+		const badge = () => container.querySelector('[aria-label="Follows the streamer"]');
+		expect(badge()).toBeNull();
+
+		// The follow transition elevates this viewer's standing: the badge appears
+		// on the already-rendered card and plays the one-shot - instantly, without
+		// requiring the viewer to send a new message.
+		act(() => {
+			markJustFollowed({ userId: 'user-1' });
+		});
+		expect(badge()).not.toBeNull();
+		expect(badge()?.className ?? '').toContain('justFollowed');
+
+		// The badge stays after the pop (a decoded follow is sticky standing).
+		act(() => {
+			vi.advanceTimersByTime(2000);
+		});
+		expect(badge()).not.toBeNull();
+		expect(badge()?.className ?? '').not.toContain('justFollowed');
+
+		unmount();
 	});
 });
 

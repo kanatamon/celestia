@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 import styles from './event-feed.module.css';
+import { useFollowerPulse } from './just-followed-pulse.js';
 import { TIKTOK_EMOJIS } from './tiktok-emojis.js';
 
 const HEART_ME_GIFT_NAME = 'Heart Me';
@@ -759,7 +760,7 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 			) : (
 				<span className={styles.avatarFallback}>{toInitials(toDisplayName(user))}</span>
 			)}
-			<FollowerBadge followStatus={user?.followStatus} />
+			<FollowerBadge user={user} />
 			{badgeGift ? (
 				<img
 					className={styles.heartBadge}
@@ -772,13 +773,26 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 	);
 }
 
-function FollowerBadge({ followStatus }: { followStatus?: number }) {
+function FollowerBadge({ user }: { user?: UserInfo }) {
+	// The "just followed" one-shot (#91). A decoded follow transition both
+	// elevates the viewer's standing (`followed`, sticky for the session) and
+	// arms the pop + glow (`justFollowed`, transient). Elevating standing means
+	// the badge appears on every avatar of that viewer already in the feed - not
+	// only on their next message - so the follow is noticed instantly. Hook runs
+	// unconditionally (rules of hooks) before the non-follower early-return.
+	const { followed, justFollowed } = useFollowerPulse(user);
+	const followStatus = user?.followStatus;
 	// Binary, silent for non-followers: following (1) and mutual (2) render the
-	// same badge; stranger (0) or unknown (undefined) render no DOM node at all.
-	if (followStatus === undefined || followStatus < 1) return null;
+	// same badge; stranger (0) or unknown (undefined) render no DOM node - unless
+	// a follow transition this session elevated them (`followed`).
+	const isFollower = (followStatus !== undefined && followStatus >= 1) || followed;
+	if (!isFollower) return null;
+	const className = justFollowed
+		? `${styles.followBadge} ${styles.justFollowed}`
+		: styles.followBadge;
 	return (
 		<span
-			className={styles.followBadge}
+			className={className}
 			role="img"
 			aria-label="Follows the streamer"
 			title="Follows the streamer"

@@ -140,3 +140,57 @@ for (const [type, binary, expectedType] of cases) {
 		throw new Error('Expected gift events to expose groupId');
 	}
 }
+
+// Follow transition (issue #91): WebcastSocialMessage carries the follow/share
+// discriminator at common.displayText.key (protobuf path 1 -> 8 -> 1). A common
+// header with a displayText sub-message exercises the decode path.
+function social(displayKey: string): Uint8Array {
+	return responseMessage(
+		'WebcastSocialMessage',
+		msg([
+			bytes(1, msg([uint(2, 5), uint(4, 1), bytes(8, msg([str(1, displayKey)]))])),
+			bytes(2, user()),
+		]),
+	);
+}
+
+const followEvent = decodeWebcastFrame(frameBase64([social('pm_main_follow_message_viewer_2')]))
+	.events[0];
+if (followEvent?.type !== 'social') {
+	throw new Error('Expected follow social message to normalize to a social event');
+}
+if (followEvent.displayType !== 'pm_main_follow_message_viewer_2') {
+	throw new Error('Expected follow social event to expose common.displayText.key as displayType');
+}
+if (followEvent.action !== 'follow') {
+	throw new Error('Expected follow display key to normalize to action "follow"');
+}
+
+const shareEvent = decodeWebcastFrame(frameBase64([social('pm_mt_guidance_share')])).events[0];
+if (shareEvent?.type !== 'social' || shareEvent.action !== 'share') {
+	throw new Error('Expected share display key to normalize to action "share", not "follow"');
+}
+
+// A social message with no displayText (e.g. the bare fixture) carries no action.
+const bareSocial = decodeWebcastFrame(
+	frameBase64([
+		responseMessage('WebcastSocialMessage', msg([bytes(1, event(8)), bytes(2, user())])),
+	]),
+).events[0];
+if (bareSocial?.type !== 'social' || bareSocial.action !== undefined) {
+	throw new Error('Expected a social message without a display key to carry no action');
+}
+
+// Regression: WebcastMemberMessage actionId 2 must NOT be reported as a follow -
+// the follow transition is a WebcastSocialMessage (issue #91 HITL).
+const memberActionTwo = decodeWebcastFrame(
+	frameBase64([
+		responseMessage(
+			'WebcastMemberMessage',
+			msg([bytes(1, event(9)), bytes(2, user()), uint(10, 2)]),
+		),
+	]),
+).events[0];
+if (memberActionTwo?.type !== 'member' || memberActionTwo.action === 'followed') {
+	throw new Error('Expected WebcastMemberMessage actionId 2 to no longer be mapped to "followed"');
+}

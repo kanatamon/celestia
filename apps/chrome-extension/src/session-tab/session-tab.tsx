@@ -19,6 +19,7 @@ import {
 	HeartbeatConveyor,
 	LikeLayer,
 	likeMotionSettings,
+	markJustFollowed,
 	type PushLiker,
 	type SpawnLike,
 	SplitFeedLayout,
@@ -302,6 +303,13 @@ function LiveFeed({
 					if (liker) {
 						pushLikerRef.current?.(liker);
 					}
+				}
+				if (event.type === 'social' && event.action === 'follow') {
+					// Read-only sink for the Follower Badge "just followed" one-shot
+					// (#91). The follow transition is decoded from the social event's
+					// `action`; we arm a transient pulse so this viewer's next-rendered
+					// badge pops once. Never written to the live-event store.
+					markJustFollowed(event.user);
 				}
 				if (event.type === 'gift') {
 					// Read-only: feed the synthesized-celebration arbiter the gift's
