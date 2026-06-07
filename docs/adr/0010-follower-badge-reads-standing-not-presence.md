@@ -1,6 +1,6 @@
 # 0010 — The Follower Badge reads standing, not presence
 
-**Status:** Accepted
+**Status:** Accepted — *visual rationale amended 2026-06-07 (see Amendment); merge behaviour extended by ADR-0011*
 
 ## Context
 
@@ -33,3 +33,13 @@ So the rule generalizes cleanly: **a standing-relationship annotation may ride o
 - **Confine follow-standing to the Like Layer** (no card badge) — keeps loyalty signalling on one surface, but conflates standing with presence and loses follow status for viewers who chat or gift without liking. Rejected: standing and presence are different questions the user wants answered at a glance.
 - **Build the friend tier** (amber tint/ring/star for `followStatus === 2`) — prototyped, then cut. The mutual-vs-following distinction is noise for the badge's purpose (spotting followers in a scroll) and dilutes the pre-attentive pop. Rejected.
 - **Ship the "just followed" one-shot in v1** — rejected per the Consequences above: no verified transition event to trigger it.
+
+## Amendment (2026-06-07) — the glow was *not* load-bearing; color-block contrast is
+
+The Consequences above claim *"the silence is load-bearing — it is what lets followers pop pre-attentively in a fast scroll,"* and the badge shipped as a **green-glass thumbs-up jewel** (translucent radial fill + border + a three-layer glow `box-shadow` + backdrop-blur + inset highlights). After real use this proved **too distracting while reading the feed** — the bloom drew the eye constantly, not just during a scroll.
+
+Revised: the pre-attentive pop comes from **color-block contrast** (hue + the white thumb glyph against the avatar), **not** from glow. The badge is now a **flat translucent blue disc** (hue 212): glow **off**, border **off**, inset highlight **off**, backdrop-blur **0**. The "green-glass / glassmorphic jewel" framing is retired.
+
+The **"just followed" one-shot (#91)** — which did ship despite being scoped out above — keeps its **pop-in scale** (`jf-pop`) but **loses its glow pulse** (`jf-glow` is deleted), since there is no longer a glow to pulse. A live follow snaps the badge in; it never blooms or throbs.
+
+This amendment changes only the badge's *appearance and motion*, not its *meaning*: it still reads standing, still binary, still silent for non-followers (ADR-0010's thesis stands). The visual values were tuned in a throwaway prototype before being applied.
