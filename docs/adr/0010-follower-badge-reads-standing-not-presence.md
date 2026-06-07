@@ -1,6 +1,6 @@
 # 0010 — The Follower Badge reads standing, not presence
 
-**Status:** Accepted — *visual rationale amended 2026-06-07 (see Amendment); merge behaviour extended by ADR-0011*
+**Status:** Accepted — *visual rationale amended 2026-06-07 (see Amendment); confined to chat cards 2026-06-07 (see Amendment 2); merge behaviour extended by ADR-0011*
 
 ## Context
 
@@ -43,3 +43,11 @@ Revised: the pre-attentive pop comes from **color-block contrast** (hue + the wh
 The **"just followed" one-shot (#91)** — which did ship despite being scoped out above — keeps its **pop-in scale** (`jf-pop`) but **loses its glow pulse** (`jf-glow` is deleted), since there is no longer a glow to pulse. A live follow snaps the badge in; it never blooms or throbs.
 
 This amendment changes only the badge's *appearance and motion*, not its *meaning*: it still reads standing, still binary, still silent for non-followers (ADR-0010's thesis stands). The visual values were tuned in a throwaway prototype before being applied.
+
+## Amendment 2 (2026-06-07) — the badge is confined to chat cards
+
+The Context and Decision above motivate the Follower Badge with the **GiftEventCard** avatar as the central example — *"a reviewer… will see a follower marker on a **GiftEventCard** avatar and ask whether it leaks giver identity"* — and conclude the badge is **consistent** there because it self-carries and the card already owns the identity. That conclusion about *correctness* stands. But in practice the badge is **no longer rendered on a GiftEventCard avatar at all.**
+
+The compact (~30px) gift avatar sits immediately beside the gift image and the one-line gift sentence; any badge tucked against it read as crowded. So the standing-badge slot is now a **ChatEventCard surface only** — a chat card shows the Follower Badge (or the Heart Me badge that supersedes it, ADR-0011), and a **gift card shows neither**. The gift card opts out of the slot entirely (`standingBadge={false}` on its `Avatar`).
+
+This is a **layout decision, not a reversal of the thesis**: where the badge *does* render (chat cards) it still reads standing, still binary, still silent for non-followers, still self-carries. We are not saying the badge was wrong on a gift card — only that the compact gift avatar has no room for it, and a gift card's job is the *gift*, with the giver's standing left to their chat lines and the Like Layer. The ADR-0008 identity-contract argument is unaffected: dropping an annotation never risks leaking identity.

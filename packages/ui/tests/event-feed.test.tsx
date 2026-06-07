@@ -134,10 +134,12 @@ describe('Follower Badge', () => {
 		expect(html).not.toContain('Follows the streamer');
 	});
 
-	it('renders the badge on a 30px gift avatar', () => {
+	it('never renders the Follower Badge on a gift avatar, even for a follower (ADR-0010 amendment)', () => {
 		const html = renderToString(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2, 1)} />);
 
-		expect(html).toContain('Follows the streamer');
+		// A gift card opts out of the standing-badge slot entirely - the compact
+		// gift avatar carries no Follower Badge even though followStatus is 1.
+		expect(html).not.toContain('Follows the streamer');
 	});
 });
 
@@ -321,6 +323,21 @@ describe('GiftEventCard', () => {
 		expect(unwrappedGiftImage.nextElementSibling).toBeNull();
 
 		unmount();
+	});
+
+	it('carries no standing badge at all - neither Heart Me nor Follower (ADR-0010 + ADR-0011 amendments)', () => {
+		// The same viewer is a follower AND has sent Heart Me this session. On a chat
+		// card one of those badges would claim the top-left slot; a gift card opts out
+		// of the slot entirely, so neither shows.
+		const html = renderToString(
+			<FeedEventCard
+				event={giftEvent('gift-1', 20, 'Rose', 1, 2, 1)}
+				userGiftEventsByUser={new Map([['user-1', [giftEvent('heart-1', 10, 'Heart Me', 1, 1)]]])}
+			/>,
+		);
+
+		expect(html).not.toContain('Heart Me badge');
+		expect(html).not.toContain('Follows the streamer');
 	});
 });
 

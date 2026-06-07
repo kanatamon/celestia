@@ -43,7 +43,6 @@ export interface ChatEventCardProps {
 
 export interface GiftEventCardProps {
 	event: GiftLiveEvent;
-	userGiftEvents?: GiftLiveEvent[];
 }
 
 export interface EventFeedProps {
@@ -378,15 +377,14 @@ function ChatBubbleTail() {
 	);
 }
 
-export function GiftEventCard({ event, userGiftEvents = [] }: GiftEventCardProps) {
-	const heartMeGift = userGiftEvents.find((gift) => gift.giftName === HEART_ME_GIFT_NAME);
+export function GiftEventCard({ event }: GiftEventCardProps) {
 	const repeatCount = toPositiveRepeatCount(event.repeatCount);
 	const giftName = event.giftName ?? DEFAULT_GIFT_NAME;
 	const giftDiamondTooltip = formatGiftDiamondTooltip(event.diamondCount, repeatCount);
 
 	return (
 		<article className={styles.giftEvent}>
-			<Avatar user={event.user} badgeGift={heartMeGift} />
+			<Avatar user={event.user} standingBadge={false} />
 			<span className={styles.giftSentence}>
 				<span className={styles.giftSenderName}>{toDisplayName(event.user)}</span>
 				<span className={styles.giftConnector}> sent a </span>
@@ -695,7 +693,9 @@ export function FeedEventCard({ event, userGiftEventsByUser }: FeedEventCardProp
 		case 'chat':
 			return <ChatEventCard event={event} userGiftEvents={userGiftEvents} />;
 		case 'gift':
-			return <GiftEventCard event={event} userGiftEvents={userGiftEvents} />;
+			// The Heart Me badge is not surfaced on a gift card (ADR-0011 amendment),
+			// so a gift card needs no per-user gift history.
+			return <GiftEventCard event={event} />;
 	}
 }
 
@@ -752,7 +752,15 @@ function GiftChip({ gift }: { gift: GiftChipViewModel }) {
 	);
 }
 
-function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEvent }) {
+function Avatar({
+	user,
+	badgeGift,
+	standingBadge = true,
+}: {
+	user?: UserInfo;
+	badgeGift?: GiftLiveEvent;
+	standingBadge?: boolean;
+}) {
 	return (
 		<span className={styles.avatarWrap}>
 			{user?.avatarUrl ? (
@@ -760,12 +768,16 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 			) : (
 				<span className={styles.avatarFallback}>{toInitials(toDisplayName(user))}</span>
 			)}
-			{/* One shared top-left slot (ADR-0011): the Heart Me badge wins it and
-			    suppresses the Follower Badge. A Heart Me gift is a trusted superset
-			    of follower standing, so `followStatus` is deliberately not re-checked.
-			    The Follower Badge owns the "just followed" pop (#91); a static Heart Me
+			{/* The shared top-left standing-badge slot is a chat-card surface only
+			    (ADR-0010, ADR-0011 amendment). A gift card already speaks to the gift,
+			    not the giver's standing, so it opts out of the slot entirely
+			    (`standingBadge={false}`) and shows neither the Heart Me nor the
+			    Follower Badge. On a chat card the Heart Me badge wins the slot and
+			    suppresses the Follower Badge: a Heart Me gift is a trusted superset of
+			    follower standing, so `followStatus` is deliberately not re-checked. The
+			    Follower Badge owns the "just followed" pop (#91); a static Heart Me
 			    image never mounts it, so the pop cannot fire when Heart Me is shown. */}
-			{badgeGift ? (
+			{!standingBadge ? null : badgeGift ? (
 				<img
 					className={styles.heartBadge}
 					src={badgeGift.giftImageUrl}

@@ -316,9 +316,9 @@
 .heartBadge {
 	position: absolute;
 	top: -4px;
-	left: -4px;
-	width: 18px;
-	height: 18px;
+	left: -8px;
+	width: 24px;
+	height: 24px;
 	object-fit: contain;
 }
 
@@ -339,7 +339,6 @@
    glow: no outer glow, border, inset highlight, or backdrop-blur remain. */
 .followBadge {
 	--celestia-follow-size: 18px;
-	--celestia-follow-offset: -4px;
 	--celestia-follow-fill: radial-gradient(
 		circle at 34% 28%,
 		hsla(212, 100%, 82%, 0.6) 0%,
@@ -349,8 +348,8 @@
 	--celestia-follow-icon: hsl(212 100% 88%);
 	--celestia-follow-icon-shadow: hsla(212, 90%, 55%, 0.85);
 	position: absolute;
-	top: var(--celestia-follow-offset);
-	left: var(--celestia-follow-offset);
+	top: -2px;
+	left: -8px;
 	width: var(--celestia-follow-size);
 	height: var(--celestia-follow-size);
 	border-radius: 50%;
@@ -360,11 +359,6 @@
 	z-index: 6;
 	background: var(--celestia-follow-fill);
 	pointer-events: none;
-}
-
-.giftEvent .followBadge {
-	--celestia-follow-size: 15px;
-	--celestia-follow-offset: -3px;
 }
 
 /* "Just followed" one-shot (#91) - pops the disc in once on a live follow
@@ -380,10 +374,12 @@
 		transform: scale(0) rotate(-25deg);
 		opacity: 0;
 	}
+
 	60% {
 		transform: scale(1.18) rotate(4deg);
 		opacity: 1;
 	}
+
 	100% {
 		transform: scale(1) rotate(0);
 		opacity: 1;

@@ -1,6 +1,6 @@
 # 0011 — The Heart Me badge supersedes the Follower Badge in a shared slot
 
-**Status:** Accepted
+**Status:** Accepted — *scope narrowed to chat cards 2026-06-07 (see Amendment)*
 
 ## Context
 
@@ -32,3 +32,11 @@ slot = heartMe ? <HeartMeBadge/> : isFollower ? <FollowerBadge/> : null
 - **Keep both badges on opposite corners (the ADR-0010 status quo)** — rejected: clutter on a small avatar, and logically redundant since a Heart Me sender is already a follower.
 - **Gate Heart Me on `followStatus`** (show it only if `followStatus >= 1`) — rejected: `followStatus` can be stale or undefined, and a present Heart Me gift is *stronger* evidence of standing than the status field. Gating would suppress a real signal to honour a weaker one.
 - **Show the Follower Badge instead when both apply** — rejected: Heart Me is the more specific, more recent, more deliberate signal; demoting it to the generic follower mark loses information.
+
+## Amendment (2026-06-07) — the Heart Me badge is scoped to chat cards
+
+The Decision above places the shared top-left slot on "a feed avatar" generally, and the final Consequence asserts the Heart Me badge annotates a card identity *"exactly as the Follower Badge does"* — implying it rides both the **ChatEventCard** and the **GiftEventCard** avatar.
+
+In practice it only rides the **ChatEventCard**. On a **GiftEventCard** the badge sits on the compact ~30px avatar immediately beside the gift image and the one-line gift sentence; a gift-icon badge tucked against another gift read as crowded and visually ambiguous. So the Heart Me badge is now surfaced on the **ChatEventCard avatar only**. On a **GiftEventCard** the entire standing-badge slot is suppressed — **neither the Heart Me badge nor the Follower Badge renders** (ADR-0010 Amendment 2 drops the Follower Badge from gift cards for the same space reason). The gift card opts out of the slot via `standingBadge={false}` on its `Avatar`.
+
+This is a **layout choice, not a semantic one**: the supersession rule is unchanged where it still applies — on a chat card a present Heart Me gift still wins the shared slot and suppresses the Follower Badge, still without re-checking `followStatus`. The standing-badge slot as a whole is simply a **chat-card surface**; a gift card speaks to the gift, not the giver's standing.
