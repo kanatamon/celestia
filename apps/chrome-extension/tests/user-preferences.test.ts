@@ -55,17 +55,17 @@ describe('user preferences store', () => {
 		const storageArea = new FakeChromeLocalStorageArea();
 		const preferences = createUserPreferencesStore(storageArea);
 
-		// 10 → nearest tier is 1.
+		// 10 → nearest tier is 30.
 		await preferences.setCelebrationThreshold(10);
-		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(1);
-		await expect(preferences.getCelebrationThreshold()).resolves.toBe(1);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(30);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(30);
 
-		// 999999 → nearest tier is 999.
+		// 999999 → nearest tier is 899.
 		await preferences.setCelebrationThreshold(999999);
-		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(999);
-		await expect(preferences.getCelebrationThreshold()).resolves.toBe(999);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(899);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(899);
 
-		// 123.7 → rounds then snaps to nearest tier; 124 is nearest to 99 (|124-99|=25 vs |124-299|=175).
+		// 123.7 → rounds then snaps to nearest tier; 124 is nearest to 99 (|124-99|=25 vs |124-199|=75).
 		await preferences.setCelebrationThreshold(123.7);
 		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(99);
 
@@ -73,9 +73,9 @@ describe('user preferences store', () => {
 		storageArea.values.set('celebration.diamondThreshold', 'not-a-number');
 		await expect(preferences.getCelebrationThreshold()).resolves.toBe(99);
 
-		// 5 → nearest tier is 1.
+		// 5 → nearest tier is 30.
 		storageArea.values.set('celebration.diamondThreshold', 5);
-		await expect(preferences.getCelebrationThreshold()).resolves.toBe(1);
+		await expect(preferences.getCelebrationThreshold()).resolves.toBe(30);
 	});
 
 	it('hydrates Celebration Settings storage from preferences and persists threshold updates', async () => {
@@ -89,12 +89,12 @@ describe('user preferences store', () => {
 		// Hydrated synchronously from the persisted preference (snapped to 299).
 		expect(celebrationStorage.getThreshold()).toBe(299);
 
-		// 500 → snapped to 299 (|500-299|=201 vs |500-999|=499).
+		// 500 → snapped to 499 (|500-499|=1 vs |500-299|=201).
 		await celebrationStorage.setThreshold(500);
 
 		// The cache updates immediately (so the live trigger sees it) and persists.
-		expect(celebrationStorage.getThreshold()).toBe(299);
-		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(299);
+		expect(celebrationStorage.getThreshold()).toBe(499);
+		expect(storageArea.values.get('celebration.diamondThreshold')).toBe(499);
 	});
 
 	it('defaults Celebration Settings storage to 99 when the preference is unset', async () => {
