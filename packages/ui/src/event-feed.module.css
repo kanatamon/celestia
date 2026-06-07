@@ -318,27 +318,24 @@
 	filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
 }
 
-/* Follower Badge — green-glass thumbs-up jewel, TOP-LEFT, glassmorphic.
+/* Follower Badge — flat translucent blue disc, TOP-LEFT, white thumbs-up glyph.
    Pure absolutely-positioned overlay inside .avatarWrap: zero layout impact,
    and the top-right corner stays reserved for the Heart Me badge.
    Sizing is token-driven so it scales to the 30px gift avatar with no
-   inline overrides. Ported from prototype-follower-avatar-symbol-v2.html;
-   the friend tier and the "just followed" one-shot were explicitly cut. */
+   inline overrides. Per the ADR-0010 amendment (2026-06-07) the green-glass
+   bloom came off — the pop now comes from color-block contrast (hue 212), not
+   glow: no outer glow, border, inset highlight, or backdrop-blur remain. */
 .followBadge {
 	--celestia-follow-size: 18px;
 	--celestia-follow-offset: -4px;
 	--celestia-follow-fill: radial-gradient(
 		circle at 34% 28%,
-		rgba(160, 255, 196, 0.55) 0%,
-		rgba(34, 197, 110, 0.34) 52%,
-		rgba(16, 150, 80, 0.24) 100%
+		hsla(212, 100%, 82%, 0.6) 0%,
+		hsla(212, 85%, 55%, 0.4) 52%,
+		hsla(212, 85%, 42%, 0.3) 100%
 	);
-	--celestia-follow-border: rgba(168, 255, 196, 0.58);
-	--celestia-follow-glow-1: rgba(34, 197, 110, 0.3);
-	--celestia-follow-glow-2: rgba(42, 212, 122, 0.55);
-	--celestia-follow-glow-3: rgba(24, 180, 90, 0.24);
-	--celestia-follow-icon: rgba(236, 255, 242, 0.96);
-	--celestia-follow-icon-shadow: rgba(46, 224, 120, 0.85);
+	--celestia-follow-icon: hsl(212 100% 88%);
+	--celestia-follow-icon-shadow: hsla(212, 90%, 55%, 0.85);
 	position: absolute;
 	top: var(--celestia-follow-offset);
 	left: var(--celestia-follow-offset);
@@ -350,15 +347,6 @@
 	justify-content: center;
 	z-index: 6;
 	background: var(--celestia-follow-fill);
-	backdrop-filter: blur(5px) saturate(1.5);
-	-webkit-backdrop-filter: blur(5px) saturate(1.5);
-	border: 1px solid var(--celestia-follow-border);
-	box-shadow:
-		0 0 0 1.4px var(--celestia-follow-glow-1),
-		0 0 7px 2px var(--celestia-follow-glow-2),
-		0 0 13px 4px var(--celestia-follow-glow-3),
-		inset 0 1px 2px rgba(230, 255, 238, 0.42),
-		inset 0 -1px 2px rgba(0, 70, 30, 0.3);
 	pointer-events: none;
 }
 
@@ -367,15 +355,12 @@
 	--celestia-follow-offset: -3px;
 }
 
-/* "Just followed" one-shot (#91) - pops the jewel in and pulses the green glow
-   once on a live follow transition, distinct from the static standing badge.
-   Ported from prototype-follower-avatar-symbol-v2.html, using the production
-   --celestia-follow-glow-* tokens. `both` holds the final frame, which equals
-   the static .followBadge box-shadow, so the badge settles cleanly. */
+/* "Just followed" one-shot (#91) - pops the disc in once on a live follow
+   transition, distinct from the static standing badge. The glow pulse was
+   deleted per the ADR-0010 amendment: a live follow snaps the badge in, it
+   never blooms or throbs. */
 .followBadge.justFollowed {
-	animation:
-		jf-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
-		jf-glow 1.15s 0.28s ease-in-out both;
+	animation: jf-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes jf-pop {
@@ -390,33 +375,6 @@
 	100% {
 		transform: scale(1) rotate(0);
 		opacity: 1;
-	}
-}
-
-@keyframes jf-glow {
-	0% {
-		box-shadow:
-			0 0 0 1.4px var(--celestia-follow-glow-1),
-			0 0 8px 3px var(--celestia-follow-glow-2),
-			0 0 13px 4px var(--celestia-follow-glow-3),
-			inset 0 1px 2px rgba(230, 255, 238, 0.42),
-			inset 0 -1px 2px rgba(0, 70, 30, 0.3);
-	}
-	55% {
-		box-shadow:
-			0 0 0 1.4px var(--celestia-follow-glow-1),
-			0 0 20px 8px var(--celestia-follow-glow-2),
-			0 0 30px 11px var(--celestia-follow-glow-3),
-			inset 0 1px 2px rgba(230, 255, 238, 0.42),
-			inset 0 -1px 2px rgba(0, 70, 30, 0.3);
-	}
-	100% {
-		box-shadow:
-			0 0 0 1.4px var(--celestia-follow-glow-1),
-			0 0 7px 2px var(--celestia-follow-glow-2),
-			0 0 13px 4px var(--celestia-follow-glow-3),
-			inset 0 1px 2px rgba(230, 255, 238, 0.42),
-			inset 0 -1px 2px rgba(0, 70, 30, 0.3);
 	}
 }
 

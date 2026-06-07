@@ -18,16 +18,16 @@ import { useSyncExternalStore } from 'react';
  *    with it the badge appears instantly on every avatar already in the feed.
  *    (Consistent with ADR-0010: the badge reads standing, not "were they
  *    following when this message was sent".)
- *  - **pulsing** (transient ~1.5s window): drives the pop + glow one-shot so the
+ *  - **pulsing** (transient ~1.5s window): drives the pop-in one-shot so the
  *    user notices the moment it happens, on every avatar of that viewer.
  *
  * Module-level singleton because each Session Tab is its own page/JS realm -
  * one feed per realm — and this is ephemeral session state (never persisted).
  */
 
-// Total length of the `.justFollowed` animation: jf-pop (0.5s) plus jf-glow
-// (0.28s delay + 1.15s) is about 1.43s. The pulse stays armed a hair longer so an
-// avatar rendered at the tail of the window still plays the full one-shot.
+// The `.justFollowed` animation is the jf-pop one-shot (0.5s). The pulse stays
+// armed well past it so an avatar rendered at the tail of the follow window still
+// plays the full pop-in.
 const FOLLOW_PULSE_MS = 1500;
 
 const followedKeys = new Set<string>();
@@ -84,7 +84,7 @@ function subscribe(listener: () => void): () => void {
 export interface FollowerPulseState {
 	/** Session-elevated standing from a decoded follow (sticky). */
 	followed: boolean;
-	/** Inside the transient pop + glow window (one-shot). */
+	/** Inside the transient pop-in window (one-shot). */
 	justFollowed: boolean;
 }
 

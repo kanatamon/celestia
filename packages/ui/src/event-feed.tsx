@@ -776,7 +776,7 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 function FollowerBadge({ user }: { user?: UserInfo }) {
 	// The "just followed" one-shot (#91). A decoded follow transition both
 	// elevates the viewer's standing (`followed`, sticky for the session) and
-	// arms the pop + glow (`justFollowed`, transient). Elevating standing means
+	// arms the pop-in (`justFollowed`, transient — no glow). Elevating standing means
 	// the badge appears on every avatar of that viewer already in the feed - not
 	// only on their next message - so the follow is noticed instantly. Hook runs
 	// unconditionally (rules of hooks) before the non-follower early-return.
