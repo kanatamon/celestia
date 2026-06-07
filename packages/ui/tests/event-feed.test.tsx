@@ -134,7 +134,15 @@ describe('Follower Badge', () => {
 		expect(html).not.toContain('Follows the streamer');
 	});
 
-	it('coexists with the top-right Heart Me badge on the same avatar', () => {
+	it('renders the badge on a 30px gift avatar', () => {
+		const html = renderToString(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2, 1)} />);
+
+		expect(html).toContain('Follows the streamer');
+	});
+});
+
+describe('Top-left badge slot (Heart Me supersedes Follower, ADR-0011)', () => {
+	it('shows only the Heart Me badge when a Heart Me gift is present - Follower Badge is suppressed', () => {
 		const html = renderToString(
 			<ChatEventCard
 				event={chatEvent('chat-1', 40, 'hi', 1)}
@@ -142,14 +150,34 @@ describe('Follower Badge', () => {
 			/>,
 		);
 
-		expect(html).toContain('Follows the streamer');
 		expect(html).toContain('Heart Me badge');
+		expect(html).not.toContain('Follows the streamer');
 	});
 
-	it('renders the badge on a 30px gift avatar', () => {
-		const html = renderToString(<GiftEventCard event={giftEvent('gift-1', 20, 'Rose', 1, 2, 1)} />);
+	it('shows the Follower Badge for a plain follower with no Heart Me gift', () => {
+		const html = renderToString(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 1)} />);
 
 		expect(html).toContain('Follows the streamer');
+		expect(html).not.toContain('Heart Me badge');
+	});
+
+	it('renders no badge DOM node for a non-follower with no Heart Me gift', () => {
+		const html = renderToString(<ChatEventCard event={chatEvent('chat-1', 40, 'hi', 0)} />);
+
+		expect(html).not.toContain('Follows the streamer');
+		expect(html).not.toContain('Heart Me badge');
+	});
+
+	it('shows the Heart Me badge even when followStatus is absent - a Heart Me gift alone suffices', () => {
+		const html = renderToString(
+			<ChatEventCard
+				event={chatEvent('chat-1', 40, 'hi')}
+				userGiftEvents={[giftEvent('heart-1', 10, 'Heart Me', 1, 1)]}
+			/>,
+		);
+
+		expect(html).toContain('Heart Me badge');
+		expect(html).not.toContain('Follows the streamer');
 	});
 });
 
@@ -219,6 +247,30 @@ describe('Follower Badge "just followed" one-shot (#91)', () => {
 		});
 		expect(badge()).not.toBeNull();
 		expect(badge()?.className ?? '').not.toContain('justFollowed');
+
+		unmount();
+	});
+
+	it('does not fire the pop when the Heart Me badge occupies the slot', () => {
+		vi.useFakeTimers();
+		const { container, render, unmount } = createStrictRoot();
+		// A Heart Me gift claims the top-left slot, so the Follower Badge (and its
+		// one-shot) never mounts.
+		render(
+			<ChatEventCard
+				event={chatEvent('chat-1', 40, 'hi', 1)}
+				userGiftEvents={[giftEvent('heart-1', 10, 'Heart Me', 1, 1)]}
+			/>,
+		);
+
+		expect(container.querySelector('[aria-label="Follows the streamer"]')).toBeNull();
+
+		// A follow transition for this viewer cannot pop a badge that isn't there.
+		act(() => {
+			markJustFollowed({ userId: 'user-1' });
+		});
+		expect(container.querySelector('.justFollowed')).toBeNull();
+		expect(container.innerHTML).toContain('Heart Me badge');
 
 		unmount();
 	});

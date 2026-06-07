@@ -308,19 +308,31 @@
 	font-weight: 800;
 }
 
+/* Heart Me badge — shares the Follower Badge's TOP-LEFT slot and wins it
+   (ADR-0011). Mirrors the Follower Badge offset/size exactly so the two are
+   interchangeable in one slot: top+left only (no `right`), 18px on the chat
+   avatar / 15px on the gift avatar. No drop-shadow — calm at rest, consistent
+   with the post-bloom Follower Badge. */
 .heartBadge {
 	position: absolute;
 	top: -4px;
-	right: -4px;
-	width: 24px;
-	height: 24px;
+	left: -4px;
+	width: 18px;
+	height: 18px;
 	object-fit: contain;
-	filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+}
+
+.giftEvent .heartBadge {
+	top: -3px;
+	left: -3px;
+	width: 15px;
+	height: 15px;
 }
 
 /* Follower Badge — flat translucent blue disc, TOP-LEFT, white thumbs-up glyph.
-   Pure absolutely-positioned overlay inside .avatarWrap: zero layout impact,
-   and the top-right corner stays reserved for the Heart Me badge.
+   Pure absolutely-positioned overlay inside .avatarWrap: zero layout impact.
+   It shares the top-left slot with the Heart Me badge (ADR-0011), which wins it
+   when present; only one ever renders, so they never overlap.
    Sizing is token-driven so it scales to the 30px gift avatar with no
    inline overrides. Per the ADR-0010 amendment (2026-06-07) the green-glass
    bloom came off — the pop now comes from color-block contrast (hue 212), not

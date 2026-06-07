@@ -760,7 +760,11 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 			) : (
 				<span className={styles.avatarFallback}>{toInitials(toDisplayName(user))}</span>
 			)}
-			<FollowerBadge user={user} />
+			{/* One shared top-left slot (ADR-0011): the Heart Me badge wins it and
+			    suppresses the Follower Badge. A Heart Me gift is a trusted superset
+			    of follower standing, so `followStatus` is deliberately not re-checked.
+			    The Follower Badge owns the "just followed" pop (#91); a static Heart Me
+			    image never mounts it, so the pop cannot fire when Heart Me is shown. */}
 			{badgeGift ? (
 				<img
 					className={styles.heartBadge}
@@ -768,7 +772,9 @@ function Avatar({ user, badgeGift }: { user?: UserInfo; badgeGift?: GiftLiveEven
 					alt="Heart Me badge"
 					title="Heart Me badge"
 				/>
-			) : null}
+			) : (
+				<FollowerBadge user={user} />
+			)}
 		</span>
 	);
 }
