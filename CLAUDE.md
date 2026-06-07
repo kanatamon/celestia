@@ -25,3 +25,7 @@ Triage uses the default five-label vocabulary. See `docs/agents/triage-labels.md
 ### Domain docs
 
 This is a single-context repo with root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+### Release
+
+Cutting a new extension release (assess → propose version + notes → build → zip → tag → GitHub release; Chrome Web Store upload stays manual). See `docs/agents/release.md`.
